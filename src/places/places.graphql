@@ -1,0 +1,55 @@
+type Place {
+    id: ID!
+    name: String!
+    country: String!
+    city: String!
+    latitude: Float!
+    longitude: Float!
+    categories: [String]
+    address: String!
+}
+
+type Query {
+    places: [Place!]!
+}
+
+# {
+#   "type": "FeatureCollection",
+#   "features": [
+#     {
+#       "type": "Feature",
+#       "properties": {
+#         "name": "Зелёный театр",
+#         "country": "Russia",
+#         "country_code": "ru",
+#         "region": "Southern Federal District",
+#         "state": "Sevastopol",
+#         "city": "Sevastopol",
+#         "district": "Gagarinsky Municipal District",
+#         "suburb": "Бухта Омега",
+#         "street": "Античный проспект",
+#         "lon": 33.43842196532021,
+#         "lat": 44.5997299,
+#         "formatted": "Зелёный театр, Античный проспект, Бухта Омега, Sevastopol, Russia",
+#         "address_line1": "Зелёный театр",
+#         "address_line2": "Античный проспект, Бухта Омега, Sevastopol, Russia",
+#         "categories": [
+#           "building",
+#           "building.entertainment",
+#           "entertainment",
+#           "entertainment.culture",
+#           "entertainment.culture.theatre"
+#         ],
+#         "distance": 4144,
+#         "place_id": "51fe7201361eb84040592a8b0af3c34c4640f00102f901333ec30f00000000920319d097d0b5d0bbd191d0bdd18bd0b920d182d0b5d0b0d182d180"
+#       },
+#       "geometry": {
+#         "type": "Point",
+#         "coordinates": [
+#           33.43842196532022,
+#           44.59972990050149
+#         ]
+#       }
+#     }
+#   ]
+# }
