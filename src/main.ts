@@ -1,13 +1,19 @@
 import { NestFactory } from '@nestjs/core'
+import {
+    FastifyAdapter,
+    NestFastifyApplication,
+} from '@nestjs/platform-fastify'
+
 import { AppModule } from './app.module'
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule)
+    const app = await NestFactory.create<NestFastifyApplication>(
+        AppModule,
+        new FastifyAdapter(),
+    )
+
     const PORT = process.env.PORT || 3000
-    await app.listen(PORT, () => {
-        console.log(
-            `Backend is running in ${process.env.NODE_ENV} mode. On Port: ${PORT}`,
-        )
-    })
+    const HOST = process.env.HOST || '0.0.0.0'
+    await app.listen(PORT, HOST)
 }
 bootstrap()
