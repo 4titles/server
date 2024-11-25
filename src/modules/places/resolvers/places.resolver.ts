@@ -1,5 +1,5 @@
 import { Resolver, Query } from '@nestjs/graphql'
-import { PlacesService } from './places.service'
+import { PlacesService } from '../services/places.service'
 
 @Resolver('Place')
 export class PlacesResolver {
