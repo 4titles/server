@@ -59,4 +59,13 @@ export class CacheService implements OnModuleInit {
             expirationSeconds,
         )
     }
+
+    async del(key: string): Promise<void> {
+        try {
+            await this.redis.del(key)
+            this.logger.log(`Cache with key '${key}' has been deleted.`)
+        } catch (err) {
+            this.logger.error(`Failed to delete cache with key '${key}':`, err)
+        }
+    }
 }
