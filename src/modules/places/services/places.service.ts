@@ -6,7 +6,7 @@ import { IPlace } from '../interfaces/place.interface'
 @Injectable()
 export class PlacesService {
     private readonly CACHE_KEY = 'sevastopol_cultural_places'
-    private readonly CACHE_TTL = 3600 * 24 // 1 day
+    private readonly CACHE_TTL = 3600 * 24 * 30 // 1 month
 
     constructor(
         private readonly cacheService: CacheService,
