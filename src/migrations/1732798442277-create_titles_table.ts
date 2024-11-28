@@ -38,7 +38,6 @@ export class CreateTitlesTable1732798442277 implements MigrationInterface {
                         type: 'integer',
                         isNullable: true,
                         unsigned: true,
-                        isUnique: true,
                     },
                     {
                         name: 'image',
@@ -68,7 +67,7 @@ export class CreateTitlesTable1732798442277 implements MigrationInterface {
                     },
                     {
                         name: 'year',
-                        type: 'integer',
+                        type: 'varchar',
                         isNullable: true,
                         unsigned: true,
                     },
