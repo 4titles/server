@@ -3,9 +3,10 @@ import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo'
 import { join } from 'path'
 import { PlacesModule } from './modules/places/places.module'
-import { ConfigModule } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 import geoapifyConfig from './config/geoapify.config'
 import redisConfig from './config/redis.config'
+import { TypeOrmModule } from '@nestjs/typeorm'
 
 @Module({
     imports: [
@@ -20,6 +21,11 @@ import redisConfig from './config/redis.config'
                 path: join(process.cwd(), 'src/graphql.ts'),
             },
             playground: true,
+        }),
+        TypeOrmModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: async (configService: ConfigService) =>
+                configService.get('typeorm'),
         }),
         PlacesModule,
     ],
