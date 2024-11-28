@@ -41,7 +41,6 @@ export class GeoapifyService {
     private buildQueryParams(
         filters?: PlaceFiltersDto,
     ): Record<string, string> {
-        this.logger.debug(filters)
         const config = this.configService.get('geoapify')
         if (!config) {
             throw new Error('Geoapify configuration is not loaded')
