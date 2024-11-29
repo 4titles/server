@@ -13,7 +13,7 @@ export class TitlesResolver {
         @Args('type', { type: () => TitleType, nullable: true })
         type?: TitleType,
     ): Promise<Title[]> {
-        return this.titlesService.findTitles(type)
+        return this.titlesService.findTitles(TitleType[type])
     }
 
     @Query(() => [Title])
