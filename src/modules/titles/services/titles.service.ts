@@ -26,7 +26,14 @@ export class TitlesService {
         if (cachedData) return cachedData
 
         const dbQuery = type ? { where: { type } } : {}
-        return await this.titlesRepository.find(dbQuery)
+
+        try {
+            const titlesFromDb = await this.titlesRepository.find(dbQuery)
+            await this.cacheService.set(cacheKey, titlesFromDb, this.CACHE_TTL)
+            return titlesFromDb
+        } catch {
+            return []
+        }
     }
 
     async findByImdbId(imdbIds: string[]): Promise<Title[]> {
