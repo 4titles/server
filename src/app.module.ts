@@ -1,4 +1,3 @@
-import { ImdbTop100Module } from './modules/imdb-top100/imdb-top100.module'
 import { Module } from '@nestjs/common'
 import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo'
@@ -8,14 +7,15 @@ import redisConfig from './config/redis.config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import typeormConfig from './config/typeorm.config'
 import { TitlesModule } from './modules/titles/titles.module'
-import imdbTop100Config from './config/imdb-top100.config'
 import { CacheModule } from './modules/cache/cache.module'
+import { IMDBModule } from './modules/imdb/imdb.module'
+import imdbConfig from './modules/imdb/config/imdb.config'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [redisConfig, typeormConfig, imdbTop100Config],
+            load: [redisConfig, typeormConfig, imdbConfig],
         }),
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
@@ -31,7 +31,7 @@ import { CacheModule } from './modules/cache/cache.module'
                 configService.get('typeorm'),
         }),
         TitlesModule,
-        ImdbTop100Module,
+        IMDBModule,
         CacheModule,
     ],
 })

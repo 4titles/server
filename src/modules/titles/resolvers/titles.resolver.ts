@@ -8,23 +8,23 @@ export class TitlesResolver {
     private readonly logger = new Logger(TitlesResolver.name)
     constructor(private readonly titlesService: TitlesService) {}
 
-    @Query(() => [Title])
-    async titles(
-        @Args('type', { type: () => TitleType, nullable: true })
-        type?: TitleType,
-    ): Promise<Title[]> {
-        return this.titlesService.findTitles(TitleType[type])
-    }
+    // @Query(() => [Title])
+    // async titles(
+    //     @Args('type', { type: () => TitleType, nullable: true })
+    //     type?: TitleType,
+    // ): Promise<Title[]> {
+    //     return this.titlesService.findTitles(TitleType[type])
+    // }
 
-    @Query(() => [Title])
-    async movies(): Promise<Title[]> {
-        return this.titlesService.findTitles(TitleType.MOVIE)
-    }
+    // @Query(() => [Title])
+    // async movies(): Promise<Title[]> {
+    //     return this.titlesService.findTitles(TitleType.MOVIE)
+    // }
 
-    @Query(() => [Title])
-    async tvSeries(): Promise<Title[]> {
-        return this.titlesService.findTitles(TitleType.TV_SERIES)
-    }
+    // @Query(() => [Title])
+    // async tvSeries(): Promise<Title[]> {
+    //     return this.titlesService.findTitles(TitleType.TV_SERIES)
+    // }
 
     @Mutation(() => Boolean)
     async refreshTitlesCache(): Promise<boolean> {
@@ -32,13 +32,8 @@ export class TitlesResolver {
             await this.titlesService.refreshCache()
             return true
         } catch (error) {
-            this.handleError(error)
+            this.logger.error('Failed to refresh titles cache', error)
             return false
         }
-    }
-
-    private handleError(error: any): Error {
-        this.logger.error('Error occured in TitlesResolver', error)
-        return new Error()
     }
 }

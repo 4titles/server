@@ -11,22 +11,27 @@ export interface ITypeORMConfig {
     autoLoadEntities: boolean
     synchronize: boolean
     retryAttempts: number
-    replication?: {
-        master: {
-            host: string
-            port: number
-            username: string
-            password: string
-            database: string
-        }
-        slaves: Array<{
-            host: string
-            port: number
-            username: string
-            password: string
-            database: string
-        }>
-    }
+    // replication?: {
+    //     master: {
+    //         host: string
+    //         port: number
+    //         username: string
+    //         password: string
+    //         database: string
+    //     }
+    //     slaves: Array<{
+    //         host: string
+    //         port: number
+    //         username: string
+    //         password: string
+    //         database: string
+    //     }>
+    // }
+    host: string
+    port: number
+    username: string
+    password: string
+    database: string
     logging: boolean
 }
 
@@ -35,27 +40,32 @@ const config: ITypeORMConfig = {
     entities: ['dist/**/*.entity{.ts,.js}'],
     migrations: ['dist/migrations/*{.ts,.js}'],
     autoLoadEntities: true,
-    synchronize: true,
+    synchronize: true, //@todo: change
     retryAttempts: 15,
-    replication: {
-        master: {
-            host: process.env.DB_HOST || 'postgres',
-            port: parseInt(process.env.DB_PORT || '5432', 10),
-            username: process.env.DB_USERNAME,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_DATABASE,
-        },
-        slaves: [
-            {
-                host: process.env.DB_SLAVE_HOST || 'postgres',
-                port: parseInt(process.env.DB_SLAVE_PORT || '5432', 10),
-                username: process.env.DB_SLAVE_USERNAME,
-                password: process.env.DB_SLAVE_PASSWORD,
-                database: process.env.DB_SLAVE_DATABASE,
-            },
-        ],
-    },
-    logging: true,
+    // replication: {
+    //     master: {
+    //         host: process.env.DB_HOST || 'postgres',
+    //         port: parseInt(process.env.DB_PORT || '5432', 10),
+    //         username: process.env.DB_USERNAME,
+    //         password: process.env.DB_PASSWORD,
+    //         database: process.env.DB_DATABASE,
+    //     },
+    //     slaves: [
+    //         {
+    //             host: process.env.DB_SLAVE_HOST || 'postgres',
+    //             port: parseInt(process.env.DB_SLAVE_PORT || '5432', 10),
+    //             username: process.env.DB_SLAVE_USERNAME,
+    //             password: process.env.DB_SLAVE_PASSWORD,
+    //             database: process.env.DB_SLAVE_DATABASE,
+    //         },
+    //     ],
+    // },
+    host: process.env.DB_HOST || 'postgres',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
+    logging: false,
 }
 
 export default registerAs('typeorm', (): ITypeORMConfig => config)
