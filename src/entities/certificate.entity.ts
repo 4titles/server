@@ -19,11 +19,15 @@ export class Certificate {
     @Column({ type: 'varchar', length: 20 })
     rating: string
 
-    @ManyToOne(() => Title, (title) => title.certificates)
+    @ManyToOne(() => Title, (title) => title.certificates, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'title_id' })
     title: Title
 
-    @ManyToOne(() => Country, (country) => country.certificates)
+    @ManyToOne(() => Country, (country) => country.certificates, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'country_id' })
     country: Country
 

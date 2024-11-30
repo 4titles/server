@@ -32,11 +32,15 @@ export class Credit {
     @Column({ name: 'episodes_count', type: 'integer', nullable: true })
     episodesCount: number
 
-    @ManyToOne(() => Title, (title) => title.credits)
+    @ManyToOne(() => Title, (title) => title.credits, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'title_id' })
     title: Title
 
-    @ManyToOne(() => Name, (name) => name.id)
+    @ManyToOne(() => Name, (name) => name.credits, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'name_id' })
     name: Name
 

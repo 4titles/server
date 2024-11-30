@@ -49,26 +49,6 @@ export class Name {
     @Column({ name: 'death_reason', type: 'varchar', nullable: true })
     deathReason: string
 
-    @OneToMany(() => Avatar, (avatar) => avatar.name)
-    avatars: Avatar[]
-
-    @OneToMany(() => Credit, (credit) => credit.name)
-    credits: Credit[]
-
-    @ManyToMany(() => Title)
-    @JoinTable({
-        name: 'names_known_for_titles',
-        joinColumn: {
-            name: 'name_id',
-            referencedColumnName: 'id',
-        },
-        inverseJoinColumn: {
-            name: 'title_id',
-            referencedColumnName: 'id',
-        },
-    })
-    knownFor: Title[]
-
     @Column({
         name: 'created_at',
         type: 'timestamp',
@@ -83,4 +63,34 @@ export class Name {
         onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
+
+    /** Relationships */
+
+    @OneToMany(() => Avatar, (avatar) => avatar.name, {
+        cascade: true,
+        onDelete: 'CASCADE',
+    })
+    avatars: Avatar[]
+
+    @OneToMany(() => Credit, (credit) => credit.name, {
+        cascade: true,
+        onDelete: 'CASCADE',
+    })
+    credits: Credit[]
+
+    @ManyToMany(() => Title, (title) => title.knownForNames, {
+        onDelete: 'CASCADE',
+    })
+    @JoinTable({
+        name: 'names_known_for_titles',
+        joinColumn: {
+            name: 'name_id',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: {
+            name: 'title_id',
+            referencedColumnName: 'id',
+        },
+    })
+    knownFor: Title[]
 }

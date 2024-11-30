@@ -108,6 +108,23 @@ export class Title {
     @Column({ type: 'text', nullable: true, comment: 'A plot description.' })
     plot: string
 
+    @Column({
+        name: 'created_at',
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+    })
+    createdAt: Date
+
+    @Column({
+        name: 'updated_at',
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+        onUpdate: 'CURRENT_TIMESTAMP',
+    })
+    updatedAt: Date
+
+    /** Relationships */
+
     @OneToOne(() => Rating, (rating) => rating.title, {
         onDelete: 'CASCADE',
         nullable: true,
@@ -117,10 +134,13 @@ export class Title {
 
     @OneToMany(() => Certificate, (certificate) => certificate.title, {
         cascade: true,
+        onDelete: 'CASCADE',
     })
     certificates: Certificate[]
 
-    @ManyToMany(() => Language)
+    @ManyToMany(() => Language, (language) => language.titles, {
+        onDelete: 'CASCADE',
+    })
     @JoinTable({
         name: 'titles_languages',
         joinColumn: {
@@ -134,7 +154,9 @@ export class Title {
     })
     spokenLanguages: Language[]
 
-    @ManyToMany(() => Country)
+    @ManyToMany(() => Country, (country) => country.titles, {
+        onDelete: 'CASCADE',
+    })
     @JoinTable({
         name: 'titles_origin_countries',
         joinColumn: {
@@ -148,10 +170,16 @@ export class Title {
     })
     originCountries: Country[]
 
-    @OneToMany(() => Poster, (poster) => poster.title)
+    @OneToMany(() => Poster, (poster) => poster.title, {
+        cascade: true,
+        onDelete: 'CASCADE',
+    })
     posters: Poster[]
 
-    @OneToMany(() => Credit, (credit) => credit.title)
+    @OneToMany(() => Credit, (credit) => credit.title, {
+        cascade: true,
+        onDelete: 'CASCADE',
+    })
     credits: Credit[]
 
     @ManyToMany(() => Name)
@@ -168,21 +196,9 @@ export class Title {
     })
     knownForNames: Name[]
 
-    @OneToOne(() => CriticReview, (criticReview) => criticReview.title)
+    @OneToOne(() => CriticReview, (criticReview) => criticReview.title, {
+        cascade: true,
+        onDelete: 'CASCADE',
+    })
     criticReview: CriticReview
-
-    @Column({
-        name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-    })
-    createdAt: Date
-
-    @Column({
-        name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
-    })
-    updatedAt: Date
 }

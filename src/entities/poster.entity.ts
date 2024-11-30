@@ -36,11 +36,13 @@ export class Poster {
     })
     height: number
 
-    @ManyToOne(() => Language, { nullable: true })
+    @ManyToOne(() => Language, { nullable: true, onDelete: 'SET NULL' })
     @JoinColumn({ name: 'language_id' })
     language: Language | null
 
-    @ManyToOne(() => Title, (title) => title.posters)
+    @ManyToOne(() => Title, (title) => title.posters, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'title_id' })
     title: Title
 
