@@ -1,0 +1,86 @@
+import {
+    Column,
+    Entity,
+    Index,
+    JoinTable,
+    ManyToMany,
+    OneToMany,
+    PrimaryGeneratedColumn,
+} from 'typeorm'
+import { Avatar } from './avatar.entity'
+import { Title } from './title.entity'
+import { Credit } from './credit.entity'
+
+@Entity('names')
+@Index('idx_names_imdb_id', ['imdbId'], { unique: true })
+@Index('idx_names_display_name', ['displayName'])
+@Index('idx_names_created_at', ['createdAt'])
+export class Name {
+    @PrimaryGeneratedColumn('increment')
+    id: number
+
+    @Column({ name: 'imdb_id', type: 'varchar', length: 20 })
+    imdbId: string
+
+    @Column({
+        name: 'display_name',
+        type: 'varchar',
+        length: 255,
+        comment:
+            'The primary name by which this person is known, usually the one by which they are most often credited.',
+    })
+    displayName: string
+
+    @Column({ name: 'alternate_names', type: 'jsonb', nullable: true })
+    alternateNames: string[]
+
+    @Column({ name: 'birth_year', type: 'integer', nullable: true })
+    birthYear: number
+
+    @Column({ name: 'birth_location', type: 'varchar', nullable: true })
+    birthLocation: string
+
+    @Column({ name: 'death_year', type: 'integer', nullable: true })
+    deathYear: number
+
+    @Column({ name: 'death_location', type: 'varchar', nullable: true })
+    deathLocation: string
+
+    @Column({ name: 'death_reason', type: 'varchar', nullable: true })
+    deathReason: string
+
+    @OneToMany(() => Avatar, (avatar) => avatar.name)
+    avatars: Avatar[]
+
+    @OneToMany(() => Credit, (credit) => credit.name)
+    credits: Credit[]
+
+    @ManyToMany(() => Title)
+    @JoinTable({
+        name: 'names_known_for_titles',
+        joinColumn: {
+            name: 'name_id',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: {
+            name: 'title_id',
+            referencedColumnName: 'id',
+        },
+    })
+    knownFor: Title[]
+
+    @Column({
+        name: 'created_at',
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+    })
+    createdAt: Date
+
+    @Column({
+        name: 'updated_at',
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+        onUpdate: 'CURRENT_TIMESTAMP',
+    })
+    updatedAt: Date
+}
