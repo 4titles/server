@@ -1,5 +1,5 @@
 import { Resolver, Query, Args, Mutation } from '@nestjs/graphql'
-import { Title, TitleType } from '../entities/title.entity'
+import { Title, TitleType } from '../../../entities/title.entity'
 import { TitlesService } from '../services/titles.service'
 import { Logger } from '@nestjs/common'
 

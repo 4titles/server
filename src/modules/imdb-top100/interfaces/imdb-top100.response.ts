@@ -1,4 +1,4 @@
-import { TitleType } from 'src/modules/titles/entities/title.entity'
+import { TitleType } from 'src/entities/title.entity'
 
 export interface ITitle {
     rank: number

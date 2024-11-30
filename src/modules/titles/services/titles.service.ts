@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ITitle } from 'src/modules/imdb-top100/interfaces/imdb-top100.response'
 import { IMDBTop100Service } from 'src/modules/imdb-top100/services/imdb-top100.service'
-import { CacheService } from 'src/modules/places/services/cache.service'
-import { Title, TitleType } from '../entities/title.entity'
+import { Title, TitleType } from '../../../entities/title.entity'
 import { Repository } from 'typeorm'
 import { TitleCreationDTO } from '../dto/title-creation.dto'
+import { CacheService } from 'src/modules/cache/cache.service'
 
 @Injectable()
 export class TitlesService {

@@ -6,7 +6,7 @@ import {
     IsNumber,
     IsUrl,
 } from 'class-validator'
-import { TitleType } from 'src/modules/titles/entities/title.entity'
+import { TitleType } from 'src/entities/title.entity'
 
 export class TitleCreationDTO {
     @IsString()

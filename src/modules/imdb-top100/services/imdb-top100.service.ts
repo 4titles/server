@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { HttpService } from '@nestjs/axios'
 import { lastValueFrom } from 'rxjs'
 import { IMDBTop100Response, ITitle } from '../interfaces/imdb-top100.response'
-import { TitleType } from 'src/modules/titles/entities/title.entity'
+import { TitleType } from 'src/entities/title.entity'
 import { ConfigService } from '@nestjs/config'
 
 type FetchConfig = {

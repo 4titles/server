@@ -1,8 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { Global, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Redis } from 'ioredis'
 import { IRedisConfig } from 'src/config/redis.config'
 
+@Global()
 @Injectable()
 export class CacheService implements OnModuleInit {
     private redis: Redis
