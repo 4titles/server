@@ -13,7 +13,6 @@ import { CacheModule } from './modules/cache/cache.module'
 
 @Module({
     imports: [
-        ImdbTop100Module,
         ConfigModule.forRoot({
             isGlobal: true,
             load: [redisConfig, typeormConfig, imdbTop100Config],
