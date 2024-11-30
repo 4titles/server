@@ -9,8 +9,7 @@ import {
 import { Name } from './name.entity'
 
 @Entity('avatars')
-@Index('idx_avatars_url', ['url'])
-@Index('idx_avatars_name_id', ['name'])
+@Index('idx_avatars_name_url', ['name', 'url'], { unique: true })
 export class Avatar {
     @PrimaryGeneratedColumn('increment')
     id: number
@@ -36,7 +35,10 @@ export class Avatar {
     })
     height: number
 
-    @ManyToOne(() => Name, (name) => name.avatars)
+    @ManyToOne(() => Name, (name) => name.avatars, {
+        nullable: false,
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'name_id' })
     name: Name
 

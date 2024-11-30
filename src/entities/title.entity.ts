@@ -22,6 +22,7 @@ import { Name } from './name.entity'
 export enum TitleType {
     MOVIE = 'movie',
     TV_SERIES = 'tvSeries',
+    TV_MINISERIES = 'tvMiniSeries',
 }
 
 @ObjectType()
@@ -42,15 +43,12 @@ export class Title {
         name: 'imdb_id',
         type: 'varchar',
         length: 20,
-        comment:
-            'The unique IMDb ID for the title. Each IMDb ID appears exactly once.',
     })
     imdbId: string
 
     @Column({
         type: 'enum',
         enum: TitleType,
-        comment: "The type of this title, e.g. 'movie' or 'tvSeries'.",
     })
     type: TitleType
 
@@ -58,24 +56,18 @@ export class Title {
         name: 'is_adult',
         type: 'boolean',
         default: false,
-        comment: 'Whether or not this title contains adult content.',
     })
     isAdult: boolean
 
     @Column({
         name: 'primary_title',
         type: 'varchar',
-        length: 255,
-        comment: 'The primary title text of the title.',
     })
     primaryTitle: string
 
     @Column({
         name: 'original_title',
         type: 'varchar',
-        length: 255,
-        comment:
-            'The original title text of the title, normally what the title is known as in its original country of release.',
         nullable: true,
     })
     originalTitle: string
@@ -84,7 +76,6 @@ export class Title {
         name: 'start_year',
         type: 'integer',
         nullable: true,
-        comment: 'The year of the earliest release of this title globally.',
     })
     startYear: number
 
@@ -92,8 +83,6 @@ export class Title {
         name: 'end_year',
         type: 'integer',
         nullable: true,
-        comment:
-            'The year when the last episode/series finale of the show has aired. When a show is still running the end year will be omitted.',
     })
     endYear: number
 
@@ -107,6 +96,9 @@ export class Title {
 
     @Column({ type: 'text', nullable: true, comment: 'A plot description.' })
     plot: string
+
+    @Column({ type: 'simple-array', nullable: true })
+    genres: string[]
 
     @Column({
         name: 'created_at',
@@ -124,13 +116,11 @@ export class Title {
     updatedAt: Date
 
     /** Relationships */
-
     @OneToOne(() => Rating, (rating) => rating.title, {
-        onDelete: 'CASCADE',
         nullable: true,
     })
     @JoinColumn({ name: 'rating_id' })
-    rating: Rating | null
+    rating: Rating
 
     @OneToMany(() => Certificate, (certificate) => certificate.title, {
         cascade: true,

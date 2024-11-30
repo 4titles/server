@@ -18,7 +18,7 @@ export enum CreditCategory {
 
 @Entity('credits')
 @Index('idx_credits_category', ['category'])
-@Index('idx_credits_title_name', ['title', 'name'], { unique: true })
+@Index('idx_credits_title_name', ['title', 'name'])
 export class Credit {
     @PrimaryGeneratedColumn('increment')
     id: number

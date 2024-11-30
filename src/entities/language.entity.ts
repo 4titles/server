@@ -10,7 +10,7 @@ import { Poster } from './poster.entity'
 import { Title } from './title.entity'
 
 @Entity('languages')
-@Index('idx_languages_code', ['code'], { unique: true })
+@Index('idx_languages_code', ['code'])
 @Index('idx_languages_name', ['name'])
 export class Language {
     @PrimaryGeneratedColumn('increment')

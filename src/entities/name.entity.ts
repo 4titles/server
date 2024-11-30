@@ -46,8 +46,8 @@ export class Name {
     @Column({ name: 'death_location', type: 'varchar', nullable: true })
     deathLocation: string
 
-    @Column({ name: 'death_reason', type: 'varchar', nullable: true })
-    deathReason: string
+    @Column({ name: 'dead_reason', type: 'varchar', nullable: true })
+    deadReason: string
 
     @Column({
         name: 'created_at',

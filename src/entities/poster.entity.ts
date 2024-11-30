@@ -11,6 +11,7 @@ import { Language } from './language.entity'
 
 @Entity('posters')
 @Index('idx_posters_title_language', ['title', 'language'])
+@Index('idx_posters_url', ['title', 'url'], { unique: true })
 export class Poster {
     @PrimaryGeneratedColumn('increment')
     id: number
@@ -41,6 +42,7 @@ export class Poster {
     language: Language | null
 
     @ManyToOne(() => Title, (title) => title.posters, {
+        nullable: false,
         onDelete: 'CASCADE',
     })
     @JoinColumn({ name: 'title_id' })

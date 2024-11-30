@@ -4,6 +4,7 @@ import {
     PrimaryGeneratedColumn,
     Column,
     OneToOne,
+    JoinColumn,
 } from 'typeorm'
 import { Title } from './title.entity'
 
@@ -29,7 +30,11 @@ export class Rating {
     @Column({ name: 'title_id' })
     titleId: number
 
-    @OneToOne(() => Title, (title) => title.rating)
+    @OneToOne(() => Title, (title) => title.rating, {
+        nullable: false,
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'title_id' })
     title: Title
 
     @Column({

@@ -10,7 +10,7 @@ import { Title } from './title.entity'
 import { Country } from './country.entity'
 
 @Entity('certificates')
-@Index('idx_certificates_title_country', ['title', 'country'], { unique: true })
+@Index('idx_certificates_title_country', ['title', 'country'])
 @Index('idx_certificates_rating', ['rating'])
 export class Certificate {
     @PrimaryGeneratedColumn('increment')
