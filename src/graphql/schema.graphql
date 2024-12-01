@@ -1,0 +1,21 @@
+# Import scalars
+scalar DateTime
+scalar JSON
+
+# Import types
+#import Title, TitleType, TitleList from 'types/title.type.graphql'
+#import Name from 'types/name.type.graphql'
+#import Avatar from 'types/avatar.type.graphql'
+#import Credit, CreditCategory from 'types/credit.type.graphql'
+#import Rating from 'types/rating.type.graphql'
+#import Poster from 'types/poster.type.graphql'
+#import Certificate from 'types/certificate.type.graphql'
+#import Country from 'types/country.type.graphql'
+#import Language from 'types/language.type.graphql'
+#import CriticReview from 'types/critic-review.type.graphql'
+
+# Import queries
+#import Query from 'queries/title.query.graphql'
+
+# Import mutations
+#import Mutation from 'mutations/title.mutation.graphql'

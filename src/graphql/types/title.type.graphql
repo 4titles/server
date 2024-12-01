@@ -1,0 +1,35 @@
+type Title {
+    id: ID!
+    imdbId: String!
+    type: TitleType!
+    isAdult: Boolean!
+    primaryTitle: String!
+    originalTitle: String
+    startYear: Int!
+    endYear: Int
+    runtimeMinutes: Int
+    plot: String
+    genres: [String!]!
+    rating: Rating
+    posters: [Poster!]
+    certificates: [Certificate!]
+    spokenLanguages: [Language!]
+    originCountries: [Country!]
+    criticReview: CriticReview
+    directors: [Credit!]
+    writers: [Credit!]
+    casts: [Credit!]
+    createdAt: DateTime
+    updatedAt: DateTime
+}
+
+type TitleList {
+    items: [Title!]!
+    totalCount: Int!
+}
+
+enum TitleType {
+    movie
+    tvSeries
+    tvMiniSeries
+}

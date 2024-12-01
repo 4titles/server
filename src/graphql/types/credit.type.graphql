@@ -1,0 +1,17 @@
+type Credit {
+    id: ID!
+    category: CreditCategory!
+    characters: [String!]
+    episodesCount: Int
+    name: Name!
+    title: Title!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+enum CreditCategory {
+    ACTOR
+    ACTRESS
+    DIRECTOR
+    WRITER
+}

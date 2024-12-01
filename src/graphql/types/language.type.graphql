@@ -1,0 +1,9 @@
+type Language {
+    id: ID!
+    code: String!
+    name: String!
+    posters: [Poster!]!
+    titles: [Title!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

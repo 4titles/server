@@ -1,0 +1,8 @@
+type Certificate {
+    id: ID!
+    rating: String!
+    country: Country!
+    title: Title!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

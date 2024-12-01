@@ -1,0 +1,10 @@
+type Mutation {
+    # Cache management
+    refreshTitlesCache: Boolean!
+    refreshTitleCache(imdbId: String!): Boolean!
+    clearTitlesCache: Boolean!
+
+    # Data management
+    updateTitle(imdbId: String!): Title
+    updateTitles(imdbIds: [String!]!): [Title!]!
+}

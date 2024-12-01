@@ -1,0 +1,8 @@
+type Rating {
+    id: ID!
+    aggregateRating: Float
+    votesCount: Int
+    title: Title!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

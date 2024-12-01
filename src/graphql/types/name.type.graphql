@@ -1,0 +1,16 @@
+type Name {
+    id: ID!
+    imdbId: String!
+    displayName: String!
+    alternateNames: [String!]
+    birthYear: Int
+    birthLocation: String
+    deathYear: Int
+    deathLocation: String
+    deadReason: String
+    avatars: [Avatar!]!
+    credits: [Credit!]!
+    knownFor: [Title!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

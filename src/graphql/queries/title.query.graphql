@@ -1,0 +1,22 @@
+type Query {
+    # Single title queries
+    title(id: ID!): Title
+    titleById(imdbId: String!): Title
+
+    # Multiple titles queries
+    titles(ids: [String!], type: TitleType): TitleList!
+
+    # Specific type queries
+    movies: TitleList!
+    tvSeries: TitleList!
+    tvMiniSeries: TitleList!
+
+    # Name queries
+    name(id: ID!): Name
+    nameById(imdbId: String!): Name
+    names(ids: [String!]!): [Name!]!
+
+    # Credit queries
+    creditsByTitle(titleId: ID!, category: CreditCategory): [Credit!]!
+    creditsByName(nameId: ID!, category: CreditCategory): [Credit!]!
+}

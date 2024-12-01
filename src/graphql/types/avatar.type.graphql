@@ -1,0 +1,9 @@
+type Avatar {
+    id: ID!
+    url: String!
+    width: Int
+    height: Int
+    name: Name!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

@@ -1,0 +1,9 @@
+type Country {
+    id: ID!
+    code: String!
+    name: String!
+    certificates: [Certificate!]!
+    titles: [Title!]!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

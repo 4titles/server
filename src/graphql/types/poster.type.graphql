@@ -1,0 +1,10 @@
+type Poster {
+    id: ID!
+    url: String!
+    width: Int
+    height: Int
+    language: Language
+    title: Title!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}

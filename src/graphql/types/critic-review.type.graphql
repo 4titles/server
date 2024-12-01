@@ -1,0 +1,8 @@
+type CriticReview {
+    id: ID!
+    score: Int
+    reviewCount: Int
+    title: Title!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
