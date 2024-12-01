@@ -17,6 +17,6 @@ import { IMDBGraphQLService } from './services/imdb-graphql.service'
         }),
     ],
     providers: [IMDBService, IMDBTop100Service, IMDBGraphQLService],
-    exports: [IMDBService],
+    exports: [IMDBService, IMDBTop100Service, IMDBGraphQLService],
 })
 export class IMDBModule {}
