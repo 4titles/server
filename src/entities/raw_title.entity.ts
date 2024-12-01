@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm'
+import {
+    Entity,
+    Column,
+    PrimaryGeneratedColumn,
+    Index,
+    CreateDateColumn,
+    UpdateDateColumn,
+} from 'typeorm'
 import { TitleType } from './title.entity'
 import { ITitle } from '../modules/imdb/interfaces/imdb-top100.interface'
 
@@ -26,4 +33,14 @@ export class RawTitle {
         comment: 'Raw JSON data from IMDB Top100 API',
     })
     data: ITitle
+
+    @CreateDateColumn({
+        name: 'created_at',
+    })
+    createdAt: Date
+
+    @UpdateDateColumn({
+        name: 'updated_at',
+    })
+    updatedAt: Date
 }

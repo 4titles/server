@@ -31,6 +31,8 @@ import { CertificateEntityService } from './services/entity/certificate-entity.s
 import { CriticReviewEntityService } from './services/entity/critic-review-entity.service'
 import { AvatarEntityService } from './services/entity/avatar-entity.service'
 import { RatingEntityService } from './services/entity/rating-entity.service'
+import { CountryEntityService } from './services/entity/country-entity.service'
+import { LanguageEntityService } from './services/entity/language-entity.service'
 
 // Resolvers
 import { TitlesResolver } from './resolvers/titles.resolver'
@@ -69,6 +71,8 @@ import { TitlesResolver } from './resolvers/titles.resolver'
         CriticReviewEntityService,
         AvatarEntityService,
         RatingEntityService,
+        CountryEntityService,
+        LanguageEntityService,
 
         // Resolvers
         TitlesResolver,
