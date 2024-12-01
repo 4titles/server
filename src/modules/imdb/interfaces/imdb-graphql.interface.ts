@@ -87,7 +87,7 @@ export interface IIMDbTitle {
     original_title: string | null
     start_year: number
     end_year: number | null
-    runtime_minutes: number
+    runtime_minutes: number | null
     plot: string
     rating: IRating
     genres: string[]
