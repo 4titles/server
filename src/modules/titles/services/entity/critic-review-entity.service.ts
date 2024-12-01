@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { CriticReview } from 'src/entities/critic-review.entity'
 import { Title } from 'src/entities/title.entity'
@@ -14,18 +14,20 @@ export class CriticReviewEntityService {
         private readonly criticReviewRepository: Repository<CriticReview>,
     ) {}
 
+    async findByTitleId(titleId: number): Promise<CriticReview | null> {
+        return this.criticReviewRepository.findOne({
+            where: { title: { id: titleId } },
+        })
+    }
+
     async create(
         title: Title,
         reviewData: ICriticReview,
     ): Promise<CriticReview> {
-        const existing = await this.criticReviewRepository.findOne({
-            where: { title: { id: title.id } },
-        })
+        const existing = await this.findByTitleId(title.id)
 
         if (existing) {
-            throw new ConflictException(
-                `Critic review for title ${title.id} already exists`,
-            )
+            return existing
         }
 
         const review = this.criticReviewRepository.create({
@@ -40,22 +42,25 @@ export class CriticReviewEntityService {
     async update(
         title: Title,
         reviewData: ICriticReview,
-    ): Promise<CriticReview> {
-        const existing = await this.criticReviewRepository.findOne({
-            where: { title: { id: title.id } },
-        })
+    ): Promise<CriticReview | null> {
+        const existing = await this.findByTitleId(title.id)
 
         if (!existing) {
-            return this.create(title, reviewData)
+            return null
         }
 
-        existing.score = reviewData.score
-        existing.reviewCount = reviewData.review_count
+        if (
+            existing.score === reviewData.score &&
+            existing.reviewCount === reviewData.review_count
+        ) {
+            return existing
+        }
+
+        Object.assign(existing, {
+            score: reviewData.score,
+            reviewCount: reviewData.review_count,
+        })
 
         return this.criticReviewRepository.save(existing)
-    }
-
-    async deleteByTitleId(titleId: number): Promise<void> {
-        await this.criticReviewRepository.delete({ title: { id: titleId } })
     }
 }

@@ -8,6 +8,7 @@ import {
 } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { Repository } from 'typeorm'
 import { NameEntityService } from './name-entity.service'
+import { Name } from 'src/entities/name.entity'
 
 @Injectable()
 export class CreditEntityService {
@@ -19,94 +20,167 @@ export class CreditEntityService {
         private readonly nameEntityService: NameEntityService,
     ) {}
 
+    async findByTitleIdAndNameId(
+        titleId: number,
+        nameId: number,
+        category: string,
+    ): Promise<Credit | null> {
+        return this.creditRepository.findOne({
+            where: {
+                title: { id: titleId },
+                name: { id: nameId },
+                category,
+            },
+        })
+    }
+
+    async findByTitleIdAndCategory(
+        titleId: number,
+        category: string,
+    ): Promise<Credit[]> {
+        return this.creditRepository.find({
+            where: {
+                title: { id: titleId },
+                category,
+            },
+            relations: ['name', 'name.avatars'],
+        })
+    }
+
     async createMany(title: Title, titleData: IIMDbTitle): Promise<Credit[]> {
-        const allCredits = [
-            ...this.mapCredits(titleData.directors, 'director'),
-            ...this.mapCredits(titleData.writers, 'writer'),
-            ...this.mapCredits(titleData.casts, this.determineCastCategory),
-        ]
+        const mappedCredits = this.mapAllCredits(titleData)
+        if (!mappedCredits.length) return []
 
-        const creditEntities = await Promise.all(
-            allCredits.map(async (creditData) => {
-                const name = await this.nameEntityService.findOrCreate(
-                    creditData.name,
-                )
-
-                const exists = await this.creditRepository.findOne({
-                    where: {
-                        title: { id: title.id },
-                        name: { id: name.id },
-                        category: creditData.category,
-                    },
-                })
-
-                if (exists) {
-                    this.logger.debug(
-                        `Credit for name ${name.imdbId} and category ${creditData.category} already exists for title ${title.id}`,
-                    )
-                    return exists
-                }
-
-                const credit = this.creditRepository.create({
-                    title,
-                    name,
-                    category: creditData.category,
-                    characters: creditData.characters,
-                    episodesCount: creditData.episodes_count,
-                })
-
-                return this.creditRepository.save(credit)
-            }),
-        )
-
-        return creditEntities.filter(Boolean)
+        const processedCredits = await this.processCredits(title, mappedCredits)
+        return processedCredits.filter(Boolean)
     }
 
     async updateMany(title: Title, titleData: IIMDbTitle): Promise<void> {
-        const existingCredits = await this.creditRepository.find({
-            where: { title: { id: title.id } },
-            relations: ['name'],
-        })
+        const mappedCredits = this.mapAllCredits(titleData)
+        if (!mappedCredits.length) return
 
-        const allNewCredits = [
-            ...this.mapCredits(titleData.directors, 'director'),
-            ...this.mapCredits(titleData.writers, 'writer'),
-            ...this.mapCredits(titleData.casts, this.determineCastCategory),
+        await this.processCredits(title, mappedCredits)
+    }
+
+    private mapAllCredits(
+        titleData: IIMDbTitle,
+    ): Array<ICredit & { category: string }> {
+        const creditMappings = [
+            { credits: titleData.directors, category: CreditCategory.DIRECTOR },
+            { credits: titleData.writers, category: CreditCategory.WRITER },
+            { credits: titleData.casts, category: CreditCategory.ACTOR },
         ]
 
-        const creditsToDelete = existingCredits.filter(
-            (existing) =>
-                !allNewCredits.some(
-                    (credit) =>
-                        credit.name.id === existing.name.imdbId &&
-                        credit.category === existing.category,
-                ),
+        return creditMappings.reduce((acc, { credits, category }) => {
+            if (!credits?.length) return acc
+
+            const mapped = credits.map((credit) => ({
+                ...credit,
+                category,
+            }))
+
+            return [...acc, ...mapped]
+        }, [])
+    }
+
+    private async processCredits(
+        title: Title,
+        credits: Array<ICredit & { category: string }>,
+    ): Promise<Credit[]> {
+        const creditsByCategory = this.groupByCategory(credits)
+
+        const processedCredits = await Promise.all(
+            Object.entries(creditsByCategory).map(
+                ([category, categoryCredits]) =>
+                    this.processCategoryCredits(
+                        title,
+                        category,
+                        categoryCredits,
+                    ),
+            ),
         )
 
-        await Promise.all([
-            creditsToDelete.length &&
-                this.creditRepository.remove(creditsToDelete),
-            this.createMany(title, titleData),
-        ])
+        return processedCredits.flat()
     }
 
-    private mapCredits(
+    private async processCategoryCredits(
+        title: Title,
+        category: string,
         credits: ICredit[],
-        category: string | ((credit: ICredit) => string),
-    ): Array<ICredit & { category: string }> {
-        return credits.map((credit) => ({
-            ...credit,
-            category:
-                typeof category === 'function' ? category(credit) : category,
-        }))
+    ): Promise<Credit[]> {
+        try {
+            const existingCredits = await this.findByTitleIdAndCategory(
+                title.id,
+                category,
+            )
+            const existingCreditsMap = new Map(
+                existingCredits.map((credit) => [
+                    `${credit.name.id}-${credit.category}`,
+                    credit,
+                ]),
+            )
+
+            const processPromises = credits.map(async (creditData) => {
+                const name = await this.nameEntityService.findOrCreate(
+                    creditData.name,
+                )
+                const key = `${name.id}-${category}`
+                const existing = existingCreditsMap.get(key)
+
+                if (existing) {
+                    return this.updateCredit(existing, creditData)
+                }
+
+                return this.createCredit(title, name, {
+                    ...creditData,
+                    category,
+                })
+            })
+
+            return Promise.all(processPromises)
+        } catch (error) {
+            this.logger.error(
+                `Failed to process ${category} credits for title ${title.imdbId}`,
+                error.stack,
+            )
+            return []
+        }
     }
 
-    //@todo
-    private determineCastCategory(credit: ICredit): string {
-        return CreditCategory.ACTOR
+    private groupByCategory(
+        credits: Array<ICredit & { category: string }>,
+    ): Record<string, ICredit[]> {
+        return credits.reduce((acc, credit) => {
+            const category = credit.category
+            if (!acc[category]) acc[category] = []
+            acc[category].push(credit)
+            return acc
+        }, {})
     }
 
-    async deleteByTitleId(titleId: number): Promise<void> {
-        await this.creditRepository.delete({ title: { id: titleId } })
+    private async createCredit(
+        title: Title,
+        name: Name,
+        creditData: ICredit & { category: string },
+    ): Promise<Credit> {
+        const credit = this.creditRepository.create({
+            title,
+            name,
+            category: creditData.category,
+            characters: creditData.characters,
+            episodesCount: creditData.episodes_count,
+        })
+        return this.creditRepository.save(credit)
+    }
+
+    private async updateCredit(
+        existing: Credit,
+        creditData: ICredit,
+    ): Promise<Credit> {
+        return this.creditRepository.save({
+            ...existing,
+            characters: creditData.characters,
+            episodesCount: creditData.episodes_count,
+        })
     }
 }

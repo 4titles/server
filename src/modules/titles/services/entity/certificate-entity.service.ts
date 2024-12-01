@@ -1,13 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Certificate } from 'src/entities/certificate.entity'
-import { Country } from 'src/entities/country.entity'
 import { Title } from 'src/entities/title.entity'
-import {
-    ICertificate,
-    ICountry,
-} from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { Repository } from 'typeorm'
+import { ICertificate } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
+import { In, Repository } from 'typeorm'
+import { CountryEntityService } from './country-entity.service'
 
 @Injectable()
 export class CertificateEntityService {
@@ -16,60 +13,89 @@ export class CertificateEntityService {
     constructor(
         @InjectRepository(Certificate)
         private readonly certificateRepository: Repository<Certificate>,
-        @InjectRepository(Country)
-        private readonly countryRepository: Repository<Country>,
+        private readonly countryEntityService: CountryEntityService,
     ) {}
+
+    async findByTitleIdAndCountryCodes(
+        titleId: number,
+        countryCodes: string[] = [],
+    ): Promise<Certificate[]> {
+        if (!countryCodes?.length) return []
+
+        return this.certificateRepository.find({
+            where: {
+                title: { id: titleId },
+                country: { code: In(countryCodes) },
+            },
+            relations: ['country'],
+        })
+    }
 
     async createMany(
         title: Title,
-        certificates: ICertificate[],
+        certificates: ICertificate[] = [],
     ): Promise<Certificate[]> {
-        const certificateEntities = await Promise.all(
-            certificates.map(async (cert) => {
-                const country = await this.findOrCreateCountry(cert.country)
+        if (!certificates?.length) return
 
-                const exists = await this.certificateRepository.findOne({
-                    where: {
-                        title: { id: title.id },
-                        country: { id: country.id },
-                    },
-                })
-
-                if (exists) {
-                    this.logger.debug(
-                        `Certificate for country ${country.code} already exists for title ${title.id}`,
-                    )
-                    return exists
-                }
-
-                const certificate = this.certificateRepository.create({
-                    title,
-                    country,
-                    rating: cert.rating,
-                })
-
-                return this.certificateRepository.save(certificate)
-            }),
+        const countries = await this.countryEntityService.findOrCreateMany(
+            certificates.map((cert) => cert.country),
+        )
+        const countryMap = new Map(
+            countries.map((country) => [country.code, country]),
         )
 
-        return certificateEntities.filter(Boolean)
+        const existingCertificates = await this.findByTitleIdAndCountryCodes(
+            title.id,
+            certificates.map((cert) => cert.country.code),
+        )
+        const existingMap = new Map(
+            existingCertificates.map((cert) => [cert.country.code, cert]),
+        )
+
+        const certificatePromises = certificates.map(async (cert) => {
+            const country = countryMap.get(cert.country.code)
+            if (!country) {
+                return null
+            }
+
+            const existing = existingMap.get(cert.country.code)
+            if (existing) {
+                return existing
+            }
+
+            const certificate = this.certificateRepository.create({
+                title,
+                country,
+                rating: cert.rating,
+            })
+
+            return this.certificateRepository.save(certificate)
+        })
+
+        const results = await Promise.all(certificatePromises)
+        return results.filter(Boolean)
     }
 
     async updateMany(
         title: Title,
-        certificates: ICertificate[],
+        certificates: ICertificate[] = [],
     ): Promise<void> {
-        const existingCertificates = await this.certificateRepository.find({
-            where: { title: { id: title.id } },
-            relations: ['country'],
-        })
+        if (!certificates?.length) return
 
-        const certificatesToDelete = existingCertificates.filter(
-            (existing) =>
-                !certificates.some(
-                    (cert) => cert.country.code === existing.country.code,
-                ),
+        const existingCertificates = await this.findByTitleIdAndCountryCodes(
+            title.id,
+            certificates.map((cert) => cert.country.code),
         )
+
+        const updatePromises = existingCertificates.map(async (existing) => {
+            const newData = certificates.find(
+                (cert) => cert.country.code === existing.country.code,
+            )
+            if (newData) {
+                existing.rating = newData.rating
+                return this.certificateRepository.save(existing)
+            }
+        })
 
         const certificatesToCreate = certificates.filter(
             (cert) =>
@@ -78,32 +104,12 @@ export class CertificateEntityService {
                 ),
         )
 
-        await Promise.all([
-            certificatesToDelete.length &&
-                this.certificateRepository.remove(certificatesToDelete),
-            certificatesToCreate.length &&
-                this.createMany(title, certificatesToCreate),
-        ])
-    }
-
-    private async findOrCreateCountry(countryData: ICountry): Promise<Country> {
-        const existing = await this.countryRepository.findOne({
-            where: { code: countryData.code },
-        })
-
-        if (existing) {
-            return existing
-        }
-
-        const country = this.countryRepository.create({
-            code: countryData.code,
-            name: countryData.name,
-        })
-
-        return this.countryRepository.save(country)
-    }
-
-    async deleteByTitleId(titleId: number): Promise<void> {
-        await this.certificateRepository.delete({ title: { id: titleId } })
+        await Promise.all(
+            [
+                ...updatePromises,
+                certificatesToCreate.length &&
+                    this.createMany(title, certificatesToCreate),
+            ].filter(Boolean),
+        )
     }
 }

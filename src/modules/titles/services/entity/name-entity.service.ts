@@ -15,10 +15,14 @@ export class NameEntityService {
         private readonly avatarService: AvatarEntityService,
     ) {}
 
-    async findOrCreate(nameData: INameDetails): Promise<Name> {
-        const existing = await this.nameRepository.findOne({
-            where: { imdbId: nameData.id },
+    async findByImdbId(imdbId: string): Promise<Name | null> {
+        return this.nameRepository.findOne({
+            where: { imdbId },
         })
+    }
+
+    async findOrCreate(nameData: INameDetails): Promise<Name> {
+        const existing = await this.findByImdbId(nameData.id)
 
         if (existing) {
             return existing

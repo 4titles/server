@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Rating } from 'src/entities/rating.entity'
 import { Title } from 'src/entities/title.entity'
@@ -14,17 +14,23 @@ export class RatingEntityService {
         private readonly ratingRepository: Repository<Rating>,
     ) {}
 
-    async create(title: Title, ratingData: IRating): Promise<Rating> {
-        const existing = await this.ratingRepository.findOne({
-            where: { title: { id: title.id } },
+    async findByTitleId(titleId: number): Promise<Rating | null> {
+        return this.ratingRepository.findOne({
+            where: { title: { id: titleId } },
         })
+    }
+
+    async findOrCreate(title: Title, ratingData: IRating): Promise<Rating> {
+        const existing = await this.findByTitleId(title.id)
 
         if (existing) {
-            throw new ConflictException(
-                `Rating for title ${title.id} already exists`,
-            )
+            return existing
         }
 
+        return this.create(title, ratingData)
+    }
+
+    async create(title: Title, ratingData: IRating): Promise<Rating> {
         const rating = this.ratingRepository.create({
             title,
             aggregateRating: ratingData.aggregate_rating,
@@ -34,22 +40,19 @@ export class RatingEntityService {
         return this.ratingRepository.save(rating)
     }
 
-    async update(title: Title, ratingData: IRating): Promise<Rating> {
-        const existing = await this.ratingRepository.findOne({
-            where: { title: { id: title.id } },
-        })
+    async update(title: Title, ratingData: IRating): Promise<Rating | null> {
+        const existing = await this.findByTitleId(title.id)
 
         if (!existing) {
-            return this.create(title, ratingData)
+            return null
         }
 
-        existing.aggregateRating = ratingData.aggregate_rating
-        existing.votesCount = ratingData.votes_count
+        Object.assign(existing, {
+            title,
+            aggregateRating: ratingData.aggregate_rating,
+            votesCount: ratingData.votes_count,
+        })
 
         return this.ratingRepository.save(existing)
-    }
-
-    async deleteByTitleId(titleId: number): Promise<void> {
-        await this.ratingRepository.delete({ title: { id: titleId } })
     }
 }

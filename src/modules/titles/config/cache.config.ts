@@ -14,6 +14,14 @@ export const CACHE_CONFIG = {
 export const getCacheKey = {
     forRawTitles: () => CACHE_CONFIG.RAW_TITLES.PREFIX,
 
+    forTitle: (imdbId: string): string => {
+        return `${CACHE_CONFIG.TITLES.PREFIX}_title_${imdbId}`
+    },
+
+    forTitles: (imdbIds: string[]): string => {
+        return `${CACHE_CONFIG.TITLES.PREFIX}_titles_${imdbIds.sort().join('_')}`
+    },
+
     forTitleType: (type: TitleType): string => {
         return `${CACHE_CONFIG.TITLES.PREFIX}_${type.toLowerCase()}`
     },

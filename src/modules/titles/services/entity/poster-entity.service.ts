@@ -1,67 +1,94 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Poster } from 'src/entities/poster.entity'
 import { Language } from 'src/entities/language.entity'
-import { Repository } from 'typeorm'
+import { DataSource, EntityManager, In, Repository } from 'typeorm'
 import { Title } from 'src/entities/title.entity'
 import { IPoster } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 
 @Injectable()
 export class PosterEntityService {
-    private readonly logger = new Logger(PosterEntityService.name)
-
     constructor(
         @InjectRepository(Poster)
         private readonly posterRepository: Repository<Poster>,
-        @InjectRepository(Language)
-        private readonly languageRepository: Repository<Language>,
+        private readonly dataSource: DataSource,
     ) {}
 
-    async createMany(title: Title, posters: IPoster[]): Promise<Poster[]> {
-        const posterEntities = await Promise.all(
-            posters.map(async (poster) => {
-                const exists = await this.posterRepository.findOne({
-                    where: { title: { id: title.id }, url: poster.url },
-                })
-
-                if (exists) {
-                    this.logger.debug(
-                        `Poster ${poster.url} already exists for title ${title.id}`,
-                    )
-                    return exists
-                }
-
-                const language = poster.language_code
-                    ? await this.languageRepository.findOne({
-                          where: { code: poster.language_code },
-                      })
-                    : null
-
-                const posterEntity = this.posterRepository.create({
-                    title,
-                    language,
-                    url: poster.url,
-                    width: poster.width,
-                    height: poster.height,
-                })
-
-                return this.posterRepository.save(posterEntity)
-            }),
-        )
-
-        return posterEntities.filter(Boolean)
+    async findByTitleIdAndUrls(
+        titleId: number,
+        urls: string[],
+    ): Promise<Poster[]> {
+        return this.posterRepository.find({
+            where: { title: { id: titleId }, url: In(urls) },
+            relations: ['language'],
+        })
     }
 
-    async updateMany(title: Title, posters: IPoster[]): Promise<void> {
-        this.logger.debug(`Updating posters for title ${title.id}`)
-        const existingPosters = await this.posterRepository.find({
-            where: { title: { id: title.id } },
+    async createMany(title: Title, posters: IPoster[]): Promise<Poster[]> {
+        if (!posters?.length) return []
+
+        const existingPosters =
+            (await this.findByTitleIdAndUrls(
+                title.id,
+                posters.map((poster) => poster.url),
+            )) || []
+
+        const existingPostersMap =
+            new Map(existingPosters.map((poster) => [poster.url, poster])) || []
+
+        const languageMap = await this.getLanguagesMap(posters)
+
+        const posterPromises = posters.map(async (poster) => {
+            const existing =
+                existingPostersMap instanceof Map
+                    ? existingPostersMap.get(poster.url)
+                    : null
+
+            if (existing) {
+                return existing
+            }
+
+            const posterEntity = this.posterRepository.create({
+                title,
+                language: poster.language_code
+                    ? languageMap.get(poster.language_code)
+                    : null,
+                url: poster.url,
+                width: poster.width,
+                height: poster.height,
+            })
+
+            return this.posterRepository.save(posterEntity)
         })
 
-        const postersToDelete = existingPosters.filter(
-            (existing) =>
-                !posters.some((poster) => poster.url === existing.url),
-        )
+        const results = await Promise.all(posterPromises)
+        return results.filter(Boolean)
+    }
+
+    async updateMany(title: Title, posters: IPoster[] = []): Promise<void> {
+        if (!posters?.length) return
+
+        const existingPosters =
+            (await this.findByTitleIdAndUrls(
+                title.id,
+                posters.map((poster) => poster.url),
+            )) || []
+
+        const languageMap = await this.getLanguagesMap(posters)
+
+        const updatePromises = existingPosters.map(async (existing) => {
+            const newData = posters.find(
+                (poster) => poster.url === existing.url,
+            )
+            if (newData) {
+                existing.width = newData.width
+                existing.height = newData.height
+                existing.language = newData.language_code
+                    ? languageMap.get(newData.language_code)
+                    : null
+                return this.posterRepository.save(existing)
+            }
+        })
 
         const postersToCreate = posters.filter(
             (poster) =>
@@ -70,14 +97,29 @@ export class PosterEntityService {
                 ),
         )
 
-        await Promise.all([
-            postersToDelete.length &&
-                this.posterRepository.remove(postersToDelete),
-            postersToCreate.length && this.createMany(title, postersToCreate),
-        ])
+        await Promise.all(
+            [
+                ...updatePromises,
+                postersToCreate.length &&
+                    this.createMany(title, postersToCreate),
+            ].filter(Boolean),
+        )
     }
 
-    async deleteByTitleId(titleId: number): Promise<void> {
-        await this.posterRepository.delete({ title: { id: titleId } })
+    private async getLanguagesMap(
+        posters: IPoster[],
+        entityManager: EntityManager = this.dataSource.manager,
+    ): Promise<Map<string, Language>> {
+        const languageCodes = [
+            ...new Set(posters.map((p) => p.language_code).filter(Boolean)),
+        ]
+
+        if (!languageCodes.length) return new Map()
+
+        const languages = await entityManager.find(Language, {
+            where: { code: In(languageCodes) },
+        })
+
+        return new Map(languages.map((lang) => [lang.code, lang]))
     }
 }
