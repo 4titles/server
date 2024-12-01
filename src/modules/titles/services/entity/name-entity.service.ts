@@ -32,43 +32,59 @@ export class NameEntityService {
     }
 
     async create(nameData: INameDetails): Promise<Name> {
-        const name = this.nameRepository.create({
-            imdbId: nameData.id,
-            displayName: nameData.display_name,
-            alternateNames: nameData.alternate_names,
-            birthYear: nameData.birth_year,
-            birthLocation: nameData.birth_location,
-            deathYear: nameData.death_year,
-            deathLocation: nameData.death_location,
-            deadReason: nameData.dead_reason,
-        })
+        try {
+            const name = this.nameRepository.create({
+                imdbId: nameData.id,
+                displayName: nameData.display_name,
+                alternateNames: nameData.alternate_names,
+                birthYear: nameData.birth_year,
+                birthLocation: nameData.birth_location,
+                deathYear: nameData.death_year,
+                deathLocation: nameData.death_location,
+                deadReason: nameData.dead_reason,
+            })
 
-        const savedName = await this.nameRepository.save(name)
+            const savedName = await this.nameRepository.save(name)
 
-        if (nameData.avatars?.length) {
-            await this.avatarService.createMany(savedName, nameData.avatars)
+            if (nameData.avatars?.length) {
+                await this.avatarService.createMany(savedName, nameData.avatars)
+            }
+
+            return savedName
+        } catch (error) {
+            this.logger.error(
+                `Failed to create name ${nameData.id}:`,
+                error.stack,
+            )
+            throw error
         }
-
-        return savedName
     }
 
     async update(existing: Name, nameData: INameDetails): Promise<Name> {
-        Object.assign(existing, {
-            displayName: nameData.display_name,
-            alternateNames: nameData.alternate_names,
-            birthYear: nameData.birth_year,
-            birthLocation: nameData.birth_location,
-            deathYear: nameData.death_year,
-            deathLocation: nameData.death_location,
-            deadReason: nameData.dead_reason,
-        })
+        try {
+            Object.assign(existing, {
+                displayName: nameData.display_name,
+                alternateNames: nameData.alternate_names,
+                birthYear: nameData.birth_year,
+                birthLocation: nameData.birth_location,
+                deathYear: nameData.death_year,
+                deathLocation: nameData.death_location,
+                deadReason: nameData.dead_reason,
+            })
 
-        const savedName = await this.nameRepository.save(existing)
+            const savedName = await this.nameRepository.save(existing)
 
-        if (nameData.avatars?.length) {
-            await this.avatarService.updateMany(savedName, nameData.avatars)
+            if (nameData.avatars?.length) {
+                await this.avatarService.updateMany(savedName, nameData.avatars)
+            }
+
+            return savedName
+        } catch (error) {
+            this.logger.error(
+                `Failed to update name ${nameData.id}:`,
+                error.stack,
+            )
+            throw error
         }
-
-        return savedName
     }
 }

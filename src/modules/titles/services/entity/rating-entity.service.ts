@@ -21,38 +21,69 @@ export class RatingEntityService {
     }
 
     async findOrCreate(title: Title, ratingData: IRating): Promise<Rating> {
-        const existing = await this.findByTitleId(title.id)
+        try {
+            const existing = await this.findByTitleId(title.id)
 
-        if (existing) {
-            return existing
+            if (existing) {
+                return existing
+            }
+
+            return this.create(title, ratingData)
+        } catch (error) {
+            this.logger.error(
+                `Failed to find or create title ${title.imdbId} rating:`,
+                error.stack,
+            )
+            throw error
         }
-
-        return this.create(title, ratingData)
     }
 
     async create(title: Title, ratingData: IRating): Promise<Rating> {
-        const rating = this.ratingRepository.create({
-            title,
-            aggregateRating: ratingData.aggregate_rating,
-            votesCount: ratingData.votes_count,
-        })
+        try {
+            const rating = this.ratingRepository.create({
+                title,
+                aggregateRating: ratingData.aggregate_rating,
+                votesCount: ratingData.votes_count,
+            })
 
-        return this.ratingRepository.save(rating)
+            return this.ratingRepository.save(rating)
+        } catch (error) {
+            this.logger.error(
+                `Failed to create title ${title.imdbId} rating:`,
+                error.stack,
+            )
+            throw error
+        }
     }
 
     async update(title: Title, ratingData: IRating): Promise<Rating | null> {
-        const existing = await this.findByTitleId(title.id)
+        try {
+            const existing = await this.findByTitleId(title.id)
 
-        if (!existing) {
-            return null
+            if (!existing) {
+                return null
+            }
+
+            if (
+                existing.aggregateRating === ratingData.aggregate_rating &&
+                existing.votesCount === ratingData.votes_count
+            ) {
+                return existing
+            }
+
+            Object.assign(existing, {
+                title,
+                aggregateRating: ratingData.aggregate_rating,
+                votesCount: ratingData.votes_count,
+            })
+
+            return this.ratingRepository.save(existing)
+        } catch (error) {
+            this.logger.error(
+                `Failed to update title ${title.imdbId} rating:`,
+                error.stack,
+            )
+            throw error
         }
-
-        Object.assign(existing, {
-            title,
-            aggregateRating: ratingData.aggregate_rating,
-            votesCount: ratingData.votes_count,
-        })
-
-        return this.ratingRepository.save(existing)
     }
 }

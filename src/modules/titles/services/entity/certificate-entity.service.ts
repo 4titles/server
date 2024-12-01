@@ -37,43 +37,52 @@ export class CertificateEntityService {
     ): Promise<Certificate[]> {
         if (!certificates?.length) return
 
-        const countries = await this.countryEntityService.findOrCreateMany(
-            certificates.map((cert) => cert.country),
-        )
-        const countryMap = new Map(
-            countries.map((country) => [country.code, country]),
-        )
+        try {
+            const countries = await this.countryEntityService.findOrCreateMany(
+                certificates.map((cert) => cert.country),
+            )
+            const countryMap = new Map(
+                countries.map((country) => [country.code, country]),
+            )
 
-        const existingCertificates = await this.findByTitleIdAndCountryCodes(
-            title.id,
-            certificates.map((cert) => cert.country.code),
-        )
-        const existingMap = new Map(
-            existingCertificates.map((cert) => [cert.country.code, cert]),
-        )
+            const existingCertificates =
+                await this.findByTitleIdAndCountryCodes(
+                    title.id,
+                    certificates.map((cert) => cert.country.code),
+                )
+            const existingMap = new Map(
+                existingCertificates.map((cert) => [cert.country.code, cert]),
+            )
 
-        const certificatePromises = certificates.map(async (cert) => {
-            const country = countryMap.get(cert.country.code)
-            if (!country) {
-                return null
-            }
+            const certificatePromises = certificates.map(async (cert) => {
+                const country = countryMap.get(cert.country.code)
+                if (!country) {
+                    return null
+                }
 
-            const existing = existingMap.get(cert.country.code)
-            if (existing) {
-                return existing
-            }
+                const existing = existingMap.get(cert.country.code)
+                if (existing) {
+                    return existing
+                }
 
-            const certificate = this.certificateRepository.create({
-                title,
-                country,
-                rating: cert.rating,
+                const certificate = this.certificateRepository.create({
+                    title,
+                    country,
+                    rating: cert.rating,
+                })
+
+                return this.certificateRepository.save(certificate)
             })
 
-            return this.certificateRepository.save(certificate)
-        })
-
-        const results = await Promise.all(certificatePromises)
-        return results.filter(Boolean)
+            const results = await Promise.all(certificatePromises)
+            return results.filter(Boolean)
+        } catch (error) {
+            this.logger.error(
+                `Failed to create title ${title.imdbId} certificates:`,
+                error.stack,
+            )
+            throw error
+        }
     }
 
     async updateMany(
@@ -82,34 +91,46 @@ export class CertificateEntityService {
     ): Promise<void> {
         if (!certificates?.length) return
 
-        const existingCertificates = await this.findByTitleIdAndCountryCodes(
-            title.id,
-            certificates.map((cert) => cert.country.code),
-        )
+        try {
+            const existingCertificates =
+                await this.findByTitleIdAndCountryCodes(
+                    title.id,
+                    certificates.map((cert) => cert.country.code),
+                )
 
-        const updatePromises = existingCertificates.map(async (existing) => {
-            const newData = certificates.find(
-                (cert) => cert.country.code === existing.country.code,
+            const updatePromises = existingCertificates.map(
+                async (existing) => {
+                    const newData = certificates.find(
+                        (cert) => cert.country.code === existing.country.code,
+                    )
+                    if (newData) {
+                        existing.rating = newData.rating
+                        return this.certificateRepository.save(existing)
+                    }
+                },
             )
-            if (newData) {
-                existing.rating = newData.rating
-                return this.certificateRepository.save(existing)
-            }
-        })
 
-        const certificatesToCreate = certificates.filter(
-            (cert) =>
-                !existingCertificates.some(
-                    (existing) => existing.country.code === cert.country.code,
-                ),
-        )
+            const certificatesToCreate = certificates.filter(
+                (cert) =>
+                    !existingCertificates.some(
+                        (existing) =>
+                            existing.country.code === cert.country.code,
+                    ),
+            )
 
-        await Promise.all(
-            [
-                ...updatePromises,
-                certificatesToCreate.length &&
-                    this.createMany(title, certificatesToCreate),
-            ].filter(Boolean),
-        )
+            await Promise.all(
+                [
+                    ...updatePromises,
+                    certificatesToCreate.length &&
+                        this.createMany(title, certificatesToCreate),
+                ].filter(Boolean),
+            )
+        } catch (error) {
+            this.logger.error(
+                `Failed to update title ${title.imdbId} certificates:`,
+                error.stack,
+            )
+            throw error
+        }
     }
 }

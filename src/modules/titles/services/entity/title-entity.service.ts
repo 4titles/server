@@ -5,6 +5,7 @@ import {
     ICountry,
     IIMDbTitle,
     ILanguage,
+    IRating,
 } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { In, Repository } from 'typeorm'
 import { PosterEntityService } from './poster-entity.service'
@@ -18,23 +19,16 @@ import { LanguageEntityService } from './language-entity.service'
 @Injectable()
 export class TitleEntityService {
     private readonly logger = new Logger(TitleEntityService.name)
-    private readonly defaultRelations = {
-        rating: true,
-        posters: {
-            language: true,
-        },
-        certificates: {
-            country: true,
-        },
-        spokenLanguages: true,
-        originCountries: true,
-        criticReview: true,
-        credits: {
-            name: {
-                avatars: true,
-            },
-        },
-    } as const
+
+    private readonly defaultRelations: string[] = [
+        'rating',
+        'posters.language',
+        'certificates.country',
+        'spokenLanguages',
+        'originCountries',
+        'criticReview',
+        'credits.name.avatars',
+    ] as const
 
     constructor(
         @InjectRepository(Title)
@@ -48,26 +42,35 @@ export class TitleEntityService {
         private readonly languageService: LanguageEntityService,
     ) {}
 
-    async findByImdbId(imdbId: string): Promise<Title | null> {
+    async findByImdbId(
+        imdbId: string,
+        relations: string[] = this.defaultRelations,
+    ): Promise<Title | null> {
         return this.titleRepository.findOne({
             where: { imdbId },
-            relations: this.defaultRelations,
+            relations,
         })
     }
 
-    async findByImdbIds(imdbIds: string[]): Promise<Title[]> {
+    async findByImdbIds(
+        imdbIds: string[],
+        relations: string[] = this.defaultRelations,
+    ): Promise<Title[]> {
         if (!imdbIds?.length) return []
 
         return this.titleRepository.find({
             where: { imdbId: In(imdbIds) },
-            relations: this.defaultRelations,
+            relations,
         })
     }
 
-    async findByType(type: TitleType): Promise<Title[]> {
+    async findByType(
+        type: TitleType,
+        relations: string[] = this.defaultRelations,
+    ): Promise<Title[]> {
         return this.titleRepository.find({
             where: { type },
-            relations: this.defaultRelations,
+            relations,
         })
     }
 
@@ -85,7 +88,7 @@ export class TitleEntityService {
             const savedTitle = await this.titleRepository.save(title)
 
             await this.processRelatedEntities(savedTitle, titleData, 'create')
-            return savedTitle
+            return this.findByImdbId(savedTitle.imdbId)
         } catch (error) {
             this.logger.error(
                 `Failed to create title ${titleData.id}:`,
@@ -96,14 +99,22 @@ export class TitleEntityService {
     }
 
     async update(existing: Title, titleData: IIMDbTitle): Promise<Title> {
-        const updatedTitle = Object.assign(
-            existing,
-            this.mapTitleData(titleData),
-        )
-        const savedTitle = await this.titleRepository.save(updatedTitle)
+        try {
+            const updatedTitle = Object.assign(
+                existing,
+                this.mapTitleData(titleData),
+            )
+            const savedTitle = await this.titleRepository.save(updatedTitle)
 
-        await this.processRelatedEntities(savedTitle, titleData, 'update')
-        return this.findByImdbId(savedTitle.imdbId)
+            await this.processRelatedEntities(savedTitle, titleData, 'update')
+            return this.findByImdbId(savedTitle.imdbId)
+        } catch (error) {
+            this.logger.error(
+                `Failed to update title ${titleData.id}:`,
+                error.stack,
+            )
+            throw error
+        }
     }
 
     private async processRelatedEntities(
@@ -120,7 +131,7 @@ export class TitleEntityService {
             await Promise.all(operations.filter(Boolean))
         } catch (error) {
             this.logger.error(
-                `Failed to ${mode} related entities for title ${title.imdbId}:`,
+                `Failed to process related entities for title ${title.imdbId}:`,
                 error.stack,
             )
             throw error
@@ -133,14 +144,6 @@ export class TitleEntityService {
         mode: 'create' | 'update',
     ): Promise<any>[] {
         const operations = []
-
-        if (titleData.rating) {
-            operations.push(
-                mode === 'create'
-                    ? this.ratingService.create(title, titleData.rating)
-                    : this.ratingService.update(title, titleData.rating),
-            )
-        }
 
         if (titleData.posters?.length) {
             operations.push(
@@ -190,6 +193,10 @@ export class TitleEntityService {
             )
         }
 
+        if (titleData.rating) {
+            operations.push(this.processRating(title, titleData.rating, mode))
+        }
+
         if (titleData.origin_countries?.length) {
             operations.push(
                 this.processOriginCountries(title, titleData.origin_countries),
@@ -205,23 +212,34 @@ export class TitleEntityService {
         return operations
     }
 
+    private async processRating(
+        title: Title,
+        ratingData: IRating,
+        mode: 'create' | 'update',
+    ): Promise<void> {
+        const rating =
+            mode === 'create'
+                ? await this.ratingService.create(title, ratingData)
+                : await this.ratingService.update(title, ratingData)
+
+        title.rating = rating
+        await this.titleRepository.save(title)
+    }
+
     private async processOriginCountries(
         title: Title,
         countries: ICountry[],
     ): Promise<void> {
         const countryEntities =
             await this.countryService.findOrCreateMany(countries)
-
         await this.countryService.updateMany(countries)
 
-        await this.titleRepository
-            .createQueryBuilder()
-            .relation(Title, 'originCountries')
-            .of(title)
-            .addAndRemove(
-                countryEntities.map((c) => c.id),
-                title.originCountries?.map((c) => c.id) || [],
-            )
+        const existingTitle = await this.findByImdbId(title.imdbId, [
+            'originCountries',
+        ])
+
+        existingTitle.originCountries = countryEntities
+        await this.titleRepository.save(existingTitle)
     }
 
     private async processSpokenLanguages(
@@ -230,17 +248,14 @@ export class TitleEntityService {
     ): Promise<void> {
         const languageEntities =
             await this.languageService.findOrCreateMany(languages)
-
         await this.languageService.updateMany(languages)
 
-        await this.titleRepository
-            .createQueryBuilder()
-            .relation(Title, 'spokenLanguages')
-            .of(title)
-            .addAndRemove(
-                languageEntities.map((l) => l.id),
-                title.spokenLanguages?.map((l) => l.id) || [],
-            )
+        const existingTitle = await this.findByImdbId(title.imdbId, [
+            'spokenLanguages',
+        ])
+
+        existingTitle.spokenLanguages = languageEntities
+        await this.titleRepository.save(existingTitle)
     }
 
     private mapTitleData(data: IIMDbTitle): Partial<Title> {

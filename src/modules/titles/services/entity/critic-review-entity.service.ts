@@ -24,43 +24,59 @@ export class CriticReviewEntityService {
         title: Title,
         reviewData: ICriticReview,
     ): Promise<CriticReview> {
-        const existing = await this.findByTitleId(title.id)
+        try {
+            const existing = await this.findByTitleId(title.id)
 
-        if (existing) {
-            return existing
+            if (existing) {
+                return existing
+            }
+
+            const review = this.criticReviewRepository.create({
+                title,
+                score: reviewData.score,
+                reviewCount: reviewData.review_count,
+            })
+
+            return this.criticReviewRepository.save(review)
+        } catch (error) {
+            this.logger.error(
+                `Failed to create critic review for title ${title.imdbId}:`,
+                error.stack,
+            )
+            return null
         }
-
-        const review = this.criticReviewRepository.create({
-            title,
-            score: reviewData.score,
-            reviewCount: reviewData.review_count,
-        })
-
-        return this.criticReviewRepository.save(review)
     }
 
     async update(
         title: Title,
         reviewData: ICriticReview,
     ): Promise<CriticReview | null> {
-        const existing = await this.findByTitleId(title.id)
+        try {
+            const existing = await this.findByTitleId(title.id)
 
-        if (!existing) {
+            if (!existing) {
+                return null
+            }
+
+            if (
+                existing.score === reviewData.score &&
+                existing.reviewCount === reviewData.review_count
+            ) {
+                return existing
+            }
+
+            Object.assign(existing, {
+                score: reviewData.score,
+                reviewCount: reviewData.review_count,
+            })
+
+            return this.criticReviewRepository.save(existing)
+        } catch (error) {
+            this.logger.error(
+                `Failed to update critic review for title ${title.imdbId}:`,
+                error.stack,
+            )
             return null
         }
-
-        if (
-            existing.score === reviewData.score &&
-            existing.reviewCount === reviewData.review_count
-        ) {
-            return existing
-        }
-
-        Object.assign(existing, {
-            score: reviewData.score,
-            reviewCount: reviewData.review_count,
-        })
-
-        return this.criticReviewRepository.save(existing)
     }
 }

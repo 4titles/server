@@ -48,18 +48,36 @@ export class CreditEntityService {
     }
 
     async createMany(title: Title, titleData: IIMDbTitle): Promise<Credit[]> {
-        const mappedCredits = this.mapAllCredits(titleData)
-        if (!mappedCredits.length) return []
+        try {
+            const mappedCredits = this.mapAllCredits(titleData)
+            if (!mappedCredits.length) return []
 
-        const processedCredits = await this.processCredits(title, mappedCredits)
-        return processedCredits.filter(Boolean)
+            const processedCredits = await this.processCredits(
+                title,
+                mappedCredits,
+            )
+            return processedCredits.filter(Boolean)
+        } catch (error) {
+            this.logger.error(
+                `Failed to create credits for title ${title.imdbId}:`,
+                error.stack,
+            )
+            return []
+        }
     }
 
     async updateMany(title: Title, titleData: IIMDbTitle): Promise<void> {
-        const mappedCredits = this.mapAllCredits(titleData)
-        if (!mappedCredits.length) return
+        try {
+            const mappedCredits = this.mapAllCredits(titleData)
+            if (!mappedCredits.length) return
 
-        await this.processCredits(title, mappedCredits)
+            await this.processCredits(title, mappedCredits)
+        } catch (error) {
+            this.logger.error(
+                `Failed to update credits for title ${title.imdbId}:`,
+                error.stack,
+            )
+        }
     }
 
     private mapAllCredits(
@@ -87,20 +105,28 @@ export class CreditEntityService {
         title: Title,
         credits: Array<ICredit & { category: string }>,
     ): Promise<Credit[]> {
-        const creditsByCategory = this.groupByCategory(credits)
+        try {
+            const creditsByCategory = this.groupByCategory(credits)
 
-        const processedCredits = await Promise.all(
-            Object.entries(creditsByCategory).map(
-                ([category, categoryCredits]) =>
-                    this.processCategoryCredits(
-                        title,
-                        category,
-                        categoryCredits,
-                    ),
-            ),
-        )
+            const processedCredits = await Promise.all(
+                Object.entries(creditsByCategory).map(
+                    ([category, categoryCredits]) =>
+                        this.processCategoryCredits(
+                            title,
+                            category,
+                            categoryCredits,
+                        ),
+                ),
+            )
 
-        return processedCredits.flat()
+            return processedCredits.flat()
+        } catch (error) {
+            this.logger.error(
+                `Failed to process credits for title ${title.imdbId}:`,
+                error.stack,
+            )
+            return []
+        }
     }
 
     private async processCategoryCredits(
@@ -163,14 +189,23 @@ export class CreditEntityService {
         name: Name,
         creditData: ICredit & { category: string },
     ): Promise<Credit> {
-        const credit = this.creditRepository.create({
-            title,
-            name,
-            category: creditData.category,
-            characters: creditData.characters,
-            episodesCount: creditData.episodes_count,
-        })
-        return this.creditRepository.save(credit)
+        try {
+            const credit = this.creditRepository.create({
+                title,
+                name,
+                category: creditData.category,
+                characters: creditData.characters,
+                episodesCount: creditData.episodes_count,
+            })
+
+            return this.creditRepository.save(credit)
+        } catch (error) {
+            this.logger.error(
+                `Failed to create credit for title ${title.imdbId}:`,
+                error.stack,
+            )
+            throw error
+        }
     }
 
     private async updateCredit(
