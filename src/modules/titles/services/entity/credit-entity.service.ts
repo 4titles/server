@@ -149,7 +149,9 @@ export class CreditEntityService {
             const processPromises = credits.map(async (creditData) => {
                 const name = await this.nameEntityService.findOrCreate(
                     creditData.name,
+                    ['knownFor'],
                 )
+
                 const key = `${name.id}-${category}`
                 const existing = existingCreditsMap.get(key)
 
@@ -212,10 +214,22 @@ export class CreditEntityService {
         existing: Credit,
         creditData: ICredit,
     ): Promise<Credit> {
-        return this.creditRepository.save({
-            ...existing,
-            characters: creditData.characters,
-            episodesCount: creditData.episodes_count,
-        })
+        try {
+            const credit = await this.creditRepository.save({
+                ...existing,
+                characters: creditData.characters,
+                episodesCount: creditData.episodes_count,
+            })
+
+            await this.nameEntityService.update(existing.name, creditData.name)
+
+            return credit
+        } catch (error) {
+            this.logger.error(
+                `Failed to update credit for title ${existing.title.imdbId}:`,
+                error.stack,
+            )
+            throw error
+        }
     }
 }

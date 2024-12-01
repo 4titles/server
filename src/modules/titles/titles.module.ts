@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { HttpModule } from '@nestjs/axios'
 
@@ -55,6 +55,7 @@ import { TitlesResolver } from './resolvers/titles.resolver'
         HttpModule,
         IMDBModule,
         CacheModule,
+        forwardRef(() => TitlesModule),
     ],
     providers: [
         // Main Services

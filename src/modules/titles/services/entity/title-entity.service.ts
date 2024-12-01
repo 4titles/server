@@ -28,6 +28,7 @@ export class TitleEntityService {
         'originCountries',
         'criticReview',
         'credits.name.avatars',
+        'credits.name.knownFor',
     ] as const
 
     constructor(
