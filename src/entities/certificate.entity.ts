@@ -1,10 +1,12 @@
 import {
     Column,
+    CreateDateColumn,
     Entity,
     Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm'
 import { Title } from './title.entity'
 import { Country } from './country.entity'
@@ -31,18 +33,13 @@ export class Certificate {
     @JoinColumn({ name: 'country_id' })
     country: Country
 
-    @Column({
+    @CreateDateColumn({
         name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
     })
     createdAt: Date
 
-    @Column({
+    @UpdateDateColumn({
         name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
 }

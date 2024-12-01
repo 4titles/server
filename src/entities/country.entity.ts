@@ -1,17 +1,19 @@
 import {
     Column,
+    CreateDateColumn,
     Entity,
     Index,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm'
 import { Title } from './title.entity'
 import { Certificate } from './certificate.entity'
 
 @Entity('countries')
-@Index('idx_countries_code', ['code'], { unique: true })
-@Index('idx_countries_name', ['name'])
+@Index('idx_countries_code', ['code'])
+@Index('idx_countries_name', ['code', 'name'], { unique: true })
 export class Country {
     @PrimaryGeneratedColumn('increment')
     id: number
@@ -37,18 +39,13 @@ export class Country {
     @ManyToMany(() => Title, (title) => title.originCountries)
     titles: Title[]
 
-    @Column({
+    @CreateDateColumn({
         name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
     })
     createdAt: Date
 
-    @Column({
+    @UpdateDateColumn({
         name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
 }

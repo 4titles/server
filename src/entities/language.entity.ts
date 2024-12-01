@@ -1,17 +1,19 @@
 import {
     Column,
+    CreateDateColumn,
     Entity,
     Index,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm'
 import { Poster } from './poster.entity'
 import { Title } from './title.entity'
 
 @Entity('languages')
 @Index('idx_languages_code', ['code'])
-@Index('idx_languages_name', ['name'])
+@Index('idx_languages_code_name', ['code', 'name'], { unique: true })
 export class Language {
     @PrimaryGeneratedColumn('increment')
     id: number
@@ -36,18 +38,13 @@ export class Language {
     @ManyToMany(() => Title, (title) => title.spokenLanguages)
     titles: Title[]
 
-    @Column({
+    @CreateDateColumn({
         name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
     })
     createdAt: Date
 
-    @Column({
+    @UpdateDateColumn({
         name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
 }

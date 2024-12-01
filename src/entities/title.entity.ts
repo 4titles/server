@@ -9,6 +9,8 @@ import {
     JoinColumn,
     OneToOne,
     JoinTable,
+    CreateDateColumn,
+    UpdateDateColumn,
 } from 'typeorm'
 import { Rating } from './rating.entity'
 import { Certificate } from './certificate.entity'
@@ -100,18 +102,13 @@ export class Title {
     @Column({ type: 'simple-array', nullable: true })
     genres: string[]
 
-    @Column({
+    @CreateDateColumn({
         name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
     })
     createdAt: Date
 
-    @Column({
+    @UpdateDateColumn({
         name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
 

@@ -1,10 +1,12 @@
 import {
     Column,
+    CreateDateColumn,
     Entity,
     Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm'
 import { Title } from './title.entity'
 import { Language } from './language.entity'
@@ -48,18 +50,13 @@ export class Poster {
     @JoinColumn({ name: 'title_id' })
     title: Title
 
-    @Column({
+    @CreateDateColumn({
         name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
     })
     createdAt: Date
 
-    @Column({
+    @UpdateDateColumn({
         name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
 }

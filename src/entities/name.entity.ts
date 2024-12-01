@@ -1,18 +1,20 @@
 import {
     Column,
+    CreateDateColumn,
     Entity,
     Index,
     JoinTable,
     ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm'
 import { Avatar } from './avatar.entity'
 import { Title } from './title.entity'
 import { Credit } from './credit.entity'
 
 @Entity('names')
-@Index('idx_names_imdb_id', ['imdbId'], { unique: true })
+@Index('idx_names_imdb_id', ['imdbId'])
 @Index('idx_names_display_name', ['displayName'])
 @Index('idx_names_created_at', ['createdAt'])
 export class Name {
@@ -49,18 +51,13 @@ export class Name {
     @Column({ name: 'dead_reason', type: 'varchar', nullable: true })
     deadReason: string
 
-    @Column({
+    @CreateDateColumn({
         name: 'created_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
     })
     createdAt: Date
 
-    @Column({
+    @UpdateDateColumn({
         name: 'updated_at',
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-        onUpdate: 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date
 
