@@ -10,6 +10,7 @@ import { Title, TitleType } from '../../../entities/title.entity'
 import { TitlesService } from '../services/titles.service'
 import { Logger } from '@nestjs/common'
 import { Credit, CreditCategory } from 'src/entities/credit.entity'
+import { TitleList } from 'src/graphql'
 
 @Resolver(() => Title)
 export class TitlesResolver {
@@ -44,36 +45,49 @@ export class TitlesResolver {
         )
     }
 
-    @Query(() => [Title])
+    @ResolveField(() => [String])
+    genres(@Parent() title: Title) {
+        return title.genres?.map((genre) => genre.name) ?? []
+    }
+
+    @Query(() => TitleList)
     async titles(
         @Args('ids', { type: () => [String], nullable: true }) ids?: string[],
         @Args('type', { type: () => TitleType, nullable: true })
         type?: TitleType,
-    ): Promise<Title[]> {
+    ): Promise<{ items: Title[]; totalCount: number }> {
+        let titles: Title[] = []
+
         if (ids?.length) {
-            return this.titlesService.getTitlesByIds(ids)
+            titles = await this.titlesService.getTitlesByIds(ids)
+        } else {
+            titles = await this.titlesService.getTitlesByType(type)
         }
-        return this.titlesService.getTitlesByType(TitleType[type])
+
+        return {
+            items: titles,
+            totalCount: titles.length,
+        }
     }
 
     @Query(() => [Title])
     async movies(): Promise<Title[]> {
-        return this.titlesService.getTitlesByType(TitleType.MOVIE)
+        return await this.titlesService.getTitlesByType(TitleType.MOVIE)
     }
 
     @Query(() => [Title])
     async tvSeries(): Promise<Title[]> {
-        return this.titlesService.getTitlesByType(TitleType.TV_SERIES)
+        return await this.titlesService.getTitlesByType(TitleType.TV_SERIES)
     }
 
     @Query(() => [Title])
     async tvMiniSeries(): Promise<Title[]> {
-        return this.titlesService.getTitlesByType(TitleType.TV_MINISERIES)
+        return await this.titlesService.getTitlesByType(TitleType.TV_MINISERIES)
     }
 
     @Query(() => Title)
     async titleById(@Args('imdbId') imdbId: string): Promise<Title | null> {
-        return this.titlesService.getTitleById(imdbId)
+        return await this.titlesService.getTitleById(imdbId)
     }
 
     @Mutation(() => Boolean)
