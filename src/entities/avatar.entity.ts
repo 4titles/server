@@ -20,6 +20,8 @@ export class Avatar {
         type: 'varchar',
         length: 255,
         comment: 'The direct address of avatar.',
+        default:
+            'https://png.pngtree.com/png-clipart/20210129/ourmid/pngtree-default-male-avatar-png-image_2811083.jpg',
     })
     url: string
 

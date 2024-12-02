@@ -23,11 +23,6 @@ type Title {
     updatedAt: DateTime
 }
 
-type TitleList {
-    items: [Title!]!
-    totalCount: Int!
-}
-
 enum TitleType {
     movie
     tvSeries

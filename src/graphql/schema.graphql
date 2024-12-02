@@ -3,7 +3,7 @@ scalar DateTime
 scalar JSON
 
 # Import types
-#import Title, TitleType, TitleList from 'types/title.type.graphql'
+#import Title, TitleType from 'types/title.type.graphql'
 #import Name from 'types/name.type.graphql'
 #import Avatar from 'types/avatar.type.graphql'
 #import Credit, CreditCategory from 'types/credit.type.graphql'
