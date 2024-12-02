@@ -20,6 +20,7 @@ import { Poster } from './poster.entity'
 import { Credit } from './credit.entity'
 import { CriticReview } from './critic-review.entity'
 import { Name } from './name.entity'
+import { Genre } from './genre.entity'
 
 export enum TitleType {
     MOVIE = 'movie',
@@ -99,8 +100,8 @@ export class Title {
     @Column({ type: 'text', nullable: true, comment: 'A plot description.' })
     plot: string
 
-    @Column({ type: 'simple-array', nullable: true })
-    genres: string[]
+    // @Column({ type: 'simple-array', nullable: true })
+    // genres: string[]
 
     @CreateDateColumn({
         name: 'created_at',
@@ -188,4 +189,20 @@ export class Title {
         onDelete: 'CASCADE',
     })
     criticReview: CriticReview
+
+    @ManyToMany(() => Genre, (genre) => genre.titles, {
+        onDelete: 'CASCADE',
+    })
+    @JoinTable({
+        name: 'titles_genres',
+        joinColumn: {
+            name: 'title_id',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: {
+            name: 'genre_id',
+            referencedColumnName: 'id',
+        },
+    })
+    genres: Genre[]
 }
