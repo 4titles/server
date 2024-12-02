@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common'
-import { IRelationProcessor } from '../relation-processor.interface'
+import { IRelationProcessor } from '../title/relation-processor.interface'
 import { EntityMode } from './types/entity-mode.type'
 
 export abstract class BaseRelationProcessor<T, D>

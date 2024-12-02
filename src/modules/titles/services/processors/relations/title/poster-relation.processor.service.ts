@@ -2,16 +2,16 @@ import { Injectable, Logger } from '@nestjs/common'
 import { Title } from 'src/entities/title.entity'
 import { Poster } from 'src/entities/poster.entity'
 import { IPoster } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { PosterEntityService } from '../../entity/poster-entity.service'
-import { BaseRelationProcessor } from './base/relation-processor.base'
-import { EntityMode } from './base/types/entity-mode.type'
+import { PosterEntityService } from '../../../entity/poster-entity.service'
+import { BaseRelationProcessor } from '../base/relation-processor.base'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 @Injectable()
-export class PosterRelationProcessor extends BaseRelationProcessor<
+export class PosterRelationProcessorService extends BaseRelationProcessor<
     Title,
     IPoster[]
 > {
-    protected readonly logger = new Logger(PosterRelationProcessor.name)
+    protected readonly logger = new Logger(PosterRelationProcessorService.name)
 
     constructor(private readonly posterService: PosterEntityService) {
         super()

@@ -13,7 +13,8 @@ import { TitlesResolver } from './resolvers/titles.resolver'
 
 import * as EntityServices from './services/entity'
 
-import * as RelationProcessors from './services/processors/relations'
+import * as TitleRelationProcessors from './services/processors/relations/title'
+import * as NameRelationProcessors from './services/processors/relations/name'
 
 @Module({
     imports: [
@@ -32,8 +33,11 @@ import * as RelationProcessors from './services/processors/relations'
         // Entity Services
         ...Object.values(EntityServices),
 
-        // Relation Processors
-        ...Object.values(RelationProcessors),
+        // Title Entity Relation Processors
+        ...Object.values(TitleRelationProcessors),
+
+        // Name Entity Relation Processors
+        ...Object.values(NameRelationProcessors),
     ],
     exports: [TitlesService],
 })

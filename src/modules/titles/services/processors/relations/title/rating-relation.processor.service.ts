@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Title } from 'src/entities/title.entity'
 import { IRating } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { BaseRelationProcessor } from './base/relation-processor.base'
-import { RatingEntityService } from '../../entity/rating-entity.service'
+import { BaseRelationProcessor } from '../base/relation-processor.base'
+import { RatingEntityService } from '../../../entity/rating-entity.service'
 import { Rating } from 'src/entities/rating.entity'
-import { EntityMode } from './base/types/entity-mode.type'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 @Injectable()
-export class RatingRelationProcessor extends BaseRelationProcessor<
+export class RatingRelationProcessorService extends BaseRelationProcessor<
     Title,
     IRating
 > {
-    protected readonly logger = new Logger(RatingRelationProcessor.name)
+    protected readonly logger = new Logger(RatingRelationProcessorService.name)
 
     constructor(private readonly ratingService: RatingEntityService) {
         super()

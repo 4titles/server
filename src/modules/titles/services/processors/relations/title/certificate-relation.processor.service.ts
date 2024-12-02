@@ -1,17 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { BaseRelationProcessor } from './base/relation-processor.base'
+import { BaseRelationProcessor } from '../base/relation-processor.base'
 import { ICertificate } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { Title } from 'src/entities/title.entity'
-import { CertificateEntityService } from '../../entity/certificate-entity.service'
+import { CertificateEntityService } from '../../../entity/certificate-entity.service'
 import { Certificate } from 'src/entities/certificate.entity'
-import { EntityMode } from './base/types/entity-mode.type'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 @Injectable()
-export class CertificateRelationProcessor extends BaseRelationProcessor<
+export class CertificateRelationProcessorService extends BaseRelationProcessor<
     Title,
     ICertificate[]
 > {
-    protected readonly logger = new Logger(CertificateRelationProcessor.name)
+    protected readonly logger = new Logger(
+        CertificateRelationProcessorService.name,
+    )
 
     constructor(private readonly certificateSerice: CertificateEntityService) {
         super()

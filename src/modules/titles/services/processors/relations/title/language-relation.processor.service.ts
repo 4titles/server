@@ -1,17 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Title } from 'src/entities/title.entity'
 import { ILanguage } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { BaseRelationProcessor } from './base/relation-processor.base'
-import { LanguageEntityService } from '../../entity/language-entity.service'
+import { BaseRelationProcessor } from '../base/relation-processor.base'
+import { LanguageEntityService } from '../../../entity/language-entity.service'
 import { Language } from 'src/entities/language.entity'
-import { EntityMode } from './base/types/entity-mode.type'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 @Injectable()
-export class LanguageRelationProcessor extends BaseRelationProcessor<
+export class LanguageRelationProcessorService extends BaseRelationProcessor<
     Title,
     ILanguage[]
 > {
-    protected readonly logger = new Logger(LanguageRelationProcessor.name)
+    protected readonly logger = new Logger(
+        LanguageRelationProcessorService.name,
+    )
 
     constructor(private readonly languageService: LanguageEntityService) {
         super()

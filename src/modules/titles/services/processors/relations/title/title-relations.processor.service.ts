@@ -1,31 +1,32 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { IIMDbTitle } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { Title } from 'src/entities/title.entity'
-import { CountryRelationProcessor } from './country-relation.processor'
-import { CreditRelationProcessor } from './credit-relation.processor'
-import { CertificateRelationProcessor } from './certificate-relation.processor'
-import { CriticReviewRelationProcessor } from './critic-review-relation.processor'
-import { GenreRelationProcessor } from './genre-relation.processor'
-import { PosterRelationProcessor } from './poster-relation.processor'
-import { RatingRelationProcessor } from './rating-relation.processor'
-import { EntityMode } from './base/types/entity-mode.type'
-import { LanguageRelationProcessor } from '.'
 import { Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
+
+import { EntityMode } from '../base/types/entity-mode.type'
+import { PosterRelationProcessorService } from './poster-relation.processor.service'
+import { CertificateRelationProcessorService } from './certificate-relation.processor.service'
+import { CreditRelationProcessorService } from './credit-relation.processor.service'
+import { CriticReviewRelationProcessorService } from './critic-review-relation.processor.service'
+import { RatingRelationProcessorService } from './rating-relation.processor.service'
+import { CountryRelationProcessorService } from './country-relation.processor.service'
+import { LanguageRelationProcessorService } from './language-relation.processor.service'
+import { GenreRelationProcessorService } from './genre-relation.processor.service'
 
 @Injectable()
 export class TitleRelationsProcessorService {
     private readonly logger = new Logger(TitleRelationsProcessorService.name)
 
     constructor(
-        private readonly posterProcessor: PosterRelationProcessor,
-        private readonly certificateProcessor: CertificateRelationProcessor,
-        private readonly creditProcessor: CreditRelationProcessor,
-        private readonly criticReviewProcessor: CriticReviewRelationProcessor,
-        private readonly ratingProcessor: RatingRelationProcessor,
-        private readonly countryProcessor: CountryRelationProcessor,
-        private readonly languageProcessor: LanguageRelationProcessor,
-        private readonly genreProcessor: GenreRelationProcessor,
+        private readonly posterProcessor: PosterRelationProcessorService,
+        private readonly certificateProcessor: CertificateRelationProcessorService,
+        private readonly creditProcessor: CreditRelationProcessorService,
+        private readonly criticReviewProcessor: CriticReviewRelationProcessorService,
+        private readonly ratingProcessor: RatingRelationProcessorService,
+        private readonly countryProcessor: CountryRelationProcessorService,
+        private readonly languageProcessor: LanguageRelationProcessorService,
+        private readonly genreProcessor: GenreRelationProcessorService,
         @InjectRepository(Title)
         private readonly titleRepository: Repository<Title>,
     ) {}

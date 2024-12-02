@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Title } from 'src/entities/title.entity'
-import { BaseRelationProcessor } from './base/relation-processor.base'
-import { GenreEntityService } from '../../entity/genre-entity.service'
+import { BaseRelationProcessor } from '../base/relation-processor.base'
+import { GenreEntityService } from '../../../entity/genre-entity.service'
 import { Genre } from 'src/entities/genre.entity'
-import { EntityMode } from './base/types/entity-mode.type'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 @Injectable()
-export class GenreRelationProcessor extends BaseRelationProcessor<
+export class GenreRelationProcessorService extends BaseRelationProcessor<
     Title,
     string[]
 > {
-    protected readonly logger = new Logger(GenreRelationProcessor.name)
+    protected readonly logger = new Logger(GenreRelationProcessorService.name)
 
     constructor(private readonly genreService: GenreEntityService) {
         super()

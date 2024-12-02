@@ -1,4 +1,4 @@
-import { EntityMode } from './base/types/entity-mode.type'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 export interface IRelationProcessor<T, D> {
     process(entity: T, data: D, mode: EntityMode): Promise<void>

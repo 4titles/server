@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { BaseRelationProcessor } from './base/relation-processor.base'
+import { BaseRelationProcessor } from '../base/relation-processor.base'
 import { Title } from 'src/entities/title.entity'
 import { IIMDbTitle } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { CreditEntityService } from '../../entity/credit-entity.service'
+import { CreditEntityService } from '../../../entity/credit-entity.service'
 import { Credit } from 'src/entities/credit.entity'
-import { EntityMode } from './base/types/entity-mode.type'
+import { EntityMode } from '../base/types/entity-mode.type'
 
 @Injectable()
-export class CreditRelationProcessor extends BaseRelationProcessor<
+export class CreditRelationProcessorService extends BaseRelationProcessor<
     Title,
     IIMDbTitle
 > {
-    protected readonly logger = new Logger(CreditRelationProcessor.name)
+    protected readonly logger = new Logger(CreditRelationProcessorService.name)
 
     constructor(private readonly creditService: CreditEntityService) {
         super()
