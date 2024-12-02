@@ -8,9 +8,14 @@ type Name {
     deathYear: Int
     deathLocation: String
     deadReason: String
-    avatars: [Avatar!]!
-    credits: [Credit!]!
-    knownFor: [Title!]!
+    avatars: [Avatar]
+    credits: [Credit]
+    knownFor: [Title]
     createdAt: DateTime!
     updatedAt: DateTime!
+}
+
+type NameList {
+    items: [Name!]!
+    totalCount: Int!
 }

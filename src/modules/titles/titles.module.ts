@@ -10,11 +10,13 @@ import * as Entities from 'src/entities'
 import { TitlesService } from './services/titles.service'
 import { RawTitleProcessorService } from './services/processors/raw-title-processor.service'
 import { TitlesResolver } from './resolvers/titles.resolver'
+import { NamesResolver } from './resolvers/names.resolver'
 
 import * as EntityServices from './services/entity'
 
 import * as TitleRelationProcessors from './services/processors/relations/title'
 import * as NameRelationProcessors from './services/processors/relations/name'
+import { NamesService } from './services/names.service'
 
 @Module({
     imports: [
@@ -29,6 +31,8 @@ import * as NameRelationProcessors from './services/processors/relations/name'
         TitlesService,
         RawTitleProcessorService,
         TitlesResolver,
+        NamesService,
+        NamesResolver,
 
         // Entity Services
         ...Object.values(EntityServices),

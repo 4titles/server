@@ -10,8 +10,8 @@ type Credit {
 }
 
 enum CreditCategory {
-    ACTOR
-    ACTRESS
-    DIRECTOR
-    WRITER
+    actor
+    actress
+    director
+    writer
 }

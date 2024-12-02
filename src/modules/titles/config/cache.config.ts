@@ -7,7 +7,11 @@ export const CACHE_CONFIG = {
     },
     TITLES: {
         PREFIX: 'titles',
-        TTL: 3600 * 24 * 90, // 3 months
+        TTL: 3600 * 24 * 60, // 2 months
+    },
+    NAMES: {
+        PREFIX: 'names',
+        TTL: 3600 * 24 * 7, // 1 week
     },
 } as const
 
@@ -30,6 +34,18 @@ export const getCacheKey = {
         return Object.values(TitleType).map(
             (type) => `${CACHE_CONFIG.TITLES.PREFIX}_${type.toLowerCase()}`,
         )
+    },
+
+    forName: (imdbId: string): string => {
+        return `${CACHE_CONFIG.NAMES.PREFIX}_name_${imdbId}`
+    },
+
+    forNames: (imdbIds: string[]): string => {
+        return `${CACHE_CONFIG.NAMES.PREFIX}_names_${imdbIds.sort().join('_')}`
+    },
+
+    forNamesList: (skip: number, take: number): string => {
+        return `${CACHE_CONFIG.NAMES.PREFIX}_list_${skip}_${take}`
     },
 } as const
 

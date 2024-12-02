@@ -4,7 +4,7 @@ scalar JSON
 
 # Import types
 #import Title, TitleType from 'types/title.type.graphql'
-#import Name from 'types/name.type.graphql'
+#import Name, NameList from 'types/name.type.graphql'
 #import Avatar from 'types/avatar.type.graphql'
 #import Credit, CreditCategory from 'types/credit.type.graphql'
 #import Rating from 'types/rating.type.graphql'

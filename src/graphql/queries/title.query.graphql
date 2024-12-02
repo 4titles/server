@@ -14,5 +14,6 @@ type Query {
     # Name queries
     nameById(id: ID!): Name
     nameByImdbId(imdbId: String!): Name
-    names(ids: [String!]!): [Name!]!
+    namesByImdbIds(imdbIds: [String!]!): [Name!]!
+    names(skip: Int = 0, take: Int = 50): NameList!
 }

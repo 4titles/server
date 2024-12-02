@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Name } from 'src/entities/name.entity'
 import { INameDetails } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { TitleEntityService } from './title-entity.service'
 import { NameRelationProcessorService } from '../processors/relations/name/name-relation.processor.service'
 
@@ -18,6 +18,23 @@ export class NameEntityService {
         private readonly nameRelationProcessor: NameRelationProcessorService,
     ) {}
 
+    async findById(id: number, relations: string[] = []): Promise<Name | null> {
+        return this.nameRepository.findOne({
+            where: { id },
+            relations,
+        })
+    }
+
+    async findByImdbIds(
+        imdbIds: string[],
+        relations: string[] = [],
+    ): Promise<Name[]> {
+        return this.nameRepository.find({
+            where: { imdbId: In(imdbIds) },
+            relations,
+        })
+    }
+
     async findByImdbId(
         imdbId: string,
         relations: string[] = [],
@@ -26,6 +43,25 @@ export class NameEntityService {
             where: { imdbId },
             relations,
         })
+    }
+
+    async findAll(
+        skip: number = 0,
+        take: number = 50,
+        relations: string[] = [],
+    ): Promise<Name[]> {
+        return this.nameRepository.find({
+            skip,
+            take,
+            order: {
+                displayName: 'ASC',
+            },
+            relations,
+        })
+    }
+
+    async count(): Promise<number> {
+        return this.nameRepository.count()
     }
 
     async findOrCreate(
