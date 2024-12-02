@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Name } from 'src/entities/name.entity'
 import { INameDetails } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { Repository } from 'typeorm'
-import { AvatarEntityService } from './avatar-entity.service'
 import { TitleEntityService } from './title-entity.service'
+import { NameRelationProcessorService } from '../processors/relations/name/name-relation.processor.service'
 
 @Injectable()
 export class NameEntityService {
@@ -15,7 +15,7 @@ export class NameEntityService {
         private readonly nameRepository: Repository<Name>,
         @Inject(forwardRef(() => TitleEntityService))
         private readonly titleService: TitleEntityService,
-        private readonly avatarService: AvatarEntityService,
+        private readonly nameRelationProcessor: NameRelationProcessorService,
     ) {}
 
     async findByImdbId(
@@ -39,7 +39,7 @@ export class NameEntityService {
                 return existing
             }
 
-            return this.create(nameData)
+            return await this.create(nameData)
         } catch (error) {
             this.logger.error(
                 `Failed to find or create name ${nameData.id}:`,
@@ -51,7 +51,8 @@ export class NameEntityService {
 
     async create(nameData: INameDetails): Promise<Name> {
         try {
-            const existing = await this.findByImdbId(nameData.id)
+            let existing = await this.findByImdbId(nameData.id)
+
             if (existing) {
                 return existing
             }
@@ -67,22 +68,15 @@ export class NameEntityService {
                 deadReason: nameData.dead_reason,
             })
 
+            existing = name
+
             try {
                 const savedName = await this.nameRepository.save(name)
-
-                if (nameData.avatars?.length) {
-                    await this.avatarService.findOrCreateMany(
-                        savedName,
-                        nameData.avatars,
-                    )
-                }
-
-                if (nameData.known_for?.length) {
-                    await this.processKnownForTitles(
-                        savedName,
-                        nameData.known_for,
-                    )
-                }
+                await this.nameRelationProcessor.processAll(
+                    savedName,
+                    nameData,
+                    'create',
+                )
 
                 return savedName
             } catch {
@@ -99,16 +93,7 @@ export class NameEntityService {
 
     async update(existing: Name, nameData: INameDetails): Promise<Name> {
         try {
-            const existingName = await this.nameRepository.findOne({
-                where: { id: existing.id },
-                relations: ['knownFor', 'avatars'],
-            })
-
-            if (!existingName) {
-                return existing
-            }
-
-            Object.assign(existingName, {
+            const updatedName = Object.assign(existing, {
                 displayName: nameData.display_name,
                 alternateNames: nameData.alternate_names,
                 birthYear: nameData.birth_year,
@@ -118,17 +103,15 @@ export class NameEntityService {
                 deadReason: nameData.dead_reason,
             })
 
-            const savedName = await this.nameRepository.save(existing)
+            const savedName = await this.nameRepository.save(updatedName)
 
-            if (nameData.avatars?.length) {
-                await this.avatarService.updateMany(savedName, nameData.avatars)
-            }
+            await this.nameRelationProcessor.processAll(
+                savedName,
+                nameData,
+                'update',
+            )
 
-            if (nameData.known_for?.length) {
-                await this.processKnownForTitles(savedName, nameData.known_for)
-            }
-
-            return savedName
+            return this.findByImdbId(savedName.imdbId)
         } catch (error) {
             this.logger.error(
                 `Failed to update name ${nameData.id}:`,

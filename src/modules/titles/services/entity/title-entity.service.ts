@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Title, TitleType } from 'src/entities/title.entity'
 import { IIMDbTitle } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { In, Repository } from 'typeorm'
-import { TitleRelationsProcessorService } from '../processors/relations/title-relations.processor.service'
+import { TitleRelationsProcessorService } from '../processors/relations/title/title-relations.processor.service'
 
 @Injectable()
 export class TitleEntityService {
@@ -70,6 +70,7 @@ export class TitleEntityService {
             const title = this.titleRepository.create(
                 this.mapTitleData(titleData),
             )
+
             const savedTitle = await this.titleRepository.save(title)
 
             await this.titleRelationsProcessor.processAll(
@@ -77,6 +78,7 @@ export class TitleEntityService {
                 titleData,
                 'create',
             )
+
             return this.findByImdbId(savedTitle.imdbId)
         } catch (error) {
             this.logger.error(

@@ -202,11 +202,7 @@ export class CreditEntityService {
                 episodesCount: creditData.episodes_count,
             })
 
-            const savedCredit = await this.creditRepository.save(credit)
-
-            await this.nameEntityService.update(name, creditData.name)
-
-            return savedCredit
+            return await this.creditRepository.save(credit)
         } catch (error) {
             this.logger.error(
                 `Failed to create credit for title ${title.imdbId}:`,
