@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Name } from 'src/entities/name.entity'
 import { INameDetails } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
-import { Repository, In } from 'typeorm'
+import { Repository } from 'typeorm'
 import { AvatarEntityService } from './avatar-entity.service'
 import { TitleEntityService } from './title-entity.service'
 
@@ -32,17 +32,30 @@ export class NameEntityService {
         nameData: INameDetails,
         relations: string[] = [],
     ): Promise<Name> {
-        const existing = await this.findByImdbId(nameData.id, relations)
+        try {
+            const existing = await this.findByImdbId(nameData.id, relations)
 
-        if (existing) {
-            return existing
+            if (existing) {
+                return existing
+            }
+
+            return this.create(nameData)
+        } catch (error) {
+            this.logger.error(
+                `Failed to find or create name ${nameData.id}:`,
+                error.stack,
+            )
+            throw error
         }
-
-        return this.create(nameData)
     }
 
     async create(nameData: INameDetails): Promise<Name> {
         try {
+            const existing = await this.findByImdbId(nameData.id)
+            if (existing) {
+                return existing
+            }
+
             const name = this.nameRepository.create({
                 imdbId: nameData.id,
                 displayName: nameData.display_name,
@@ -54,20 +67,27 @@ export class NameEntityService {
                 deadReason: nameData.dead_reason,
             })
 
-            const savedName = await this.nameRepository.save(name)
+            try {
+                const savedName = await this.nameRepository.save(name)
 
-            if (nameData.avatars?.length) {
-                await this.avatarService.createMany(savedName, nameData.avatars)
+                if (nameData.avatars?.length) {
+                    await this.avatarService.findOrCreateMany(
+                        savedName,
+                        nameData.avatars,
+                    )
+                }
+
+                if (nameData.known_for?.length) {
+                    await this.processKnownForTitles(
+                        savedName,
+                        nameData.known_for,
+                    )
+                }
+
+                return savedName
+            } catch {
+                return existing
             }
-
-            if (nameData.known_for?.length) {
-                this.logger.log(
-                    `Processing knownFor titles for name ${savedName.imdbId}`,
-                )
-                await this.processKnownForTitles(savedName, nameData.known_for)
-            }
-
-            return savedName
         } catch (error) {
             this.logger.error(
                 `Failed to create name ${nameData.id}:`,
@@ -79,7 +99,16 @@ export class NameEntityService {
 
     async update(existing: Name, nameData: INameDetails): Promise<Name> {
         try {
-            Object.assign(existing, {
+            const existingName = await this.nameRepository.findOne({
+                where: { id: existing.id },
+                relations: ['knownFor', 'avatars'],
+            })
+
+            if (!existingName) {
+                return existing
+            }
+
+            Object.assign(existingName, {
                 displayName: nameData.display_name,
                 alternateNames: nameData.alternate_names,
                 birthYear: nameData.birth_year,
@@ -95,9 +124,6 @@ export class NameEntityService {
                 await this.avatarService.updateMany(savedName, nameData.avatars)
             }
 
-            this.logger.log(
-                `Updating knownFor titles for name ${savedName.imdbId}`,
-            )
             if (nameData.known_for?.length) {
                 await this.processKnownForTitles(savedName, nameData.known_for)
             }
@@ -112,44 +138,32 @@ export class NameEntityService {
         }
     }
 
-    private async processKnownForTitles(
+    async processKnownForTitles(
         name: Name,
         knownForTitles: { id: string; primary_title: string }[],
     ): Promise<void> {
         try {
-            this.logger.log(
-                `Processing knownFor titles for name ${name.imdbId}`,
-            )
-
             const newTitles = await this.titleService.findByImdbIds(
                 knownForTitles.map((t) => t.id),
             )
-
-            const existingRelations = await this.nameRepository.findOne({
-                where: {
-                    id: name.id,
-                    knownFor: {
-                        id: In(newTitles.map((t) => t.id)),
-                    },
-                },
-                relations: ['knownFor'],
-            })
-
+            const existingName = await this.findByImdbId(name.imdbId, [
+                'knownFor',
+            ])
             const existingTitleIds = new Set(
-                existingRelations?.knownFor?.map((t) => t.id) || [],
+                existingName?.knownFor?.map((t) => t.imdbId) || [],
             )
             const titlesToAdd = newTitles.filter(
-                (title) => title && !existingTitleIds.has(title.id),
+                (title) => title && !existingTitleIds.has(title.imdbId),
             )
 
-            if (!titlesToAdd.length) {
+            if (
+                !titlesToAdd.length &&
+                existingName?.knownFor?.length === knownForTitles.length
+            ) {
                 return
             }
 
-            name.knownFor = [
-                ...(existingRelations?.knownFor || []),
-                ...titlesToAdd,
-            ]
+            name.knownFor = [...(existingName?.knownFor || []), ...titlesToAdd]
             await this.nameRepository.save(name)
         } catch (error) {
             this.logger.error(

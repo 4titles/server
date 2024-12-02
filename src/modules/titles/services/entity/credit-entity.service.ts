@@ -149,10 +149,11 @@ export class CreditEntityService {
             const processPromises = credits.map(async (creditData) => {
                 const name = await this.nameEntityService.findOrCreate(
                     creditData.name,
-                    ['knownFor'],
                 )
 
-                const key = `${name.id}-${category}`
+                if (!name) return null
+
+                const key = `${name.imdbId}-${category}`
                 const existing = existingCreditsMap.get(key)
 
                 if (existing) {
@@ -165,7 +166,8 @@ export class CreditEntityService {
                 })
             })
 
-            return Promise.all(processPromises)
+            const results = await Promise.all(processPromises)
+            return results.filter(Boolean)
         } catch (error) {
             this.logger.error(
                 `Failed to process ${category} credits for title ${title.imdbId}`,
@@ -200,7 +202,11 @@ export class CreditEntityService {
                 episodesCount: creditData.episodes_count,
             })
 
-            return this.creditRepository.save(credit)
+            const savedCredit = await this.creditRepository.save(credit)
+
+            await this.nameEntityService.update(name, creditData.name)
+
+            return savedCredit
         } catch (error) {
             this.logger.error(
                 `Failed to create credit for title ${title.imdbId}:`,
@@ -215,13 +221,25 @@ export class CreditEntityService {
         creditData: ICredit,
     ): Promise<Credit> {
         try {
+            const existingWithRelations = await this.creditRepository.findOne({
+                where: { id: existing.id },
+                relations: ['name', 'name.knownFor', 'name.avatars'],
+            })
+
+            if (!existingWithRelations) {
+                return existing
+            }
+
             const credit = await this.creditRepository.save({
-                ...existing,
+                ...existingWithRelations,
                 characters: creditData.characters,
                 episodesCount: creditData.episodes_count,
             })
 
-            await this.nameEntityService.update(existing.name, creditData.name)
+            await this.nameEntityService.update(
+                existingWithRelations.name,
+                creditData.name,
+            )
 
             return credit
         } catch (error) {

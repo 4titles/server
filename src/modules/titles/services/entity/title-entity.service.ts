@@ -1,20 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Title, TitleType } from 'src/entities/title.entity'
-import {
-    ICountry,
-    IIMDbTitle,
-    ILanguage,
-    IRating,
-} from 'src/modules/imdb/interfaces/imdb-graphql.interface'
+import { IIMDbTitle } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
 import { In, Repository } from 'typeorm'
-import { PosterEntityService } from './poster-entity.service'
-import { RatingEntityService } from './rating-entity.service'
-import { CreditEntityService } from './credit-entity.service'
-import { CriticReviewEntityService } from './critic-review-entity.service'
-import { CertificateEntityService } from './certificate-entity.service'
-import { CountryEntityService } from './country-entity.service'
-import { LanguageEntityService } from './language-entity.service'
+import { TitleRelationsProcessorService } from '../processors/relations/title-relations.processor.service'
 
 @Injectable()
 export class TitleEntityService {
@@ -29,18 +18,13 @@ export class TitleEntityService {
         'criticReview',
         'credits.name.avatars',
         'credits.name.knownFor',
+        'genres',
     ] as const
 
     constructor(
         @InjectRepository(Title)
         private readonly titleRepository: Repository<Title>,
-        private readonly ratingService: RatingEntityService,
-        private readonly posterService: PosterEntityService,
-        private readonly certificateService: CertificateEntityService,
-        private readonly creditService: CreditEntityService,
-        private readonly criticReviewService: CriticReviewEntityService,
-        private readonly countryService: CountryEntityService,
-        private readonly languageService: LanguageEntityService,
+        private readonly titleRelationsProcessor: TitleRelationsProcessorService,
     ) {}
 
     async findByImdbId(
@@ -88,7 +72,11 @@ export class TitleEntityService {
             )
             const savedTitle = await this.titleRepository.save(title)
 
-            await this.processRelatedEntities(savedTitle, titleData, 'create')
+            await this.titleRelationsProcessor.processAll(
+                savedTitle,
+                titleData,
+                'create',
+            )
             return this.findByImdbId(savedTitle.imdbId)
         } catch (error) {
             this.logger.error(
@@ -107,7 +95,11 @@ export class TitleEntityService {
             )
             const savedTitle = await this.titleRepository.save(updatedTitle)
 
-            await this.processRelatedEntities(savedTitle, titleData, 'update')
+            await this.titleRelationsProcessor.processAll(
+                savedTitle,
+                titleData,
+                'update',
+            )
             return this.findByImdbId(savedTitle.imdbId)
         } catch (error) {
             this.logger.error(
@@ -116,147 +108,6 @@ export class TitleEntityService {
             )
             throw error
         }
-    }
-
-    private async processRelatedEntities(
-        title: Title,
-        titleData: IIMDbTitle,
-        mode: 'create' | 'update',
-    ): Promise<void> {
-        try {
-            const operations = this.getRelatedEntityOperations(
-                title,
-                titleData,
-                mode,
-            )
-            await Promise.all(operations.filter(Boolean))
-        } catch (error) {
-            this.logger.error(
-                `Failed to process related entities for title ${title.imdbId}:`,
-                error.stack,
-            )
-            throw error
-        }
-    }
-
-    private getRelatedEntityOperations(
-        title: Title,
-        titleData: IIMDbTitle,
-        mode: 'create' | 'update',
-    ): Promise<any>[] {
-        const operations = []
-
-        if (titleData.posters?.length) {
-            operations.push(
-                mode === 'create'
-                    ? this.posterService.createMany(title, titleData.posters)
-                    : this.posterService.updateMany(title, titleData.posters),
-            )
-        }
-
-        if (titleData.certificates?.length) {
-            operations.push(
-                mode === 'create'
-                    ? this.certificateService.createMany(
-                          title,
-                          titleData.certificates,
-                      )
-                    : this.certificateService.updateMany(
-                          title,
-                          titleData.certificates,
-                      ),
-            )
-        }
-
-        if (
-            titleData.directors?.length ||
-            titleData.writers?.length ||
-            titleData.casts?.length
-        ) {
-            operations.push(
-                mode === 'create'
-                    ? this.creditService.createMany(title, titleData)
-                    : this.creditService.updateMany(title, titleData),
-            )
-        }
-
-        if (titleData.critic_review) {
-            operations.push(
-                mode === 'create'
-                    ? this.criticReviewService.create(
-                          title,
-                          titleData.critic_review,
-                      )
-                    : this.criticReviewService.update(
-                          title,
-                          titleData.critic_review,
-                      ),
-            )
-        }
-
-        if (titleData.rating) {
-            operations.push(this.processRating(title, titleData.rating, mode))
-        }
-
-        if (titleData.origin_countries?.length) {
-            operations.push(
-                this.processOriginCountries(title, titleData.origin_countries),
-            )
-        }
-
-        if (titleData.spoken_languages?.length) {
-            operations.push(
-                this.processSpokenLanguages(title, titleData.spoken_languages),
-            )
-        }
-
-        return operations
-    }
-
-    private async processRating(
-        title: Title,
-        ratingData: IRating,
-        mode: 'create' | 'update',
-    ): Promise<void> {
-        const rating =
-            mode === 'create'
-                ? await this.ratingService.create(title, ratingData)
-                : await this.ratingService.update(title, ratingData)
-
-        title.rating = rating
-        await this.titleRepository.save(title)
-    }
-
-    private async processOriginCountries(
-        title: Title,
-        countries: ICountry[],
-    ): Promise<void> {
-        const countryEntities =
-            await this.countryService.findOrCreateMany(countries)
-        await this.countryService.updateMany(countries)
-
-        const existingTitle = await this.findByImdbId(title.imdbId, [
-            'originCountries',
-        ])
-
-        existingTitle.originCountries = countryEntities
-        await this.titleRepository.save(existingTitle)
-    }
-
-    private async processSpokenLanguages(
-        title: Title,
-        languages: ILanguage[],
-    ): Promise<void> {
-        const languageEntities =
-            await this.languageService.findOrCreateMany(languages)
-        await this.languageService.updateMany(languages)
-
-        const existingTitle = await this.findByImdbId(title.imdbId, [
-            'spokenLanguages',
-        ])
-
-        existingTitle.spokenLanguages = languageEntities
-        await this.titleRepository.save(existingTitle)
     }
 
     private mapTitleData(data: IIMDbTitle): Partial<Title> {
@@ -270,7 +121,6 @@ export class TitleEntityService {
             endYear: data.end_year,
             runtimeMinutes: data.runtime_minutes,
             plot: data.plot,
-            genres: data.genres,
         }
     }
 }

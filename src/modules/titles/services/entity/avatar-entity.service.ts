@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { Avatar } from 'src/entities/avatar.entity'
 import { Name } from 'src/entities/name.entity'
 import { IAvatar } from 'src/modules/imdb/interfaces/imdb-graphql.interface'
@@ -15,102 +15,85 @@ export class AvatarEntityService {
     ) {}
 
     async findByNameId(nameId: number): Promise<Avatar[]> {
-        return this.avatarRepository.find({
+        return await this.avatarRepository.find({
             where: { name: { id: nameId } },
         })
     }
 
-    async findByUrl(url: string): Promise<Avatar[]> {
-        return this.avatarRepository.find({
-            where: { url },
-        })
-    }
+    async findOrCreateMany(name: Name, avatars: IAvatar[]): Promise<Avatar[]> {
+        if (!avatars?.length) return []
 
-    async findByNameIdAndUrls(
-        nameId: number,
-        urls: string[],
-    ): Promise<Avatar[]> {
-        return this.avatarRepository.find({
-            where: { name: { id: nameId }, url: In(urls) },
-        })
-    }
-
-    async createMany(name: Name, avatars: IAvatar[]): Promise<Avatar[]> {
         try {
-            const existingAvatars =
-                (await this.findByNameIdAndUrls(
-                    name.id,
-                    avatars.map((avatar) => avatar.url),
-                )) || []
-
+            const existingAvatars = await this.findByNameId(name.id)
             const existingAvatarsMap = new Map(
                 existingAvatars.map((avatar) => [avatar.url, avatar]),
             )
-            const avatarPromises = avatars.map(async (avatar) => {
-                const existing = existingAvatarsMap.get(avatar.url)
 
-                if (existing) {
-                    return existing
-                }
+            const avatarsToCreate = avatars.filter(
+                (avatar) => !existingAvatarsMap.has(avatar.url),
+            )
 
-                const avatarEntity = this.avatarRepository.create({
-                    name,
-                    url: avatar.url,
-                    width: avatar.width,
-                    height: avatar.height,
-                })
+            if (!avatarsToCreate.length) {
+                return Array.from(existingAvatarsMap.values())
+            }
 
-                return this.avatarRepository.save(avatarEntity)
-            })
+            const newAvatars = await Promise.all(
+                avatarsToCreate.map(async (avatar) => {
+                    try {
+                        const avatarEntity = this.avatarRepository.create({
+                            name,
+                            url: avatar.url,
+                            width: avatar.width,
+                            height: avatar.height,
+                        })
+                        return await this.avatarRepository.save(avatarEntity)
+                    } catch {
+                        return existingAvatarsMap.get(avatar.url)
+                    }
+                }),
+            )
 
-            const results = await Promise.all(avatarPromises)
-            return results.filter(Boolean)
+            return [...existingAvatars, ...newAvatars.filter(Boolean)]
         } catch (error) {
             this.logger.error(
-                `Failed to create name ${name.imdbId} avatars:`,
+                `Failed to create avatars for name ${name.imdbId}:`,
                 error.stack,
             )
             throw error
         }
     }
 
-    async updateMany(name: Name, avatars: IAvatar[]): Promise<void> {
+    async updateMany(name: Name, avatars: IAvatar[]): Promise<Avatar[]> {
+        if (!avatars?.length) return []
+
         try {
-            const existingAvatars = await this.findByNameIdAndUrls(
-                name.id,
-                avatars.map((avatar) => avatar.url),
+            const currentAvatars = await this.findByNameId(name.id)
+            const updatedAvatars = await this.findOrCreateMany(name, avatars)
+            const updatedAvatarUrls = new Set(updatedAvatars.map((a) => a.url))
+            const avatarsToRemove = currentAvatars.filter(
+                (a) => !updatedAvatarUrls.has(a.url),
             )
 
-            if (!existingAvatars?.length) {
-                return
+            if (avatarsToRemove.length) {
+                name.avatars =
+                    name.avatars?.filter(
+                        (a) => !avatarsToRemove.some((ra) => ra.url === a.url),
+                    ) || []
             }
 
-            const updatePromises = existingAvatars.map(async (existing) => {
-                const newData = avatars.find(
-                    (avatar) => avatar.url === existing.url,
-                )
+            const updates = updatedAvatars.map((existing) => {
+                const newData = avatars.find((a) => a.url === existing.url)
                 if (newData) {
                     existing.width = newData.width
                     existing.height = newData.height
-                    return this.avatarRepository.save(existing)
                 }
+                return existing
             })
 
-            const avatarsToCreate = avatars.filter(
-                (avatar) =>
-                    !existingAvatars.some(
-                        (existing) => existing.url === avatar.url,
-                    ),
-            )
-
-            await Promise.all([
-                ...updatePromises,
-                avatarsToCreate.length &&
-                    this.createMany(name, avatarsToCreate),
-            ])
+            return updates
         } catch (error) {
             this.logger.error(
-                `Failed to update name ${name.imdbId} avatars:`,
+                `Failed to update avatars for name ${name.imdbId}:`,
                 error.stack,
             )
             throw error

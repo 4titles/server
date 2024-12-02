@@ -14,9 +14,10 @@ export class CriticReviewEntityService {
         private readonly criticReviewRepository: Repository<CriticReview>,
     ) {}
 
-    async findByTitleId(titleId: number): Promise<CriticReview | null> {
+    async findByTitleImdbID(imdbId: string): Promise<CriticReview | null> {
         return this.criticReviewRepository.findOne({
-            where: { title: { id: titleId } },
+            where: { title: { imdbId } },
+            relations: ['title'],
         })
     }
 
@@ -25,7 +26,7 @@ export class CriticReviewEntityService {
         reviewData: ICriticReview,
     ): Promise<CriticReview> {
         try {
-            const existing = await this.findByTitleId(title.id)
+            const existing = await this.findByTitleImdbID(title.imdbId)
 
             if (existing) {
                 return existing
@@ -33,8 +34,8 @@ export class CriticReviewEntityService {
 
             const review = this.criticReviewRepository.create({
                 title,
-                score: reviewData.score,
-                reviewCount: reviewData.review_count,
+                score: reviewData?.score ?? null,
+                reviewCount: reviewData?.review_count ?? null,
             })
 
             return this.criticReviewRepository.save(review)
@@ -52,22 +53,22 @@ export class CriticReviewEntityService {
         reviewData: ICriticReview,
     ): Promise<CriticReview | null> {
         try {
-            const existing = await this.findByTitleId(title.id)
+            const existing = await this.findByTitleImdbID(title.imdbId)
 
             if (!existing) {
                 return null
             }
 
             if (
-                existing.score === reviewData.score &&
+                existing.score === reviewData?.score &&
                 existing.reviewCount === reviewData.review_count
             ) {
                 return existing
             }
 
             Object.assign(existing, {
-                score: reviewData.score,
-                reviewCount: reviewData.review_count,
+                score: reviewData?.score ?? null,
+                reviewCount: reviewData?.review_count ?? null,
             })
 
             return this.criticReviewRepository.save(existing)

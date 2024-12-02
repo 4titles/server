@@ -16,112 +16,101 @@ export class PosterEntityService {
         private readonly dataSource: DataSource,
     ) {}
 
-    async findByTitleIdAndUrls(
-        titleId: number,
-        urls: string[],
-    ): Promise<Poster[]> {
-        return this.posterRepository.find({
-            where: { title: { id: titleId }, url: In(urls) },
+    async findByTitleId(titleId: number): Promise<Poster[]> {
+        return await this.posterRepository.find({
+            where: { title: { id: titleId } },
             relations: ['language'],
         })
     }
 
-    async createMany(title: Title, posters: IPoster[]): Promise<Poster[]> {
+    async findOrCreateMany(
+        title: Title,
+        posters: IPoster[],
+    ): Promise<Poster[]> {
         if (!posters?.length) return []
 
         try {
-            const existingPosters =
-                (await this.findByTitleIdAndUrls(
-                    title.id,
-                    posters.map((poster) => poster.url),
-                )) || []
-
-            const existingPostersMap =
-                new Map(
-                    existingPosters.map((poster) => [poster.url, poster]),
-                ) || []
+            const existingPosters = await this.findByTitleId(title.id)
+            const existingPostersMap = new Map(
+                existingPosters.map((poster) => [poster.url, poster]),
+            )
 
             const languageMap = await this.getLanguagesMap(posters)
+            const postersToCreate = posters.filter(
+                (poster) => !existingPostersMap.has(poster.url),
+            )
 
-            const posterPromises = posters.map(async (poster) => {
-                const existing =
-                    existingPostersMap instanceof Map
-                        ? existingPostersMap.get(poster.url)
-                        : null
+            if (!postersToCreate.length) {
+                return Array.from(existingPostersMap.values())
+            }
 
-                if (existing) {
-                    return existing
-                }
+            const newPosters = await Promise.all(
+                postersToCreate.map(async (poster) => {
+                    try {
+                        const posterEntity = this.posterRepository.create({
+                            title,
+                            language: poster.language_code
+                                ? languageMap.get(poster.language_code)
+                                : null,
+                            url: poster.url,
+                            width: poster.width,
+                            height: poster.height,
+                        })
+                        return await this.posterRepository.save(posterEntity)
+                    } catch {
+                        return existingPostersMap.get(poster.url)
+                    }
+                }),
+            )
 
-                const posterEntity = this.posterRepository.create({
-                    title,
-                    language: poster.language_code
-                        ? languageMap.get(poster.language_code)
-                        : null,
-                    url: poster.url,
-                    width: poster.width,
-                    height: poster.height,
-                })
-
-                return this.posterRepository.save(posterEntity)
-            })
-
-            const results = await Promise.all(posterPromises)
-            return results.filter(Boolean)
+            return [...existingPosters, ...newPosters.filter(Boolean)]
         } catch (error) {
             this.logger.error(
                 `Failed to create posters for title ${title.imdbId}:`,
                 error.stack,
             )
-            return []
+            throw error
         }
     }
 
-    async updateMany(title: Title, posters: IPoster[] = []): Promise<void> {
-        if (!posters?.length) return
+    async updateMany(title: Title, posters: IPoster[]): Promise<Poster[]> {
+        if (!posters?.length) return []
 
         try {
-            const existingPosters =
-                (await this.findByTitleIdAndUrls(
-                    title.id,
-                    posters.map((poster) => poster.url),
-                )) || []
+            const currentPosters = await this.findByTitleId(title.id)
+            const updatedPosters = await this.findOrCreateMany(title, posters)
+            const updatedPosterUrls = new Set(updatedPosters.map((p) => p.url))
+            const postersToRemove = currentPosters.filter(
+                (p) => !updatedPosterUrls.has(p.url),
+            )
+
+            if (postersToRemove.length) {
+                title.posters =
+                    title.posters?.filter(
+                        (p) => !postersToRemove.some((rp) => rp.url === p.url),
+                    ) || []
+            }
 
             const languageMap = await this.getLanguagesMap(posters)
-
-            const updatePromises = existingPosters.map(async (existing) => {
-                const newData = posters.find(
-                    (poster) => poster.url === existing.url,
-                )
+            const updates = updatedPosters.map((existing) => {
+                const newData = posters.find((p) => p.url === existing.url)
                 if (newData) {
                     existing.width = newData.width
                     existing.height = newData.height
                     existing.language = newData.language_code
                         ? languageMap.get(newData.language_code)
                         : null
-                    return this.posterRepository.save(existing)
                 }
+                return existing
             })
 
-            const postersToCreate = posters.filter(
-                (poster) =>
-                    !existingPosters.some(
-                        (existing) => existing.url === poster.url,
-                    ),
-            )
-
-            await Promise.all(
-                [
-                    ...updatePromises,
-                    postersToCreate.length &&
-                        this.createMany(title, postersToCreate),
-                ].filter(Boolean),
-            )
+            return await this.posterRepository.save(updates)
         } catch (error) {
             this.logger.error(
                 `Failed to update posters for title ${title.imdbId}:`,
                 error.stack,
             )
+            throw error
         }
     }
 
@@ -143,7 +132,7 @@ export class PosterEntityService {
             return new Map(languages.map((lang) => [lang.code, lang]))
         } catch (error) {
             this.logger.error(
-                `Failed to get languages map for posters:`,
+                'Failed to get languages map for posters:',
                 error.stack,
             )
             return new Map()

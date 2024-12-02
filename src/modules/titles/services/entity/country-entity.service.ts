@@ -51,11 +51,16 @@ export class CountryEntityService {
                                 name: country.name,
                             }),
                         )
-                    } catch {
+                    } catch (error) {
                         const existing = await this.findByCountryCodes([
                             country.code,
                         ])
-                        return existing[0]
+
+                        if (existing) {
+                            return existing[0]
+                        }
+
+                        throw error
                     }
                 }),
             )
@@ -67,8 +72,8 @@ export class CountryEntityService {
         }
     }
 
-    async updateMany(countries: ICountry[]): Promise<void> {
-        if (!countries?.length) return
+    async updateMany(countries: ICountry[]): Promise<Country[]> {
+        if (!countries?.length) return []
 
         try {
             const existingCountries = await this.findByCountryCodes(
@@ -89,7 +94,7 @@ export class CountryEntityService {
                 .filter(Boolean)
 
             if (updates.length) {
-                await this.countryRepository.save(updates)
+                return await this.countryRepository.save(updates)
             }
         } catch (error) {
             this.logger.error(`Failed to update countries:`, error.stack)

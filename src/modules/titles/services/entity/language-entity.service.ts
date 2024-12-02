@@ -12,8 +12,6 @@ export class LanguageEntityService {
     constructor(
         @InjectRepository(Language)
         private readonly languageRepository: Repository<Language>,
-        @InjectRepository(Title)
-        private readonly titleRepository: Repository<Title>,
     ) {}
 
     async findByLanguageCodes(languageCodes: string[]): Promise<Language[]> {
@@ -24,6 +22,13 @@ export class LanguageEntityService {
         })
     }
 
+    async findByTitleImdbId(imdbId: string): Promise<Language[]> {
+        return await this.languageRepository.find({
+            where: { titles: { imdbId } },
+            relations: ['titles'],
+        })
+    }
+
     async findOrCreateMany(languages: ILanguage[] = []): Promise<Language[]> {
         if (!languages?.length) return []
 
@@ -31,14 +36,12 @@ export class LanguageEntityService {
             const uniqueLanguages = Array.from(
                 new Map(languages.map((l) => [l.code, l])).values(),
             )
-
             const existingLanguages = await this.findByLanguageCodes(
                 uniqueLanguages.map((l) => l.code),
             )
             const existingLanguageMap = new Map(
                 existingLanguages.map((language) => [language.code, language]),
             )
-
             const languagesToCreate = uniqueLanguages.filter(
                 (language) => !existingLanguageMap.has(language.code),
             )
@@ -47,82 +50,88 @@ export class LanguageEntityService {
                 return existingLanguages
             }
 
-            const languagePromises = languagesToCreate.map(async (lang) => {
-                try {
-                    const language = this.languageRepository.create({
-                        code: lang.code,
-                        name: lang.name,
-                    })
-                    return await this.languageRepository.save(language)
-                } catch {
-                    const existing = await this.findByLanguageCodes([lang.code])
-                    return existing[0]
-                }
-            })
+            const newLanguages = await Promise.all(
+                languagesToCreate.map(async (lang) => {
+                    try {
+                        const language = this.languageRepository.create({
+                            code: lang.code,
+                            name: lang.name,
+                        })
+                        return await this.languageRepository.save(language)
+                    } catch (error) {
+                        const existing = await this.findByLanguageCodes([
+                            lang.code,
+                        ])
 
-            const newLanguages = await Promise.all(languagePromises)
+                        if (existing) {
+                            return existing[0]
+                        }
+
+                        throw error
+                    }
+                }),
+            )
 
             return [...existingLanguages, ...newLanguages.filter(Boolean)]
         } catch (error) {
             this.logger.error(
-                `Failed to find or create languages:`,
+                'Failed to find or create languages:',
                 error.stack,
             )
             throw error
         }
     }
 
-    async updateMany(languages: ILanguage[]): Promise<void> {
-        if (!languages?.length) return
+    async updateMany(
+        title: Title,
+        languages: ILanguage[],
+    ): Promise<Language[]> {
+        if (!languages?.length) return []
 
         try {
-            const existingLanguages = await this.findByLanguageCodes(
-                languages.map((l) => l.code),
+            const currentLanguages = await this.findByTitleImdbId(title.imdbId)
+
+            if (!currentLanguages.length) {
+                return []
+            }
+
+            const currentLanguageMap = new Map(
+                currentLanguages.map((lang) => [lang.code, lang]),
             )
 
-            const updates = existingLanguages
-                .map((existing) => {
-                    const newData = languages.find(
-                        (l) => l.code === existing.code,
-                    )
-                    if (newData && newData.name !== existing.name) {
-                        existing.name = newData.name
-                        return existing
+            const updates = languages
+                .map((newLang) => {
+                    const existing = currentLanguageMap.get(newLang.code)
+                    if (!existing) return null
+
+                    let needsUpdate = false
+
+                    if (existing.code !== newLang.code) {
+                        existing.code = newLang.code
+                        needsUpdate = true
                     }
-                    return null
+
+                    if (existing.name !== newLang.name) {
+                        existing.name = newLang.name
+                        needsUpdate = true
+                    }
+
+                    return needsUpdate ? existing : null
                 })
                 .filter(Boolean)
 
             if (updates.length) {
                 await this.languageRepository.save(updates)
-            }
-        } catch (error) {
-            this.logger.error(`Failed to update languages:`, error.stack)
-            throw error
-        }
-    }
-
-    async updateTitleLanguages(
-        title: Title,
-        languages: ILanguage[],
-    ): Promise<void> {
-        if (!languages?.length) return
-
-        try {
-            const languageEntities = await this.findOrCreateMany(languages)
-            await this.updateMany(languages)
-
-            await this.titleRepository
-                .createQueryBuilder()
-                .relation(Title, 'spokenLanguages')
-                .of(title)
-                .addAndRemove(
-                    languageEntities.map((l) => l.id),
-                    title.spokenLanguages?.map((l) => l.id) || [],
+                this.logger.debug(
+                    `Updated languages for title ${title.imdbId}: ` +
+                        `processed ${updates.length} languages`,
                 )
+            }
+
+            return updates
         } catch (error) {
             this.logger.error(
-                `Failed to update title ${title.imdbId} languages:`,
+                `Failed to update languages for title ${title.imdbId}:`,
                 error.stack,
             )
             throw error

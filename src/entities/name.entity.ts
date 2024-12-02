@@ -14,7 +14,7 @@ import { Title } from './title.entity'
 import { Credit } from './credit.entity'
 
 @Entity('names')
-@Index('idx_names_imdb_id', ['imdbId'])
+@Index('idx_names_imdb_id', ['imdbId'], { unique: true })
 @Index('idx_names_display_name', ['displayName'])
 @Index('idx_names_created_at', ['createdAt'])
 export class Name {
