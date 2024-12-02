@@ -1,3 +1,25 @@
+export interface IIMDbTitle {
+    id: string
+    type: string
+    is_adult: boolean
+    primary_title: string
+    original_title: string | null
+    start_year: number
+    end_year: number | null
+    runtime_minutes: number | null
+    plot: string
+    rating: IRating
+    genres: string[]
+    posters: IPoster[]
+    certificates: ICertificate[]
+    spoken_languages: ILanguage[]
+    origin_countries: ICountry[]
+    critic_review: ICriticReview | null
+    directors: ICredit[]
+    writers: ICredit[]
+    casts: ICredit[]
+}
+
 export interface IAvatar {
     url: string
     width: number
@@ -34,8 +56,8 @@ export interface IRating {
 }
 
 export interface ICriticReview {
-    score: number
-    review_count: number
+    score?: number
+    review_count?: number
 }
 
 export interface ICertificate {
@@ -77,28 +99,6 @@ export type CreditData = ICredit | IActorCreditData
 export interface ICreditGroup {
     category: string
     persons: ICredit[]
-}
-
-export interface IIMDbTitle {
-    id: string
-    type: string
-    is_adult: boolean
-    primary_title: string
-    original_title: string | null
-    start_year: number
-    end_year: number | null
-    runtime_minutes: number | null
-    plot: string
-    rating: IRating
-    genres: string[]
-    posters: IPoster[]
-    certificates: ICertificate[]
-    spoken_languages: ILanguage[]
-    origin_countries: ICountry[]
-    critic_review: ICriticReview | null
-    directors: ICredit[]
-    writers: ICredit[]
-    casts: ICredit[]
 }
 
 export interface IGraphQLVariables {

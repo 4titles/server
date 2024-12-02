@@ -148,7 +148,7 @@ export class RawTitleProcessorService {
             end_year: null,
             runtime_minutes: null,
             plot: data.description,
-            genres: data.genre,
+            genres: data.genre?.map((genre) => genre.trim()) || [],
             rating: {
                 aggregate_rating: data.rating,
                 votes_count: 0,
