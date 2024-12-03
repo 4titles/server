@@ -1,0 +1,121 @@
+type Genre {
+    id: Int!
+    name: String!
+}
+
+type ProductionCompany {
+    id: Int!
+    name: String!
+    logo_path: String
+    origin_country: String!
+}
+
+type ProductionCountry {
+    iso_3166_1: String!
+    name: String!
+}
+
+type SpokenLanguage {
+    english_name: String!
+    iso_639_1: String!
+    name: String!
+}
+
+type Movie {
+    tmdbId: Int!
+    imdbId: String!
+    title: String!
+    originalTitle: String!
+    overview: String!
+    posterPath: String
+    backdropPath: String
+    adult: Boolean!
+    budget: Int!
+    genres: [Genre!]!
+    homepage: String
+    originalLanguage: String!
+    popularity: Float!
+    releaseDate: String
+    revenue: Int!
+    runtime: Int!
+    status: String!
+    tagLine: String
+    voteAverage: Float!
+    voteCount: Int!
+    productionCompanies: [ProductionCompany!]!
+    productionCountries: [ProductionCountry!]!
+    spokenLanguages: [SpokenLanguage!]!
+    originCountry: [String!]!
+    updatedAt: String!
+}
+
+type CreatedBy {
+    id: Int!
+    credit_id: String!
+    name: String!
+    gender: Int!
+    profile_path: String
+}
+
+type Network {
+    id: Int!
+    name: String!
+    logo_path: String
+    origin_country: String!
+}
+
+type TvShow {
+    tmdbId: Int!
+    imdbId: String!
+    name: String!
+    originalName: String!
+    overview: String!
+    posterPath: String
+    backdropPath: String
+    createdBy: [CreatedBy!]!
+    episodeRunTime: [Int!]!
+    firstAirDate: String
+    genres: [Genre!]!
+    homepage: String
+    inProduction: Boolean!
+    languages: [String!]!
+    lastAirDate: String
+    networks: [Network!]!
+    numberOfEpisodes: Int!
+    numberOfSeasons: Int!
+    originCountry: [String!]!
+    originalLanguage: String!
+    popularity: Float!
+    productionCompanies: [ProductionCompany!]!
+    productionCountries: [ProductionCountry!]!
+    spokenLanguages: [SpokenLanguage!]!
+    status: String!
+    tagLine: String
+    voteAverage: Float!
+    voteCount: Int!
+    updatedAt: String!
+}
+
+type SyncResult {
+    moviesCount: Int!
+    tvShowsCount: Int!
+}
+
+enum TitleType {
+    MOVIES
+    TV_SHOWS
+    ALL
+}
+
+type Query {
+    movies(limit: Int): [Movie!]!
+    tvShows(limit: Int): [TvShow!]!
+    movie(tmdbId: Int!): Movie
+    tvShow(tmdbId: Int!): TvShow
+    searchMovies(query: String!, limit: Int): [Movie!]!
+    searchTvShows(query: String!, limit: Int): [TvShow!]!
+}
+
+type Mutation {
+    syncPopularTitles(type: TitleType): SyncResult!
+}

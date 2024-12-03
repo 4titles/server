@@ -35,9 +35,11 @@
         "drizzle-orm": "^0.37.0",
         "graphql": "^16.9.0",
         "ioredis": "^5.4.1",
+        "moviedb-promise": "^4.0.7",
         "pg": "^8.13.1",
         "reflect-metadata": "^0.2.0",
-        "rxjs": "^7.8.1"
+        "rxjs": "^7.8.1",
+        "ts-morph": "^24.0.0"
     },
     "devDependencies": {
         "@nestjs/cli": "^10.0.0",

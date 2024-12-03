@@ -4,7 +4,6 @@ import {
     MovieDb,
     MovieResponse,
     MovieResultsResponse,
-    ShowResponse,
     TvResultsResponse,
 } from 'moviedb-promise'
 import { TmdbException } from './exceptions/tmdb.exception'
@@ -43,12 +42,20 @@ export class TmdbService {
         }
     }
 
-    async getTvDetails(tvTMDBId: number): Promise<ShowResponse> {
+    async getTvDetails(tvTMDBId: number) {
         try {
-            return await this.moviedb.tvInfo({
-                id: tvTMDBId,
-                language: this.defaultLanguage,
-            })
+            const [details, externalIds] = await Promise.all([
+                this.moviedb.tvInfo({
+                    id: tvTMDBId,
+                    language: this.defaultLanguage,
+                }),
+                this.moviedb.tvExternalIds({ id: tvTMDBId }),
+            ])
+
+            return {
+                ...details,
+                imdb_id: externalIds.imdb_id,
+            }
         } catch (error) {
             this.logger.error(
                 `Failed to fetch tv details for ${tvTMDBId}`,

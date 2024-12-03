@@ -5,13 +5,16 @@ import { join } from 'path'
 import { ConfigModule } from '@nestjs/config'
 import { DrizzleModule } from './drizzle/drizzle.module'
 import { CacheModule } from './cache/cache.module'
+import { TitlesModule } from './titles/titles.module'
+import { TmdbModule } from './tmdb/tmdb.module'
 import redisConfig from './config/redis.config'
+import tmdbConfig from './config/tmdb.config'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [redisConfig],
+            load: [redisConfig, tmdbConfig],
         }),
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
@@ -23,6 +26,8 @@ import redisConfig from './config/redis.config'
         }),
         DrizzleModule,
         CacheModule,
+        TitlesModule,
+        TmdbModule,
     ],
 })
 export class AppModule {}
