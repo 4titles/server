@@ -2,16 +2,15 @@ import { Module } from '@nestjs/common'
 import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo'
 import { join } from 'path'
-import { PlacesModule } from './modules/places/places.module'
 import { ConfigModule } from '@nestjs/config'
-import geoapifyConfig from './config/geoapify.config'
+import { DrizzleModule } from './drizzle/drizzle.module'
 import redisConfig from './config/redis.config'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [geoapifyConfig, redisConfig],
+            load: [redisConfig],
         }),
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
@@ -21,7 +20,7 @@ import redisConfig from './config/redis.config'
             },
             playground: true,
         }),
-        PlacesModule,
+        DrizzleModule,
     ],
 })
 export class AppModule {}
