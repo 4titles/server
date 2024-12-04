@@ -1,0 +1,95 @@
+import { pgTable, index, unique, integer, text, boolean, jsonb, date, real, timestamp, pgEnum } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
+
+export const movieStatus = pgEnum("movie_status", ['Rumored', 'Planned', 'In Production', 'Post Production', 'Released', 'Canceled'])
+export const titleCategory = pgEnum("title_category", ['POPULAR', 'TOP_RATED'])
+
+
+export const movies = pgTable("movies", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity({ name: "movies_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
+	tmdbId: integer("tmdb_id").notNull(),
+	imdbId: text("imdb_id").notNull(),
+	adult: boolean().default(false).notNull(),
+	title: text().notNull(),
+	posterPath: text("poster_path"),
+	backdropPath: text("backdrop_path"),
+	budget: integer().default(0),
+	genres: jsonb().notNull(),
+	homepage: text(),
+	originCountry: jsonb("origin_country").notNull(),
+	originalLanguage: text("original_language").notNull(),
+	originalTitle: text("original_title").notNull(),
+	overview: text().notNull(),
+	productionCompanies: jsonb("production_companies").notNull(),
+	productionCountries: jsonb("production_countries").notNull(),
+	releaseDate: date("release_date"),
+	revenue: integer().default(0),
+	runtime: integer().default(0),
+	spokenLanguages: jsonb("spoken_languages").notNull(),
+	status: movieStatus().notNull(),
+	tagLine: text("tag_line"),
+	popularity: real().default(0),
+	voteAverage: real("vote_average").default(0),
+	voteCount: integer("vote_count").default(0),
+	updatedAt: timestamp("updated_at", { mode: 'string' }),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	deletedAt: timestamp("deleted_at", { mode: 'string' }),
+}, (table) => {
+	return {
+		originalLanguageIdx: index("movies_original_language_idx").using("btree", table.originalLanguage.asc().nullsLast().op("text_ops")),
+		popularityRatingIdx: index("movies_popularity_rating_idx").using("btree", table.popularity.asc().nullsLast().op("float4_ops"), table.voteAverage.asc().nullsLast().op("float4_ops")),
+		releaseDateIdx: index("movies_release_date_idx").using("btree", table.releaseDate.asc().nullsLast().op("date_ops")),
+		statusIdx: index("movies_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+		titleIdx: index("movies_title_idx").using("btree", table.title.asc().nullsLast().op("text_ops")),
+		moviesTmdbIdUnique: unique("movies_tmdb_id_unique").on(table.tmdbId),
+		moviesImdbIdUnique: unique("movies_imdb_id_unique").on(table.imdbId),
+	}
+});
+
+export const series = pgTable("series", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity({ name: "series_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 2147483647, cache: 1 }),
+	tmdbId: integer("tmdb_id").notNull(),
+	imdbId: text("imdb_id").notNull(),
+	adult: boolean().default(false).notNull(),
+	name: text().notNull(),
+	posterPath: text("poster_path"),
+	backdropPath: text("backdrop_path"),
+	createdBy: jsonb("created_by").notNull(),
+	episodeRunTime: jsonb("episode_run_time").default([]),
+	firstAirDate: date("first_air_date"),
+	genres: jsonb().notNull(),
+	homepage: text(),
+	inProduction: boolean("in_production").default(false).notNull(),
+	languages: jsonb().default([]),
+	lastAirDate: date("last_air_date"),
+	networks: jsonb().notNull(),
+	numberOfEpisodes: integer("number_of_episodes").default(0),
+	numberOfSeasons: integer("number_of_seasons").default(0),
+	originCountry: jsonb("origin_country").notNull(),
+	originalName: text("original_name"),
+	originalLanguage: text("original_language").notNull(),
+	overview: text().notNull(),
+	popularity: real().default(0),
+	productionCompanies: jsonb("production_companies").notNull(),
+	productionCountries: jsonb("production_countries").notNull(),
+	spokenLanguages: jsonb("spoken_languages").notNull(),
+	status: text().notNull(),
+	tagLine: text("tag_line"),
+	voteAverage: real("vote_average").default(0),
+	voteCount: integer("vote_count").default(0),
+	category: titleCategory().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	deletedAt: timestamp("deleted_at", { mode: 'string' }),
+}, (table) => {
+	return {
+		firstAirDateIdx: index("series_first_air_date_idx").using("btree", table.firstAirDate.asc().nullsLast().op("date_ops")),
+		lastAirDateIdx: index("series_last_air_date_idx").using("btree", table.lastAirDate.asc().nullsLast().op("date_ops")),
+		originalLanguageIdx: index("series_original_language_idx").using("btree", table.originalLanguage.asc().nullsLast().op("text_ops")),
+		popularityRatingIdx: index("series_popularity_rating_idx").using("btree", table.popularity.asc().nullsLast().op("float4_ops"), table.voteAverage.asc().nullsLast().op("float4_ops")),
+		statusProductionIdx: index("series_status_production_idx").using("btree", table.status.asc().nullsLast().op("bool_ops"), table.inProduction.asc().nullsLast().op("text_ops")),
+		titleIdx: index("series_title_idx").using("btree", table.name.asc().nullsLast().op("text_ops")),
+		seriesTmdbIdUnique: unique("series_tmdb_id_unique").on(table.tmdbId),
+		seriesImdbIdUnique: unique("series_imdb_id_unique").on(table.imdbId),
+	}
+});

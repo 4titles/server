@@ -1,3 +1,15 @@
+enum TitleCategory {
+    POPULAR
+    TRENDING
+    TOP_RATED
+}
+
+enum TitleType {
+    MOVIES
+    TV_SHOWS
+    ALL
+}
+
 type Genre {
     id: Int!
     name: String!
@@ -94,6 +106,7 @@ type TvShow {
     voteAverage: Float!
     voteCount: Int!
     updatedAt: String!
+    category: TitleCategory!
 }
 
 type SyncResult {
@@ -101,21 +114,36 @@ type SyncResult {
     tvShowsCount: Int!
 }
 
-enum TitleType {
-    MOVIES
-    TV_SHOWS
-    ALL
+type FullSyncResult {
+    popularMoviesCount: Int!
+    popularTvShowsCount: Int!
+    trendingMoviesCount: Int!
+    trendingTvShowsCount: Int!
 }
 
 type Query {
-    movies(limit: Int): [Movie!]!
-    tvShows(limit: Int): [TvShow!]!
+    movies(category: TitleCategory!, limit: Int): [Movie!]!
+    tvShows(category: TitleCategory!, limit: Int): [TvShow!]!
+
+    popularMovies(limit: Int): [Movie!]!
+    popularTvShows(limit: Int): [TvShow!]!
+
+    trendingMovies(limit: Int): [Movie!]!
+    trendingTvShows(limit: Int): [TvShow!]!
+
+    topRatedMovies(limit: Int): [Movie!]!
+    topRatedTvShows(limit: Int): [TvShow!]!
+
     movie(tmdbId: Int!): Movie
     tvShow(tmdbId: Int!): TvShow
+
     searchMovies(query: String!, limit: Int): [Movie!]!
     searchTvShows(query: String!, limit: Int): [TvShow!]!
 }
 
 type Mutation {
     syncPopularTitles(type: TitleType): SyncResult!
+    syncTrendingTitles(type: TitleType): SyncResult!
+    syncTopRatedTitles(type: TitleType): SyncResult!
+    syncAllContent: FullSyncResult!
 }

@@ -4,6 +4,7 @@ import {
     MovieDb,
     MovieResponse,
     MovieResultsResponse,
+    TrendingResponse,
     TvResultsResponse,
 } from 'moviedb-promise'
 import { TmdbException } from './exceptions/tmdb.exception'
@@ -23,6 +24,117 @@ export class TmdbService {
         this.moviedb = new MovieDb(apiKey)
         this.defaultLanguage =
             this.configService.get<string>('tmdb.defaultLanguage') ?? 'ru-RU'
+    }
+
+    async getTopRatedMovies(page: number = 1): Promise<MovieResultsResponse> {
+        try {
+            return await this.moviedb.movieTopRated({
+                page,
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch top rated movies`, error)
+            throw new TmdbException(`Failed to fetch top rated movies`)
+        }
+    }
+
+    async getTopRatedTvShows(page: number = 1): Promise<TvResultsResponse> {
+        try {
+            return await this.moviedb.tvTopRated({
+                page,
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch top rated tv shows`, error)
+            throw new TmdbException(`Failed to fetch top rated tv shows`)
+        }
+    }
+
+    async getTrendingMovies(): Promise<TrendingResponse> {
+        try {
+            return await this.moviedb.trending({
+                media_type: 'movie',
+                time_window: 'week',
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch trending movies`, error)
+            throw new TmdbException(`Failed to fetch trending movies`)
+        }
+    }
+
+    async getTrendingTvShows(): Promise<TrendingResponse> {
+        try {
+            return await this.moviedb.trending({
+                media_type: 'tv',
+                time_window: 'week',
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch trending tv shows`, error)
+            throw new TmdbException(`Failed to fetch trending tv shows`)
+        }
+    }
+    async getPopularMovies(page: number = 1): Promise<MovieResultsResponse> {
+        try {
+            return await this.moviedb.moviePopular({
+                page,
+                language: this.defaultLanguage,
+                region: 'ru-RU',
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch popular movies`, error)
+            throw new TmdbException(`Failed to fetch popular movies`)
+        }
+    }
+
+    // indian bullshit xd
+    async getPopularTvShows(page: number = 1): Promise<TvResultsResponse> {
+        try {
+            return await this.moviedb.tvPopular({
+                page,
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch popular tv shows`, error)
+            throw new TmdbException(`Failed to fetch popular tv shows`)
+        }
+    }
+
+    async searchMovies(
+        query: string,
+        page: number = 1,
+    ): Promise<MovieResultsResponse> {
+        try {
+            return await this.moviedb.searchMovie({
+                query,
+                page,
+                language: this.defaultLanguage,
+                include_adult: false,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to search movies`, error)
+            throw new TmdbException(`Failed to search movies`)
+        }
+    }
+
+    async searchTvShows(query: string, page: number = 1) {
+        try {
+            return await this.moviedb.searchTv({
+                query,
+                page,
+                language: this.defaultLanguage,
+                include_adult: false,
+            })
+        } catch (error) {
+            this.logger.error(
+                `Failed to search TV shows with query "${query}":`,
+                error,
+            )
+            throw new TmdbException(
+                `Failed to search TV shows: ${error.message}`,
+            )
+        }
     }
 
     async getMovieDetails(movieTMDBId: number): Promise<MovieResponse> {
@@ -63,68 +175,6 @@ export class TmdbService {
             )
             throw new TmdbException(
                 `Failed to fetch tv details for ${tvTMDBId}`,
-            )
-        }
-    }
-
-    async getPopularMovies(page: number = 1): Promise<MovieResultsResponse> {
-        try {
-            return await this.moviedb.moviePopular({
-                page,
-                language: this.defaultLanguage,
-                // TODO: think about region param
-            })
-        } catch (error) {
-            this.logger.error(`Failed to fetch popular movies`, error)
-            throw new TmdbException(`Failed to fetch popular movies`)
-        }
-    }
-
-    async getPopularTvShows(page: number = 1): Promise<TvResultsResponse> {
-        try {
-            return await this.moviedb.tvPopular({
-                page,
-                language: this.defaultLanguage,
-                // TODO: think about region param
-            })
-        } catch (error) {
-            this.logger.error(`Failed to fetch popular tv shows`, error)
-            throw new TmdbException(`Failed to fetch popular tv shows`)
-        }
-    }
-
-    async searchMovies(
-        query: string,
-        page: number = 1,
-    ): Promise<MovieResultsResponse> {
-        try {
-            return await this.moviedb.searchMovie({
-                query,
-                page,
-                language: this.defaultLanguage,
-                include_adult: false,
-            })
-        } catch (error) {
-            this.logger.error(`Failed to search movies`, error)
-            throw new TmdbException(`Failed to search movies`)
-        }
-    }
-
-    async searchTvShows(query: string, page: number = 1) {
-        try {
-            return await this.moviedb.searchTv({
-                query,
-                page,
-                language: this.defaultLanguage,
-                include_adult: false,
-            })
-        } catch (error) {
-            this.logger.error(
-                `Failed to search TV shows with query "${query}":`,
-                error,
-            )
-            throw new TmdbException(
-                `Failed to search TV shows: ${error.message}`,
             )
         }
     }

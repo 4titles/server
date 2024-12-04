@@ -5,6 +5,8 @@ import { DatabaseException } from '../exceptions/database.exception'
 import { eq } from 'drizzle-orm'
 import { DrizzleDB } from 'src/drizzle/types/drizzle'
 import { movies, series } from 'src/drizzle/schema/schema'
+import { TitleCategory } from '../enums/title-category.enum'
+import { TitleCategoryType } from '../types/title-category.type'
 
 @Injectable()
 export class TitleEntityService {
@@ -12,7 +14,7 @@ export class TitleEntityService {
 
     constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-    async createOrUpdateMovie(movie: MovieResponse) {
+    async createOrUpdateMovie(movie: MovieResponse, category: TitleCategory) {
         try {
             const movieData = {
                 tmdbId: movie.id,
@@ -42,7 +44,7 @@ export class TitleEntityService {
                 spokenLanguages: movie.spoken_languages,
                 originCountry:
                     movie.production_countries?.map((c) => c.iso_3166_1) || [],
-                // updatedAt: new Date(),
+                category: category as TitleCategoryType,
             }
 
             await this.db.insert(movies).values(movieData).onConflictDoUpdate({
@@ -64,7 +66,10 @@ export class TitleEntityService {
         }
     }
 
-    async createOrUpdateTvShow(tv: ShowResponse & { imdb_id: string }) {
+    async createOrUpdateTvShow(
+        tv: ShowResponse & { imdb_id: string },
+        category: TitleCategory,
+    ) {
         try {
             const tvShowData = {
                 tmdbId: tv.id,
@@ -99,7 +104,7 @@ export class TitleEntityService {
                 tagLine: tv.tagline,
                 voteAverage: tv.vote_average,
                 voteCount: tv.vote_count,
-                updatedAt: new Date(),
+                category: category as TitleCategoryType,
             }
 
             await this.db.insert(series).values(tvShowData).onConflictDoUpdate({
@@ -154,6 +159,7 @@ export class TitleEntityService {
     async getPopularMovies(limit: number = 20) {
         try {
             return await this.db.query.movies.findMany({
+                where: eq(movies.category, TitleCategory.POPULAR),
                 orderBy: (movies, { desc }) => [desc(movies.popularity)],
                 limit,
             })
@@ -168,6 +174,7 @@ export class TitleEntityService {
     async getPopularTvShows(limit: number = 20) {
         try {
             return await this.db.query.series.findMany({
+                where: eq(series.category, TitleCategory.POPULAR),
                 orderBy: (series, { desc }) => [desc(series.popularity)],
                 limit,
             })
@@ -175,6 +182,94 @@ export class TitleEntityService {
             this.logger.error('Failed to get popular TV shows:', error)
             throw new DatabaseException(
                 `Failed to get popular TV shows: ${error.message}`,
+            )
+        }
+    }
+
+    async getTopRatedMovies(limit: number = 20) {
+        try {
+            return await this.db.query.movies.findMany({
+                where: eq(movies.category, TitleCategory.TOP_RATED),
+                orderBy: (movies, { desc }) => [desc(movies.voteAverage)],
+                limit,
+            })
+        } catch (error) {
+            this.logger.error('Failed to get top rated movies:', error)
+            throw new DatabaseException(
+                `Failed to get top rated movies: ${error.message}`,
+            )
+        }
+    }
+
+    async getTopRatedTvShows(limit: number = 20) {
+        try {
+            return await this.db.query.series.findMany({
+                where: eq(series.category, TitleCategory.TOP_RATED),
+                orderBy: (series, { desc }) => [desc(series.voteAverage)],
+                limit,
+            })
+        } catch (error) {
+            this.logger.error('Failed to get top rated TV shows:', error)
+            throw new DatabaseException(
+                `Failed to get top rated TV shows: ${error.message}`,
+            )
+        }
+    }
+
+    async getTrendingMovies(limit: number = 20) {
+        try {
+            return await this.db.query.movies.findMany({
+                where: eq(movies.category, TitleCategory.TRENDING),
+                orderBy: (movies, { desc }) => [desc(movies.popularity)],
+                limit,
+            })
+        } catch (error) {
+            this.logger.error('Failed to get trending movies:', error)
+            throw new DatabaseException(
+                `Failed to get trending movies: ${error.message}`,
+            )
+        }
+    }
+
+    async getTrendingTvShows(limit: number = 20) {
+        try {
+            return await this.db.query.series.findMany({
+                where: eq(series.category, TitleCategory.TRENDING),
+                orderBy: (series, { desc }) => [desc(series.popularity)],
+                limit,
+            })
+        } catch (error) {
+            this.logger.error('Failed to get trending TV shows:', error)
+            throw new DatabaseException(
+                `Failed to get trending TV shows: ${error.message}`,
+            )
+        }
+    }
+
+    async getAllMovies(limit: number = 20) {
+        try {
+            return await this.db.query.movies.findMany({
+                orderBy: (movies, { desc }) => [desc(movies.popularity)],
+                limit,
+            })
+        } catch (error) {
+            this.logger.error('Failed to get all movies:', error)
+            throw new DatabaseException(
+                `Failed to get all movies: ${error.message}`,
+            )
+        }
+    }
+
+    async getAllTvShows(limit: number = 20) {
+        try {
+            return await this.db.query.series.findMany({
+                orderBy: (series, { desc }) => [desc(series.popularity)],
+                limit,
+            })
+        } catch (error) {
+            this.logger.error('Failed to get all TV shows:', error)
+            throw new DatabaseException(
+                `Failed to get all TV shows: ${error.message}`,
             )
         }
     }

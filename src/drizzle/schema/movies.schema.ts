@@ -1,4 +1,5 @@
 import {
+    bigint,
     boolean,
     date,
     index,
@@ -19,11 +20,20 @@ export const movieStatusEnum = pgEnum('movie_status', [
     'Released',
     'Canceled',
 ])
+
+export const titleCategoryEnum = pgEnum('title_category', [
+    'POPULAR',
+    'TOP_RATED',
+    'TRENDING',
+])
+
 export const movies = pgTable(
     'movies',
     {
-        id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-        tmdbId: integer('tmdb_id').notNull().unique(),
+        id: bigint('id', { mode: 'bigint' })
+            .primaryKey()
+            .generatedAlwaysAsIdentity(),
+        tmdbId: bigint('tmdb_id', { mode: 'bigint' }).notNull().unique(),
         imdbId: text('imdb_id').notNull().unique(),
         adult: boolean('adult').notNull().default(false),
         title: text('title').notNull(),
@@ -47,6 +57,7 @@ export const movies = pgTable(
         popularity: real('popularity').default(0), // TODO create ratings table
         voteAverage: real('vote_average').default(0),
         voteCount: integer('vote_count').default(0),
+        category: titleCategoryEnum().notNull(),
         ...timestamps,
     },
     (table) => ({

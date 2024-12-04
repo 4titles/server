@@ -9,6 +9,7 @@ import {
     text,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
+import { titleCategoryEnum } from './movies.schema'
 
 export const series = pgTable(
     'series',
@@ -43,6 +44,7 @@ export const series = pgTable(
         tagLine: text('tag_line'),
         voteAverage: real('vote_average').default(0),
         voteCount: integer('vote_count').default(0),
+        category: titleCategoryEnum().notNull(),
         ...timestamps,
     },
     (table) => ({

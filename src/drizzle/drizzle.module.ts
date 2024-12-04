@@ -16,7 +16,6 @@ export const DRIZZLE = Symbol('drizzle-connection')
                 console.log(databaseUrl)
                 const pool = new Pool({
                     connectionString: databaseUrl,
-                    //ssl: true,
                 })
                 return drizzle(pool, { schema }) as NodePgDatabase<
                     typeof schema
