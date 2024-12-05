@@ -129,6 +129,8 @@ type FullSyncResult {
     popularTvShowsCount: Int!
     trendingMoviesCount: Int!
     trendingTvShowsCount: Int!
+    topRatedMoviesCount: Int!
+    topRatedTvShowsCount: Int!
 }
 
 type Query {
