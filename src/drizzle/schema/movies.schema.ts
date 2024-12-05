@@ -11,6 +11,14 @@ import {
     text,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
+import {
+    Genre,
+    ProductionCompany,
+    ProductionCountry,
+    SpokenLanguage,
+} from 'src/titles/models/common.model'
+import { MovieStatus } from 'src/titles/enums/movie-status.enum'
+import { TitleCategory } from 'src/titles/enums/title-category.enum'
 
 export const movieStatusEnum = pgEnum('movie_status', [
     'Rumored',
@@ -41,24 +49,32 @@ export const movies = pgTable(
         posterPath: text('poster_path'), // TODO posters table
         backdropPath: text('backdrop_path'), // TODO posters table
         budget: integer('budget').default(0),
-        genres: jsonb('genres').notNull(), // TODO create genres table
+        genres: jsonb('genres').$type<Genre[]>().notNull(), // TODO create genres table
         homepage: text('homepage'),
-        originCountry: jsonb('origin_country').notNull(), // TODO create countries table
+        originCountry: jsonb('origin_country').$type<string[]>().notNull(), // TODO create countries table
         originalLanguage: text('original_language').notNull(), // TODO create languages table
         originalTitle: text('original_title').notNull(),
         overview: text('overview').notNull(),
-        productionCompanies: jsonb('production_companies').notNull(), // TODO create production_companies table
-        productionCountries: jsonb('production_countries').notNull(), // TODO create countries table
+        productionCompanies: jsonb('production_companies')
+            .$type<ProductionCompany[]>()
+            .notNull(), // TODO create production_companies table
+        productionCountries: jsonb('production_countries')
+            .$type<ProductionCountry[]>()
+            .notNull(), // TODO create countries table
         releaseDate: date('release_date'),
         revenue: integer('revenue').default(0),
         runtime: integer('runtime').default(0),
-        spokenLanguages: jsonb('spoken_languages').notNull(), // TODO create languages table
-        status: movieStatusEnum().notNull(),
+        spokenLanguages: jsonb('spoken_languages')
+            .$type<SpokenLanguage[]>()
+            .notNull(), // TODO create languages table
+        status: movieStatusEnum('status').$type<MovieStatus>().notNull(),
         tagLine: text('tag_line'),
         popularity: real('popularity').default(0), // TODO create ratings table
         voteAverage: real('vote_average').default(0),
         voteCount: integer('vote_count').default(0),
-        category: titleCategoryEnum().notNull(),
+        category: titleCategoryEnum('category')
+            .$type<TitleCategory>()
+            .notNull(),
         ...timestamps,
     },
     (table) => ({
