@@ -7,13 +7,14 @@ import {
     CreatedBy,
     Network,
 } from './common.model'
+import { TitleCategory } from '../enums/title-category.enum'
 
 @ObjectType()
 export class TvShow {
     @Field(() => Int)
     tmdbId: number
 
-    @Field()
+    @Field(() => String)
     imdbId: string
 
     @Field()
@@ -94,6 +95,9 @@ export class TvShow {
     @Field(() => Int)
     voteCount: number
 
-    @Field()
-    updatedAt: string
+    @Field(() => String, { nullable: true })
+    updatedAt?: string
+
+    @Field(() => TitleCategory)
+    category: TitleCategory
 }

@@ -4,6 +4,8 @@ import { TmdbService } from 'src/tmdb/tmdb-service'
 import { TitleEntityService } from './title-entity.service'
 import { ShowResponse, TvResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
+import { TvShowMapper } from '../mappers/tv-show.mapper'
+import { TvShow } from '../models/tv-show.model'
 
 @Injectable()
 export class TvShowService {
@@ -113,25 +115,38 @@ export class TvShowService {
     async syncTvShow(
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
-    ): Promise<ShowResponse> {
-        const tvShow = await this.tmdbService.getTvDetails(tmdbId)
-        await this.titleEntityService.createOrUpdateTvShow(tvShow, category)
+    ): Promise<TvShow> {
+        const tvShowResponse = await this.tmdbService.getTvDetails(tmdbId)
+
+        await this.titleEntityService.createOrUpdateTvShow(
+            tvShowResponse,
+            category,
+        )
+
+        const tvShow = TvShowMapper.mapShowResponseToTvShow(
+            tvShowResponse,
+            category,
+        )
         await this.cacheService.set(`tv_${tmdbId}`, tvShow, this.CACHE_TTL)
+
         return tvShow
     }
 
-    async getTvShowDetails(tmdbId: number): Promise<ShowResponse> {
+    async getTvShowDetails(tmdbId: number): Promise<TvShow> {
         const cacheKey = `tv_${tmdbId}`
         const cached = await this.cacheService.get<ShowResponse>(cacheKey)
-        if (cached) return cached
+
+        if (cached) {
+            return TvShowMapper.mapShowResponseToTvShow(
+                cached as ShowResponse & { imdb_id: string },
+                TitleCategory.POPULAR,
+            )
+        }
 
         return this.syncTvShow(tmdbId)
     }
 
-    async searchTvShows(
-        query: string,
-        limit: number = 20,
-    ): Promise<ShowResponse[]> {
+    async searchTvShows(query: string, limit: number = 20): Promise<TvShow[]> {
         const { results } = await this.tmdbService.searchTvShows(query)
         return Promise.all(
             results

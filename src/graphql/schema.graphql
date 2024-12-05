@@ -78,7 +78,7 @@ type Network {
 
 type TvShow {
     tmdbId: Int!
-    imdbId: String!
+    imdbId: String
     name: String!
     originalName: String!
     overview: String!
@@ -106,7 +106,7 @@ type TvShow {
     voteAverage: Float!
     voteCount: Int!
     updatedAt: String!
-    category: TitleCategory!
+    category: TitleCategory
 }
 
 type SyncResult {

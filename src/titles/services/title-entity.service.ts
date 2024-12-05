@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { DrizzleDB } from 'src/drizzle/types/drizzle'
 import { movies, series } from 'src/drizzle/schema/schema'
 import { TitleCategory } from '../enums/title-category.enum'
+import { TvShowMapper } from '../mappers/tv-show.mapper'
 
 @Injectable()
 export class TitleEntityService {
@@ -70,41 +71,10 @@ export class TitleEntityService {
         category: TitleCategory,
     ) {
         try {
-            const tvShowData = {
-                tmdbId: tv.id,
-                imdbId: tv.imdb_id || '',
-                name: tv.name,
-                originalName: tv.original_name,
-                overview: tv.overview || '',
-                posterPath: tv.poster_path,
-                backdropPath: tv.backdrop_path,
-                createdBy: tv.created_by,
-                episodeRunTime: tv.episode_run_time || [],
-                firstAirDate: tv.first_air_date
-                    ? new Date(tv.first_air_date)
-                    : null,
-                genres: tv.genres,
-                homepage: tv.homepage,
-                inProduction: tv.in_production,
-                languages: tv.languages || [],
-                lastAirDate: tv.last_air_date
-                    ? new Date(tv.last_air_date)
-                    : null,
-                networks: tv.networks,
-                numberOfEpisodes: tv.number_of_episodes,
-                numberOfSeasons: tv.number_of_seasons,
-                originCountry: tv.origin_country || [],
-                originalLanguage: tv.original_language,
-                popularity: tv.popularity,
-                productionCompanies: tv.production_companies,
-                productionCountries: tv.production_countries,
-                spokenLanguages: tv.spoken_languages,
-                status: tv.status,
-                tagLine: tv.tagline,
-                voteAverage: tv.vote_average,
-                voteCount: tv.vote_count,
-                category: category as TitleCategory,
-            }
+            const tvShowData = TvShowMapper.mapShowResponseToTvShow(
+                tv,
+                category,
+            )
 
             await this.db.insert(series).values(tvShowData).onConflictDoUpdate({
                 target: series.tmdbId,
