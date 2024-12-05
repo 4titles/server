@@ -17,7 +17,7 @@ export class TitleEntityService {
     async createOrUpdateMovie(movie: MovieResponse, category: TitleCategory) {
         try {
             const movieData = {
-                tmdbId: movie.id,
+                tmdbId: BigInt(movie.id),
                 imdbId: movie.imdb_id || '',
                 title: movie.title,
                 originalTitle: movie.original_title,
@@ -72,7 +72,7 @@ export class TitleEntityService {
     ) {
         try {
             const tvShowData = {
-                tmdbId: tv.id,
+                tmdbId: BigInt(tv.id),
                 imdbId: tv.imdb_id || '',
                 name: tv.name,
                 originalName: tv.original_name,
@@ -129,7 +129,7 @@ export class TitleEntityService {
     async getMovieByTmdbId(tmdbId: number) {
         try {
             return await this.db.query.movies.findFirst({
-                where: eq(movies.tmdbId, tmdbId),
+                where: eq(movies.tmdbId, BigInt(tmdbId)),
             })
         } catch (error) {
             this.logger.error(
@@ -143,7 +143,7 @@ export class TitleEntityService {
     async getTvShowByTmdbId(tmdbId: number) {
         try {
             return await this.db.query.series.findFirst({
-                where: eq(series.tmdbId, tmdbId),
+                where: eq(series.tmdbId, BigInt(tmdbId)),
             })
         } catch (error) {
             this.logger.error(
@@ -320,7 +320,9 @@ export class TitleEntityService {
 
     async deleteMovie(tmdbId: number) {
         try {
-            await this.db.delete(movies).where(eq(movies.tmdbId, tmdbId))
+            await this.db
+                .delete(movies)
+                .where(eq(movies.tmdbId, BigInt(tmdbId)))
             this.logger.log(`Successfully deleted movie with TMDB ID ${tmdbId}`)
         } catch (error) {
             this.logger.error(
@@ -335,7 +337,9 @@ export class TitleEntityService {
 
     async deleteTvShow(tmdbId: number) {
         try {
-            await this.db.delete(series).where(eq(series.tmdbId, tmdbId))
+            await this.db
+                .delete(series)
+                .where(eq(series.tmdbId, BigInt(tmdbId)))
             this.logger.log(
                 `Successfully deleted TV show with TMDB ID ${tmdbId}`,
             )

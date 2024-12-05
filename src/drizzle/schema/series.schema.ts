@@ -1,4 +1,5 @@
 import {
+    bigint,
     boolean,
     date,
     index,
@@ -15,7 +16,7 @@ export const series = pgTable(
     'series',
     {
         id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-        tmdbId: integer('tmdb_id').notNull().unique(),
+        tmdbId: bigint('tmdb_id', { mode: 'bigint' }).notNull().unique(),
         imdbId: text('imdb_id').notNull().unique(),
         adult: boolean('adult').notNull().default(false),
         name: text('name').notNull(),
