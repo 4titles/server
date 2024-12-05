@@ -6,7 +6,6 @@ import { eq } from 'drizzle-orm'
 import { DrizzleDB } from 'src/drizzle/types/drizzle'
 import { movies, series } from 'src/drizzle/schema/schema'
 import { TitleCategory } from '../enums/title-category.enum'
-import { TitleCategoryType } from '../types/title-category.type'
 
 @Injectable()
 export class TitleEntityService {
@@ -17,7 +16,7 @@ export class TitleEntityService {
     async createOrUpdateMovie(movie: MovieResponse, category: TitleCategory) {
         try {
             const movieData = {
-                tmdbId: BigInt(movie.id),
+                tmdbId: movie.id,
                 imdbId: movie.imdb_id || '',
                 title: movie.title,
                 originalTitle: movie.original_title,
@@ -44,7 +43,7 @@ export class TitleEntityService {
                 spokenLanguages: movie.spoken_languages,
                 originCountry:
                     movie.production_countries?.map((c) => c.iso_3166_1) || [],
-                category: category as TitleCategoryType,
+                category: category as TitleCategory,
             }
 
             await this.db.insert(movies).values(movieData).onConflictDoUpdate({
@@ -72,7 +71,7 @@ export class TitleEntityService {
     ) {
         try {
             const tvShowData = {
-                tmdbId: BigInt(tv.id),
+                tmdbId: tv.id,
                 imdbId: tv.imdb_id || '',
                 name: tv.name,
                 originalName: tv.original_name,
@@ -104,7 +103,7 @@ export class TitleEntityService {
                 tagLine: tv.tagline,
                 voteAverage: tv.vote_average,
                 voteCount: tv.vote_count,
-                category: category as TitleCategoryType,
+                category: category as TitleCategory,
             }
 
             await this.db.insert(series).values(tvShowData).onConflictDoUpdate({
@@ -129,7 +128,7 @@ export class TitleEntityService {
     async getMovieByTmdbId(tmdbId: number) {
         try {
             return await this.db.query.movies.findFirst({
-                where: eq(movies.tmdbId, BigInt(tmdbId)),
+                where: eq(movies.tmdbId, tmdbId),
             })
         } catch (error) {
             this.logger.error(
@@ -143,7 +142,7 @@ export class TitleEntityService {
     async getTvShowByTmdbId(tmdbId: number) {
         try {
             return await this.db.query.series.findFirst({
-                where: eq(series.tmdbId, BigInt(tmdbId)),
+                where: eq(series.tmdbId, tmdbId),
             })
         } catch (error) {
             this.logger.error(
@@ -320,9 +319,7 @@ export class TitleEntityService {
 
     async deleteMovie(tmdbId: number) {
         try {
-            await this.db
-                .delete(movies)
-                .where(eq(movies.tmdbId, BigInt(tmdbId)))
+            await this.db.delete(movies).where(eq(movies.tmdbId, tmdbId))
             this.logger.log(`Successfully deleted movie with TMDB ID ${tmdbId}`)
         } catch (error) {
             this.logger.error(
@@ -337,9 +334,7 @@ export class TitleEntityService {
 
     async deleteTvShow(tmdbId: number) {
         try {
-            await this.db
-                .delete(series)
-                .where(eq(series.tmdbId, BigInt(tmdbId)))
+            await this.db.delete(series).where(eq(series.tmdbId, tmdbId))
             this.logger.log(
                 `Successfully deleted TV show with TMDB ID ${tmdbId}`,
             )

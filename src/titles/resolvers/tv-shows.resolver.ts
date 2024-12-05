@@ -16,33 +16,33 @@ export class TvShowsResolver {
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.tvShowService.getTvShows(limit, category)
+        return await this.tvShowService.getTvShows(limit, category)
     }
 
     @Query(() => [TvShow])
     async popularTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.tvShowService.getPopularTvShows(limit)
+        return await this.tvShowService.getPopularTvShows(limit)
     }
 
     @Query(() => [TvShow])
     async topRatedTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.tvShowService.getTopRatedTvShows(limit)
+        return await this.tvShowService.getTopRatedTvShows(limit)
     }
 
     @Query(() => [TvShow])
     async trendingTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.tvShowService.getTrendingTvShows(limit)
+        return await this.tvShowService.getTrendingTvShows(limit)
     }
 
     @Query(() => TvShow, { nullable: true })
     async tvShow(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
-        return this.tvShowService.getTvShowDetails(tmdbId)
+        return await this.tvShowService.getTvShowDetails(tmdbId)
     }
 
     @Query(() => [TvShow])
@@ -50,6 +50,6 @@ export class TvShowsResolver {
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.tvShowService.searchTvShows(query, limit)
+        return await this.tvShowService.searchTvShows(query, limit)
     }
 }

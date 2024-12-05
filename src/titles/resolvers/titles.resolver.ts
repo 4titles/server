@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args } from '@nestjs/graphql'
+import { Resolver, Mutation, Args, Int } from '@nestjs/graphql'
 import { TitlesService } from '../services/titles.service'
 import { Logger } from '@nestjs/common'
 import { SyncResult } from '../models/sync-result.model'
@@ -36,10 +36,12 @@ export class TitlesResolver {
     @Mutation(() => SyncResult)
     async syncTopRatedTitles(
         @Args('type', { type: () => TitleType, nullable: true })
+        @Args('limit', { type: () => Int, nullable: true })
         type: TitleType = TitleType.ALL,
+        limit: number = 100,
     ) {
         this.logger.log(`Starting titles cache refresh for type: ${type}`)
-        const result = await this.titlesService.syncTopRatedTitles(type)
+        const result = await this.titlesService.syncTopRatedTitles(type, limit)
         this.logger.log('Cache refresh completed')
         return result
     }

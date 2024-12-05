@@ -144,6 +144,6 @@ type Query {
 type Mutation {
     syncPopularTitles(type: TitleType): SyncResult!
     syncTrendingTitles(type: TitleType): SyncResult!
-    syncTopRatedTitles(type: TitleType): SyncResult!
+    syncTopRatedTitles(type: TitleType, limit: Int): SyncResult!
     syncAllContent: FullSyncResult!
 }

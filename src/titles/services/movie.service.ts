@@ -48,12 +48,12 @@ export class MovieService {
         }
     }
 
-    async syncTopRatedMovies(): Promise<MovieResponse[]> {
+    async syncTopRatedMovies(limit: number = 100): Promise<MovieResponse[]> {
         try {
             const movies: MovieResponse[] = []
             let page = 1
 
-            while (movies.length < 100 && page <= 5) {
+            while (movies.length < limit && page <= 5) {
                 const { results } =
                     await this.tmdbService.getTopRatedMovies(page)
                 const validMovies = results.filter(
@@ -62,7 +62,7 @@ export class MovieService {
                 )
 
                 for (const movie of validMovies) {
-                    if (movies.length >= 100) break
+                    if (movies.length >= limit) break
                     const fullMovie = await this.syncMovie(
                         movie.id,
                         TitleCategory.TOP_RATED,

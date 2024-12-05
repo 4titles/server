@@ -108,6 +108,7 @@ export class TitlesService {
 
     async syncTopRatedTitles(
         type: TitleType = TitleType.ALL,
+        limit: number = 100,
     ): Promise<SyncResult> {
         try {
             let movies: MovieResponse[] = []
@@ -115,15 +116,16 @@ export class TitlesService {
 
             switch (type) {
                 case TitleType.MOVIES:
-                    movies = await this.movieService.syncTopRatedMovies()
+                    movies = await this.movieService.syncTopRatedMovies(limit)
                     break
                 case TitleType.TV_SHOWS:
-                    tvShows = await this.tvShowService.syncTopRatedTvShows()
+                    tvShows =
+                        await this.tvShowService.syncTopRatedTvShows(limit)
                     break
                 case TitleType.ALL:
                     ;[movies, tvShows] = await Promise.all([
-                        this.movieService.syncTopRatedMovies(),
-                        this.tvShowService.syncTopRatedTvShows(),
+                        this.movieService.syncTopRatedMovies(limit),
+                        this.tvShowService.syncTopRatedTvShows(limit),
                     ])
                     break
                 default:

@@ -76,18 +76,29 @@ export class TvShowService {
         }
     }
 
-    async syncTopRatedTvShows(): Promise<ShowResponse[]> {
+    async syncTopRatedTvShows(limit: number = 100): Promise<ShowResponse[]> {
         try {
-            const { results } = await this.tmdbService.getTopRatedTvShows()
-            const validShows = results.filter(
-                (show) => show.overview && show.name && show.poster_path,
-            )
+            const tvShows: ShowResponse[] = []
+            let page = 1
 
-            const tvShows = await Promise.all(
-                validShows.map((show) =>
-                    this.syncTvShow(show.id, TitleCategory.TOP_RATED),
-                ),
-            )
+            while (tvShows.length < limit && page <= 5) {
+                const { results } =
+                    await this.tmdbService.getTopRatedTvShows(page)
+                const validShows = results.filter(
+                    (show) => show.overview && show.name && show.poster_path,
+                )
+
+                for (const show of validShows) {
+                    if (tvShows.length >= limit) break
+                    const fullShow = await this.syncTvShow(
+                        show.id,
+                        TitleCategory.TOP_RATED,
+                    )
+                    tvShows.push(fullShow)
+                }
+
+                page++
+            }
 
             this.logger.log(
                 `Successfully synced ${tvShows.length} top rated TV shows`,

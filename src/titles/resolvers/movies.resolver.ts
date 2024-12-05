@@ -16,33 +16,33 @@ export class MoviesResolver {
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.movieService.getMovies(limit, category)
+        return await this.movieService.getMovies(limit, category)
     }
 
     @Query(() => [Movie])
     async popularMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.movieService.getPopularMovies(limit)
+        return await this.movieService.getPopularMovies(limit)
     }
 
     @Query(() => [Movie])
     async topRatedMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.movieService.getTopRatedMovies(limit)
+        return await this.movieService.getTopRatedMovies(limit)
     }
 
     @Query(() => [Movie])
     async trendingMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.movieService.getTrendingMovies(limit)
+        return await this.movieService.getTrendingMovies(limit)
     }
 
     @Query(() => Movie, { nullable: true })
     async movie(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
-        return this.movieService.getMovieDetails(tmdbId)
+        return await this.movieService.getMovieDetails(tmdbId)
     }
 
     @Query(() => [Movie])
@@ -50,6 +50,6 @@ export class MoviesResolver {
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return this.movieService.searchMovies(query, limit)
+        return await this.movieService.searchMovies(query, limit)
     }
 }
