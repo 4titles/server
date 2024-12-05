@@ -16,7 +16,7 @@ export const series = pgTable(
     'series',
     {
         id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-        tmdbId: bigint('tmdb_id', { mode: 'bigint' }).notNull().unique(),
+        tmdbId: bigint('tmdb_id', { mode: 'number' }).notNull().unique(),
         imdbId: text('imdb_id').notNull().unique(),
         adult: boolean('adult').notNull().default(false),
         name: text('name').notNull(),

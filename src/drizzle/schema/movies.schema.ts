@@ -33,7 +33,7 @@ export const movies = pgTable(
         id: bigint('id', { mode: 'bigint' })
             .primaryKey()
             .generatedAlwaysAsIdentity(),
-        tmdbId: bigint('tmdb_id', { mode: 'bigint' }).notNull().unique(),
+        tmdbId: bigint('tmdb_id', { mode: 'number' }).notNull().unique(),
         imdbId: text('imdb_id').notNull().unique(),
         adult: boolean('adult').notNull().default(false),
         title: text('title').notNull(),
