@@ -25,6 +25,7 @@ export const titleCategoryEnum = pgEnum('title_category', [
     'POPULAR',
     'TOP_RATED',
     'TRENDING',
+    'SEARCH',
 ])
 
 export const movies = pgTable(

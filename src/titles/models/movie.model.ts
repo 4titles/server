@@ -5,6 +5,8 @@ import {
     ProductionCountry,
     SpokenLanguage,
 } from './common.model'
+import { TitleCategory } from '../enums/title-category.enum'
+import { MovieStatus } from '../enums/movie-status.enum'
 
 @ObjectType()
 export class Movie {
@@ -56,8 +58,8 @@ export class Movie {
     @Field(() => Int)
     runtime: number
 
-    @Field()
-    status: string
+    @Field(() => MovieStatus)
+    status: MovieStatus
 
     @Field({ nullable: true })
     tagLine?: string
@@ -82,4 +84,7 @@ export class Movie {
 
     @Field()
     updatedAt: string
+
+    @Field(() => TitleCategory)
+    category: TitleCategory
 }

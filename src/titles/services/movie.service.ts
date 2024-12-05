@@ -4,6 +4,7 @@ import { TmdbService } from 'src/tmdb/tmdb-service'
 import { TitleEntityService } from './title-entity.service'
 import { MovieResponse, MovieResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
+import { MovieMapper } from '../mappers/movie-mapper'
 
 @Injectable()
 export class MovieService {
@@ -108,22 +109,49 @@ export class MovieService {
             throw error
         }
     }
+
     async syncMovie(
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
     ): Promise<MovieResponse> {
-        const movie = await this.tmdbService.getMovieDetails(tmdbId)
-        await this.titleEntityService.createOrUpdateMovie(movie, category)
-        await this.cacheService.set(`movie_${tmdbId}`, movie, this.CACHE_TTL)
-        return movie
+        try {
+            const movieResponse = await this.tmdbService.getMovieDetails(tmdbId)
+
+            await this.cacheService.set(
+                `movie_${tmdbId}`,
+                movieResponse,
+                this.CACHE_TTL,
+            )
+
+            await this.titleEntityService.createOrUpdateMovie(
+                movieResponse,
+                category,
+            )
+
+            const movie = MovieMapper.mapMovieResponseToMovie(
+                movieResponse,
+                category,
+            )
+
+            return movie
+        } catch (error) {
+            this.logger.error(`Failed to sync movie: ${tmdbId}`, error)
+            throw error
+        }
     }
 
-    async getMovieDetails(tmdbId: number): Promise<MovieResponse> {
+    async getMovieDetails(
+        tmdbId: number,
+        category: TitleCategory = TitleCategory.POPULAR,
+    ): Promise<MovieResponse> {
         const cacheKey = `movie_${tmdbId}`
         const cached = await this.cacheService.get<MovieResponse>(cacheKey)
-        if (cached) return cached
 
-        return this.syncMovie(tmdbId)
+        if (cached) {
+            return MovieMapper.mapMovieResponseToMovie(cached, category)
+        }
+
+        return this.syncMovie(tmdbId, category)
     }
 
     async searchMovies(
@@ -134,7 +162,9 @@ export class MovieService {
         return Promise.all(
             results
                 .slice(0, limit)
-                .map((result) => this.getMovieDetails(result.id)),
+                .map((result) =>
+                    this.getMovieDetails(result.id, TitleCategory.SEARCH),
+                ),
         )
     }
 

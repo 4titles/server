@@ -10,6 +10,15 @@ enum TitleType {
     ALL
 }
 
+enum MovieStatus {
+    Rumored
+    Planned
+    InProduction
+    PostProduction
+    Released
+    Canceled
+}
+
 type Genre {
     id: Int!
     name: String!
@@ -50,7 +59,7 @@ type Movie {
     releaseDate: String
     revenue: Int!
     runtime: Int!
-    status: String!
+    status: MovieStatus!
     tagLine: String
     voteAverage: Float!
     voteCount: Int!
@@ -58,7 +67,8 @@ type Movie {
     productionCountries: [ProductionCountry!]!
     spokenLanguages: [SpokenLanguage!]!
     originCountry: [String!]!
-    updatedAt: String!
+    updatedAt: String
+    category: TitleCategory
 }
 
 type CreatedBy {

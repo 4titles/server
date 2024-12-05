@@ -116,34 +116,47 @@ export class TvShowService {
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
     ): Promise<TvShow> {
-        const tvShowResponse = await this.tmdbService.getTvDetails(tmdbId)
+        try {
+            const tvShowResponse = await this.tmdbService.getTvDetails(tmdbId)
 
-        await this.titleEntityService.createOrUpdateTvShow(
-            tvShowResponse,
-            category,
-        )
+            await this.cacheService.set(
+                `tv_${tmdbId}`,
+                tvShowResponse,
+                this.CACHE_TTL,
+            )
 
-        const tvShow = TvShowMapper.mapShowResponseToTvShow(
-            tvShowResponse,
-            category,
-        )
-        await this.cacheService.set(`tv_${tmdbId}`, tvShow, this.CACHE_TTL)
+            await this.titleEntityService.createOrUpdateTvShow(
+                tvShowResponse,
+                category,
+            )
 
-        return tvShow
+            const tvShow = TvShowMapper.mapShowResponseToTvShow(
+                tvShowResponse,
+                category,
+            )
+
+            return tvShow
+        } catch (error) {
+            this.logger.error('Failed to sync TV show:', error)
+            throw error
+        }
     }
 
-    async getTvShowDetails(tmdbId: number): Promise<TvShow> {
+    async getTvShowDetails(
+        tmdbId: number,
+        category: TitleCategory = TitleCategory.POPULAR,
+    ): Promise<TvShow> {
         const cacheKey = `tv_${tmdbId}`
         const cached = await this.cacheService.get<ShowResponse>(cacheKey)
 
         if (cached) {
             return TvShowMapper.mapShowResponseToTvShow(
                 cached as ShowResponse & { imdb_id: string },
-                TitleCategory.POPULAR,
+                category,
             )
         }
 
-        return this.syncTvShow(tmdbId)
+        return this.syncTvShow(tmdbId, category)
     }
 
     async searchTvShows(query: string, limit: number = 20): Promise<TvShow[]> {
@@ -151,7 +164,9 @@ export class TvShowService {
         return Promise.all(
             results
                 .slice(0, limit)
-                .map((result) => this.getTvShowDetails(result.id)),
+                .map((result) =>
+                    this.getTvShowDetails(result.id, TitleCategory.SEARCH),
+                ),
         )
     }
 
