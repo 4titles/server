@@ -125,15 +125,15 @@ export class TvShowService {
                 this.CACHE_TTL,
             )
 
-            await this.titleEntityService.createOrUpdateTvShow(
-                tvShowResponse,
-                category,
-            )
-
             const tvShow = TvShowMapper.mapShowResponseToTvShow(
                 tvShowResponse,
                 category,
             )
+
+            //@todo identify should save to db search results
+            if (category !== TitleCategory.SEARCH) {
+                await this.titleEntityService.createOrUpdateTvShow(tvShow)
+            }
 
             return tvShow
         } catch (error) {
@@ -170,7 +170,10 @@ export class TvShowService {
         )
     }
 
-    async getTvShows(limit: number = 20, category?: TitleCategory) {
+    async getTvShows(
+        limit: number = 20,
+        category?: TitleCategory,
+    ): Promise<TvShow[]> {
         try {
             if (!category) {
                 return this.titleEntityService.getAllTvShows(limit)
@@ -192,15 +195,15 @@ export class TvShowService {
         }
     }
 
-    async getPopularTvShows(limit: number = 20) {
+    async getPopularTvShows(limit: number = 20): Promise<TvShow[]> {
         return this.titleEntityService.getPopularTvShows(limit)
     }
 
-    async getTopRatedTvShows(limit: number = 20) {
+    async getTopRatedTvShows(limit: number = 20): Promise<TvShow[]> {
         return this.titleEntityService.getTopRatedTvShows(limit)
     }
 
-    async getTrendingTvShows(limit: number = 20) {
+    async getTrendingTvShows(limit: number = 20): Promise<TvShow[]> {
         return this.titleEntityService.getTrendingTvShows(limit)
     }
 }

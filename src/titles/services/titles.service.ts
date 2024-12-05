@@ -149,6 +149,8 @@ export class TitlesService {
                 popularTvShows,
                 trendingMovies,
                 trendingTvShows,
+                topRatedMovies,
+                topRatedTvShows,
             ] = await Promise.all([
                 this.movieService.syncPopularMovies(),
                 this.tvShowService.syncPopularTvShows(),
@@ -163,6 +165,8 @@ export class TitlesService {
                 popularTvShowsCount: popularTvShows.length,
                 trendingMoviesCount: trendingMovies.length,
                 trendingTvShowsCount: trendingTvShows.length,
+                topRatedMoviesCount: topRatedMovies.length,
+                topRatedTvShowsCount: topRatedTvShows.length,
             }
         } catch (error) {
             this.logger.error('Failed to sync all content:', error)

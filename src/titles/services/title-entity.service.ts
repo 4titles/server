@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { MovieResponse, ShowResponse } from 'moviedb-promise'
 import { DRIZZLE } from 'src/drizzle/drizzle.module'
 import { DatabaseException } from '../exceptions/database.exception'
 import { eq } from 'drizzle-orm'
 import { DrizzleDB } from 'src/drizzle/types/drizzle'
 import { movies, series } from 'src/drizzle/schema/schema'
 import { TitleCategory } from '../enums/title-category.enum'
-import { TvShowMapper } from '../mappers/tv-show.mapper'
+import { Movie } from '../models/movie.model'
+import { TvShow } from '../models/tv-show.model'
 
 @Injectable()
 export class TitleEntityService {
@@ -14,50 +14,19 @@ export class TitleEntityService {
 
     constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-    async createOrUpdateMovie(movie: MovieResponse, category: TitleCategory) {
+    async createOrUpdateMovie(movie: Movie): Promise<void> {
         try {
-            const movieData = {
-                tmdbId: movie.id,
-                imdbId: movie.imdb_id || '',
-                title: movie.title,
-                originalTitle: movie.original_title,
-                overview: movie.overview || '',
-                posterPath: movie.poster_path,
-                backdropPath: movie.backdrop_path,
-                adult: movie.adult,
-                budget: movie.budget,
-                genres: movie.genres,
-                homepage: movie.homepage,
-                originalLanguage: movie.original_language,
-                popularity: movie.popularity,
-                releaseDate: movie.release_date
-                    ? new Date(movie.release_date)
-                    : null,
-                revenue: movie.revenue,
-                runtime: movie.runtime,
-                status: movie.status,
-                tagLine: movie.tagline,
-                voteAverage: movie.vote_average,
-                voteCount: movie.vote_count,
-                productionCompanies: movie.production_companies,
-                productionCountries: movie.production_countries,
-                spokenLanguages: movie.spoken_languages,
-                originCountry:
-                    movie.production_countries?.map((c) => c.iso_3166_1) || [],
-                category: category as TitleCategory,
-            }
-
-            await this.db.insert(movies).values(movieData).onConflictDoUpdate({
+            await this.db.insert(movies).values(movie).onConflictDoUpdate({
                 target: movies.tmdbId,
-                set: movieData,
+                set: movie,
             })
 
             this.logger.log(
-                `Successfully created/updated movie with TMDB ID ${movie.id}`,
+                `Successfully created/updated movie with TMDB ID ${movie.tmdbId}`,
             )
         } catch (error) {
             this.logger.error(
-                `Failed to create/update movie with TMDB ID ${movie.id}:`,
+                `Failed to create/update movie with TMDB ID ${movie.tmdbId}:`,
                 error,
             )
             throw new DatabaseException(
@@ -66,27 +35,19 @@ export class TitleEntityService {
         }
     }
 
-    async createOrUpdateTvShow(
-        tv: ShowResponse & { imdb_id: string },
-        category: TitleCategory,
-    ) {
+    async createOrUpdateTvShow(tv: TvShow): Promise<void> {
         try {
-            const tvShowData = TvShowMapper.mapShowResponseToTvShow(
-                tv,
-                category,
-            )
-
-            await this.db.insert(series).values(tvShowData).onConflictDoUpdate({
+            await this.db.insert(series).values(tv).onConflictDoUpdate({
                 target: series.tmdbId,
-                set: tvShowData,
+                set: tv,
             })
 
             this.logger.log(
-                `Successfully created/updated TV show with TMDB ID ${tv.id}`,
+                `Successfully created/updated TV show with TMDB ID ${tv.tmdbId}`,
             )
         } catch (error) {
             this.logger.error(
-                `Failed to create/update TV show with TMDB ID ${tv.id}:`,
+                `Failed to create/update TV show with TMDB ID ${tv.tmdbId}:`,
                 error,
             )
             throw new DatabaseException(
@@ -95,7 +56,7 @@ export class TitleEntityService {
         }
     }
 
-    async getMovieByTmdbId(tmdbId: number) {
+    async getMovieByTmdbId(tmdbId: number): Promise<Movie> {
         try {
             return await this.db.query.movies.findFirst({
                 where: eq(movies.tmdbId, tmdbId),
@@ -109,7 +70,7 @@ export class TitleEntityService {
         }
     }
 
-    async getTvShowByTmdbId(tmdbId: number) {
+    async getTvShowByTmdbId(tmdbId: number): Promise<TvShow> {
         try {
             return await this.db.query.series.findFirst({
                 where: eq(series.tmdbId, tmdbId),
@@ -125,7 +86,7 @@ export class TitleEntityService {
         }
     }
 
-    async getPopularMovies(limit: number = 20) {
+    async getPopularMovies(limit: number = 20): Promise<Movie[]> {
         try {
             return await this.db.query.movies.findMany({
                 where: eq(movies.category, TitleCategory.POPULAR),
@@ -140,7 +101,7 @@ export class TitleEntityService {
         }
     }
 
-    async getPopularTvShows(limit: number = 20) {
+    async getPopularTvShows(limit: number = 20): Promise<TvShow[]> {
         try {
             return await this.db.query.series.findMany({
                 where: eq(series.category, TitleCategory.POPULAR),
@@ -155,7 +116,7 @@ export class TitleEntityService {
         }
     }
 
-    async getTopRatedMovies(limit: number = 20) {
+    async getTopRatedMovies(limit: number = 20): Promise<Movie[]> {
         try {
             return await this.db.query.movies.findMany({
                 where: eq(movies.category, TitleCategory.TOP_RATED),
@@ -170,7 +131,7 @@ export class TitleEntityService {
         }
     }
 
-    async getTopRatedTvShows(limit: number = 20) {
+    async getTopRatedTvShows(limit: number = 20): Promise<TvShow[]> {
         try {
             return await this.db.query.series.findMany({
                 where: eq(series.category, TitleCategory.TOP_RATED),
@@ -185,7 +146,7 @@ export class TitleEntityService {
         }
     }
 
-    async getTrendingMovies(limit: number = 20) {
+    async getTrendingMovies(limit: number = 20): Promise<Movie[]> {
         try {
             return await this.db.query.movies.findMany({
                 where: eq(movies.category, TitleCategory.TRENDING),
@@ -200,7 +161,7 @@ export class TitleEntityService {
         }
     }
 
-    async getTrendingTvShows(limit: number = 20) {
+    async getTrendingTvShows(limit: number = 20): Promise<TvShow[]> {
         try {
             return await this.db.query.series.findMany({
                 where: eq(series.category, TitleCategory.TRENDING),
@@ -215,7 +176,7 @@ export class TitleEntityService {
         }
     }
 
-    async getAllMovies(limit: number = 20) {
+    async getAllMovies(limit: number = 20): Promise<Movie[]> {
         try {
             return await this.db.query.movies.findMany({
                 orderBy: (movies, { desc }) => [desc(movies.popularity)],
@@ -229,7 +190,7 @@ export class TitleEntityService {
         }
     }
 
-    async getAllTvShows(limit: number = 20) {
+    async getAllTvShows(limit: number = 20): Promise<TvShow[]> {
         try {
             return await this.db.query.series.findMany({
                 orderBy: (series, { desc }) => [desc(series.popularity)],
@@ -243,7 +204,7 @@ export class TitleEntityService {
         }
     }
 
-    async searchMovies(query: string, limit: number = 20) {
+    async searchMovies(query: string, limit: number = 20): Promise<Movie[]> {
         try {
             return await this.db.query.movies.findMany({
                 where: (movies, { ilike, or }) =>
@@ -265,7 +226,7 @@ export class TitleEntityService {
         }
     }
 
-    async searchTvShows(query: string, limit: number = 20) {
+    async searchTvShows(query: string, limit: number = 20): Promise<TvShow[]> {
         try {
             return await this.db.query.series.findMany({
                 where: (series, { ilike, or }) =>
@@ -287,7 +248,7 @@ export class TitleEntityService {
         }
     }
 
-    async deleteMovie(tmdbId: number) {
+    async deleteMovie(tmdbId: number): Promise<void> {
         try {
             await this.db.delete(movies).where(eq(movies.tmdbId, tmdbId))
             this.logger.log(`Successfully deleted movie with TMDB ID ${tmdbId}`)
@@ -302,7 +263,7 @@ export class TitleEntityService {
         }
     }
 
-    async deleteTvShow(tmdbId: number) {
+    async deleteTvShow(tmdbId: number): Promise<void> {
         try {
             await this.db.delete(series).where(eq(series.tmdbId, tmdbId))
             this.logger.log(

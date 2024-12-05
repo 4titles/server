@@ -5,6 +5,7 @@ import { TitleEntityService } from './title-entity.service'
 import { MovieResponse, MovieResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieMapper } from '../mappers/movie-mapper'
+import { Movie } from '../models/movie.model'
 
 @Injectable()
 export class MovieService {
@@ -123,15 +124,12 @@ export class MovieService {
                 this.CACHE_TTL,
             )
 
-            await this.titleEntityService.createOrUpdateMovie(
-                movieResponse,
-                category,
-            )
-
             const movie = MovieMapper.mapMovieResponseToMovie(
                 movieResponse,
                 category,
             )
+
+            await this.titleEntityService.createOrUpdateMovie(movie)
 
             return movie
         } catch (error) {
@@ -168,7 +166,10 @@ export class MovieService {
         )
     }
 
-    async getMovies(limit: number = 20, category?: TitleCategory) {
+    async getMovies(
+        limit: number = 20,
+        category?: TitleCategory,
+    ): Promise<Movie[]> {
         try {
             if (!category) {
                 return this.titleEntityService.getAllMovies(limit)
@@ -190,15 +191,15 @@ export class MovieService {
         }
     }
 
-    async getPopularMovies(limit: number = 20) {
+    async getPopularMovies(limit: number = 20): Promise<Movie[]> {
         return this.titleEntityService.getPopularMovies(limit)
     }
 
-    async getTopRatedMovies(limit: number = 20) {
+    async getTopRatedMovies(limit: number = 20): Promise<Movie[]> {
         return this.titleEntityService.getTopRatedMovies(limit)
     }
 
-    async getTrendingMovies(limit: number = 20) {
+    async getTrendingMovies(limit: number = 20): Promise<Movie[]> {
         return this.titleEntityService.getTrendingMovies(limit)
     }
 }

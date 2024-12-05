@@ -83,7 +83,7 @@ export class Movie {
     originCountry: string[]
 
     @Field()
-    updatedAt: string
+    updatedAt: Date
 
     @Field(() => TitleCategory)
     category: TitleCategory

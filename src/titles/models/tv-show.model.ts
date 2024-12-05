@@ -4,8 +4,8 @@ import {
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
-    CreatedBy,
     Network,
+    SimplePerson,
 } from './common.model'
 import { TitleCategory } from '../enums/title-category.enum'
 
@@ -32,8 +32,8 @@ export class TvShow {
     @Field({ nullable: true })
     backdropPath?: string
 
-    @Field(() => [CreatedBy])
-    createdBy: CreatedBy[]
+    @Field(() => [SimplePerson])
+    createdBy: SimplePerson[]
 
     @Field(() => [Int])
     episodeRunTime: number[]
@@ -96,7 +96,7 @@ export class TvShow {
     voteCount: number
 
     @Field(() => String, { nullable: true })
-    updatedAt?: string
+    updatedAt?: Date
 
     @Field(() => TitleCategory)
     category: TitleCategory

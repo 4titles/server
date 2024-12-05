@@ -2,78 +2,87 @@ import { ObjectType, Field, Int } from '@nestjs/graphql'
 
 @ObjectType()
 export class Genre {
-    @Field(() => Int)
-    id: number
+    @Field(() => Int, { nullable: true })
+    id?: number
 
-    @Field()
-    name: string
+    @Field(() => String, { nullable: true })
+    name?: string
 }
 
 @ObjectType()
 export class ProductionCompany {
-    @Field(() => Int)
-    id: number
+    @Field(() => Int, { nullable: true })
+    id?: number
 
-    @Field()
-    name: string
+    @Field(() => String, { nullable: true })
+    name?: string
 
     @Field({ nullable: true })
     logo_path?: string
 
-    @Field()
-    origin_country: string
+    @Field({ nullable: true })
+    origin_country?: string
 }
 
 @ObjectType()
 export class ProductionCountry {
-    @Field()
-    iso_3166_1: string
+    @Field(() => String, { nullable: true })
+    name?: string
 
-    @Field()
-    name: string
+    @Field(() => String, { nullable: true })
+    iso_3166_1?: string
 }
 
 @ObjectType()
 export class SpokenLanguage {
-    @Field()
-    english_name: string
+    @Field(() => String, { nullable: true })
+    iso_639_1?: string
 
-    @Field()
-    iso_639_1: string
-
-    @Field()
-    name: string
-}
-
-@ObjectType()
-export class CreatedBy {
-    @Field(() => Int)
-    id: number
-
-    @Field()
-    credit_id: string
-
-    @Field()
-    name: string
-
-    @Field(() => Int)
-    gender: number
-
-    @Field({ nullable: true })
-    profile_path?: string
+    @Field(() => String, { nullable: true })
+    name?: string
 }
 
 @ObjectType()
 export class Network {
-    @Field(() => Int)
-    id: number
+    @Field(() => Int, { nullable: true })
+    id?: number
 
-    @Field()
-    name: string
+    @Field(() => String, { nullable: true })
+    name?: string
 
-    @Field({ nullable: true })
+    @Field(() => String, { nullable: true })
     logo_path?: string
 
-    @Field()
-    origin_country: string
+    @Field(() => String, { nullable: true })
+    origin_country?: string
+}
+
+@ObjectType()
+export class SimplePerson {
+    @Field(() => Int, { nullable: true })
+    id?: number
+
+    @Field(() => String, { nullable: true })
+    credit_id?: string
+
+    @Field(() => String, { nullable: true })
+    name?: string
+
+    @Field(() => Int, { nullable: true })
+    gender?: number
+
+    @Field(() => String, { nullable: true })
+    profile_path?: string
+}
+
+@ObjectType()
+export class Language {
+    @Field(() => String, { nullable: true })
+    iso_639_1?: string
+
+    @Field(() => String, { nullable: true })
+    english_name?: string
+
+    @Field(() => String, { nullable: true })
+    name?: string
 }

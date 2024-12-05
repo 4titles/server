@@ -7,7 +7,6 @@ import {
 import { TvShow } from '../models/tv-show.model'
 import {
     Genre,
-    CreatedBy,
     Network,
     ProductionCompany,
     ProductionCountry,
@@ -55,12 +54,12 @@ export class TvShowMapper {
             tagLine: showResponse.tagline,
             voteAverage: showResponse.vote_average,
             voteCount: showResponse.vote_count,
-            updatedAt: new Date().toISOString(),
+            updatedAt: new Date(),
             category,
         }
     }
 
-    private static mapCreatedBy(people?: SimplePerson[]): CreatedBy[] {
+    private static mapCreatedBy(people?: SimplePerson[]): SimplePerson[] {
         if (!people) return []
         return people.map((person) => ({
             id: person.id || 0,
