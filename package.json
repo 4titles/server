@@ -37,6 +37,8 @@
         "ioredis": "^5.4.1",
         "moviedb-promise": "^4.0.7",
         "pg": "^8.13.1",
+        "puppeteer": "^23.10.1",
+        "puppeteer-core": "^23.10.1",
         "reflect-metadata": "^0.2.0",
         "rxjs": "^7.8.1",
         "ts-morph": "^24.0.0"
