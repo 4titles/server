@@ -8,14 +8,16 @@ import { CacheModule } from './cache/cache.module'
 import { TitlesModule } from './titles/titles.module'
 import { TmdbModule } from './tmdb/tmdb.module'
 import { LocationsModule } from './locations/locations.module'
+import { GeocodingModule } from './geocoding/geocoding.module'
 import redisConfig from './config/redis.config'
 import tmdbConfig from './config/tmdb.config'
+import geocodingConfig from './config/geocoding.config'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [redisConfig, tmdbConfig],
+            load: [redisConfig, tmdbConfig, geocodingConfig],
         }),
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
@@ -30,6 +32,7 @@ import tmdbConfig from './config/tmdb.config'
         TitlesModule,
         TmdbModule,
         LocationsModule,
+        GeocodingModule,
     ],
 })
 export class AppModule {}

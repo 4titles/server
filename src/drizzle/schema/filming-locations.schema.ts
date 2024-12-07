@@ -1,4 +1,11 @@
-import { bigint, index, pgTable, text, unique } from 'drizzle-orm/pg-core'
+import {
+    bigint,
+    index,
+    pgTable,
+    point,
+    text,
+    unique,
+} from 'drizzle-orm/pg-core'
 import { movies } from './movies.schema'
 import { series } from './series.schema'
 import { timestamps } from '../helpers/column.helpers'
@@ -11,8 +18,8 @@ export const locations = pgTable(
             .primaryKey()
             .generatedAlwaysAsIdentity(),
         address: text('address').notNull(),
-        latitude: text('latitude'),
-        longitude: text('longitude'), //@todo point
+        coordinates: point('coordinates', { mode: 'xy' }),
+        formattedAddress: text('formatted_address'),
         ...timestamps,
     },
     (table) => ({

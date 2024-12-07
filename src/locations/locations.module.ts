@@ -5,9 +5,10 @@ import { CacheModule } from 'src/cache/cache.module'
 import { ImdbParserService } from './services/imdb-parser.service'
 import { LocationsResolver } from './resolvers/locations.resolver'
 import { TitleEntityService } from 'src/titles/services/title-entity.service'
+import { GeocodingModule } from 'src/geocoding/geocoding.module'
 
 @Module({
-    imports: [DrizzleModule, CacheModule],
+    imports: [DrizzleModule, CacheModule, GeocodingModule],
     providers: [
         LocationsService,
         ImdbParserService,

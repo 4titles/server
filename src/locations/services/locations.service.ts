@@ -12,7 +12,8 @@ import {
 } from 'src/drizzle/schema/filming-locations.schema'
 import { FilmingLocation } from '../models/filming-location.model'
 import { LocationsSyncResult } from '../models/locations-sync-result.model'
-// import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
+import { GeocodingService } from 'src/geocoding/services/geocoding.service'
+import { GeocodeResult } from 'src/geocoding/interfaces/geocode-result.interface'
 
 @Injectable()
 export class LocationsService {
@@ -24,6 +25,7 @@ export class LocationsService {
         private readonly cacheService: CacheService,
         private readonly imdbParserService: ImdbParserService,
         private readonly titleEntityService: TitleEntityService,
+        private readonly geocodingService: GeocodingService,
     ) {}
 
     async getLocationsForTitle(
@@ -160,14 +162,30 @@ export class LocationsService {
         movieId?: bigint,
         seriesId?: bigint,
     ): Promise<void> {
-        for (const rawLocation of locations) {
-            const location = await this.getOrCreateLocation(rawLocation)
-            await this.createFilmingLocation(
-                location.id,
-                movieId,
-                seriesId,
-                rawLocation,
+        try {
+            const addresses = locations.map((loc) => loc.address)
+            const geocodedResults =
+                await this.geocodingService.batchGeocodeAddresses(addresses)
+
+            for (const rawLocation of locations) {
+                const geoResult = geocodedResults.get(rawLocation.address)
+                const location = await this.getOrCreateLocation(
+                    rawLocation,
+                    geoResult,
+                )
+                await this.createFilmingLocation(
+                    location.id,
+                    movieId,
+                    seriesId,
+                    rawLocation,
+                )
+            }
+        } catch (error) {
+            this.logger.error(
+                `Error saving locations for ${movieId || seriesId}:`,
+                error,
             )
+            throw error
         }
     }
 
@@ -195,20 +213,59 @@ export class LocationsService {
         return { movie, series }
     }
 
-    private async getOrCreateLocation(rawLocation: RawLocation) {
-        let location = await this.db.query.locations.findFirst({
-            where: eq(locationsSchema.address, rawLocation.address),
-        })
+    private async getOrCreateLocation(
+        rawLocation: RawLocation,
+        geoResult?: GeocodeResult,
+    ) {
+        try {
+            const location = await this.db.query.locations.findFirst({
+                where: eq(locationsSchema.address, rawLocation.address),
+            })
 
-        if (!location) {
-            const [newLocation] = await this.db
-                .insert(locationsSchema)
-                .values({ address: rawLocation.address })
-                .returning()
-            location = newLocation
+            this.logger.log(JSON.stringify(geoResult))
+
+            const locationData = {
+                address: rawLocation.address,
+                formattedAddress: geoResult?.formatted || null,
+                coordinates: geoResult
+                    ? {
+                          // lon = x, lat = y
+                          x: geoResult.lon,
+                          y: geoResult.lat,
+                      }
+                    : null,
+            }
+
+            if (!location) {
+                const [newLocation] = await this.db
+                    .insert(locationsSchema)
+                    .values(locationData)
+                    .returning()
+                return newLocation
+            } else if (!location.coordinates && geoResult) {
+                const [updatedLocation] = await this.db
+                    .update(locationsSchema)
+                    .set(locationData)
+                    .where(eq(locationsSchema.id, location.id))
+                    .returning()
+                return updatedLocation
+            }
+
+            return location
+        } catch (error) {
+            this.logger.error(
+                `Error getting or creating location for ${rawLocation.address}:`,
+                error,
+            )
+            throw error
         }
+    }
 
-        return location
+    private formatPointForPostgres(lon: number, lat: number): string | null {
+        if (!lon || !lat || isNaN(lon) || isNaN(lat)) {
+            return null
+        }
+        return `(${lon},${lat})`
     }
 
     private async createFilmingLocation(
@@ -234,7 +291,6 @@ export class LocationsService {
             })
     }
 
-    // Вспомогательные методы для работы с результатами
     private createEmptyResult(): LocationsSyncResult {
         return {
             success: true,
@@ -290,11 +346,20 @@ export class LocationsService {
     }
 
     private mapFilmingLocation(item: any): FilmingLocation {
+        let coordinates = null
+
+        if (item.location.coordinates) {
+            coordinates = {
+                longitude: item.location.coordinates.x,
+                latitude: item.location.coordinates.y,
+            }
+        }
+
         return {
             address: item.location.address,
             description: item.description || null,
-            latitude: item.location.latitude?.toString() || null,
-            longitude: item.location.longitude?.toString() || null,
+            formattedAddress: item.location.formattedAddress || null,
+            coordinates,
         }
     }
 }

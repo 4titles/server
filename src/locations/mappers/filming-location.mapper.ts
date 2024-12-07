@@ -5,8 +5,10 @@ export class FilmingLocationMapper {
         return {
             address: dbLocation.location.address,
             description: dbLocation.description || null,
-            latitude: dbLocation.location.latitude || null,
-            longitude: dbLocation.location.longitude || null,
+            coordinates: {
+                latitude: dbLocation.location.latitude || null,
+                longitude: dbLocation.location.longitude || null,
+            },
         }
     }
 

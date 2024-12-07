@@ -143,11 +143,16 @@ type LocationSyncResult {
     syncedImdbIds: [String!]!
 }
 
+type Point {
+    latitude: Float
+    longitude: Float
+}
+
 type FilmingLocation {
     address: String!
+    formattedAddress: String
     description: String
-    latitude: String
-    longitude: String
+    coordinates: Point
 }
 
 type Query {
