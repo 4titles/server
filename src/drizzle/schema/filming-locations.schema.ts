@@ -2,6 +2,7 @@ import { bigint, index, pgTable, text, unique } from 'drizzle-orm/pg-core'
 import { movies } from './movies.schema'
 import { series } from './series.schema'
 import { timestamps } from '../helpers/column.helpers'
+import { relations } from 'drizzle-orm'
 
 export const locations = pgTable(
     'locations',
@@ -11,7 +12,7 @@ export const locations = pgTable(
             .generatedAlwaysAsIdentity(),
         address: text('address').notNull(),
         latitude: text('latitude'),
-        longitude: text('longitude'),
+        longitude: text('longitude'), //@todo point
         ...timestamps,
     },
     (table) => ({
@@ -28,10 +29,10 @@ export const filmingLocations = pgTable(
         locationId: bigint('location_id', { mode: 'bigint' })
             .notNull()
             .references(() => locations.id),
-        movieId: bigint('movie_id', { mode: 'number' }).references(
+        movieId: bigint('movie_id', { mode: 'bigint' }).references(
             () => movies.id,
         ),
-        seriesId: bigint('series_id', { mode: 'number' }).references(
+        seriesId: bigint('series_id', { mode: 'bigint' }).references(
             () => series.id,
         ),
         description: text('description'),
@@ -47,5 +48,27 @@ export const filmingLocations = pgTable(
         ),
         movieLocationUnique: unique().on(table.movieId, table.locationId),
         seriesLocationUnique: unique().on(table.seriesId, table.locationId),
+    }),
+)
+
+export const locationsRelations = relations(locations, ({ many }) => ({
+    filmingLocations: many(filmingLocations),
+}))
+
+export const filmingLocationsRelations = relations(
+    filmingLocations,
+    ({ one }) => ({
+        location: one(locations, {
+            fields: [filmingLocations.locationId],
+            references: [locations.id],
+        }),
+        movie: one(movies, {
+            fields: [filmingLocations.movieId],
+            references: [movies.id],
+        }),
+        tvShow: one(series, {
+            fields: [filmingLocations.seriesId],
+            references: [series.id],
+        }),
     }),
 )

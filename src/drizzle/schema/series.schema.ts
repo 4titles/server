@@ -10,7 +10,6 @@ import {
     text,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
-import { titleCategoryEnum } from './movies.schema'
 import {
     Genre,
     Network,
@@ -20,11 +19,16 @@ import {
     SimplePerson,
 } from 'src/titles/models/common.model'
 import { TitleCategory } from 'src/titles/enums/title-category.enum'
+import { relations } from 'drizzle-orm'
+import { filmingLocations } from './filming-locations.schema'
+import { titleCategoryEnum } from './enums.schema'
 
 export const series = pgTable(
     'series',
     {
-        id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+        id: bigint('id', { mode: 'bigint' })
+            .primaryKey()
+            .generatedAlwaysAsIdentity(),
         tmdbId: bigint('tmdb_id', { mode: 'number' }).notNull().unique(),
         imdbId: text('imdb_id').notNull().unique(),
         adult: boolean('adult').notNull().default(false),
@@ -88,3 +92,9 @@ export const series = pgTable(
         ),
     }),
 )
+
+export const seriesRelations = relations(series, ({ many }) => ({
+    filmingLocations: many(filmingLocations),
+}))
+
+export type DbSeries = typeof series.$inferSelect

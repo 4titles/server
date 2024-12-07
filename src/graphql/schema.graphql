@@ -69,6 +69,7 @@ type Movie {
     originCountry: [String!]!
     updatedAt: String
     category: TitleCategory
+    filmingLocations: [FilmingLocation!]!
 }
 
 type CreatedBy {
@@ -117,6 +118,7 @@ type TvShow {
     voteCount: Int!
     updatedAt: String!
     category: TitleCategory
+    filmingLocations: [FilmingLocation!]!
 }
 
 type SyncResult {
@@ -133,9 +135,24 @@ type FullSyncResult {
     topRatedTvShowsCount: Int!
 }
 
+type LocationSyncResult {
+    success: Boolean!
+    processedCount: Int!
+    failedCount: Int!
+    errors: [String!]!
+    syncedImdbIds: [String!]!
+}
+
+type FilmingLocation {
+    address: String!
+    description: String
+    latitude: String
+    longitude: String
+}
+
 type Query {
-    movies(category: TitleCategory!, limit: Int): [Movie!]!
-    tvShows(category: TitleCategory!, limit: Int): [TvShow!]!
+    movies(category: TitleCategory, limit: Int): [Movie!]!
+    tvShows(category: TitleCategory, limit: Int): [TvShow!]!
 
     popularMovies(limit: Int): [Movie!]!
     popularTvShows(limit: Int): [TvShow!]!
@@ -151,6 +168,9 @@ type Query {
 
     searchMovies(query: String!, limit: Int): [Movie!]!
     searchTvShows(query: String!, limit: Int): [TvShow!]!
+
+    tvShowLocations(imdbId: String!): [FilmingLocation!]!
+    movieLocations(imdbId: String!): [FilmingLocation!]!
 }
 
 type Mutation {
@@ -158,4 +178,7 @@ type Mutation {
     syncTrendingTitles(type: TitleType): SyncResult!
     syncTopRatedTitles(type: TitleType, limit: Int): SyncResult!
     syncAllContent: FullSyncResult!
+
+    # Locations
+    syncLocations(imdbIds: [String]): LocationSyncResult
 }

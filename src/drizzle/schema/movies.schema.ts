@@ -5,7 +5,6 @@ import {
     index,
     integer,
     jsonb,
-    pgEnum,
     pgTable,
     real,
     text,
@@ -19,22 +18,9 @@ import {
 } from 'src/titles/models/common.model'
 import { MovieStatus } from 'src/titles/enums/movie-status.enum'
 import { TitleCategory } from 'src/titles/enums/title-category.enum'
-
-export const movieStatusEnum = pgEnum('movie_status', [
-    'Rumored',
-    'Planned',
-    'In Production',
-    'Post Production',
-    'Released',
-    'Canceled',
-])
-
-export const titleCategoryEnum = pgEnum('title_category', [
-    'POPULAR',
-    'TOP_RATED',
-    'TRENDING',
-    'SEARCH',
-])
+import { relations } from 'drizzle-orm'
+import { filmingLocations } from './filming-locations.schema'
+import { movieStatusEnum, titleCategoryEnum } from './enums.schema'
 
 export const movies = pgTable(
     'movies',
@@ -90,3 +76,9 @@ export const movies = pgTable(
         ),
     }),
 )
+
+export const moviesRelations = relations(movies, ({ many }) => ({
+    filmingLocations: many(filmingLocations),
+}))
+
+export type DbMovie = typeof movies.$inferSelect
