@@ -12,6 +12,7 @@ import {
     mapTitlesWithRelations,
     mapTitleWithRelations,
 } from './utils/title.utils'
+import { bigIntSerializer } from './utils/json.utils'
 
 interface QueryOptions {
     includeRelations?: boolean
@@ -284,6 +285,12 @@ export class TitleEntityService {
                 ...this.getQueryOptions(options),
             })
 
+            // const serializedEntities = JSON.parse(
+            //     bigIntSerializer.stringify(movieEntities),
+            // )
+
+            // this.logger.log('Serialized entities:', serializedEntities)
+
             return mapTitlesWithRelations<Movie>(movieEntities)
         } catch (error) {
             this.logger.error('Failed to get trending movies:', error)
@@ -304,6 +311,12 @@ export class TitleEntityService {
                 limit,
                 ...this.getQueryOptions(options),
             })
+
+            // const serializedEntities = JSON.parse(
+            //     bigIntSerializer.stringify(tvShowEntities),
+            // )
+
+            // this.logger.log('Serialized entities:', serializedEntities)
 
             return mapTitlesWithRelations<TvShow>(tvShowEntities)
         } catch (error) {

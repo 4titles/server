@@ -235,14 +235,20 @@ export class MovieService {
     }
 
     async getPopularMovies(limit: number = 20): Promise<Movie[]> {
-        return this.titleEntityService.getPopularMovies(limit)
+        return this.titleEntityService.getPopularMovies(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTopRatedMovies(limit: number = 20): Promise<Movie[]> {
-        return this.titleEntityService.getTopRatedMovies(limit)
+        return this.titleEntityService.getTopRatedMovies(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTrendingMovies(limit: number = 20): Promise<Movie[]> {
-        return this.titleEntityService.getTrendingMovies(limit)
+        return this.titleEntityService.getTrendingMovies(limit, {
+            includeRelations: true,
+        })
     }
 }

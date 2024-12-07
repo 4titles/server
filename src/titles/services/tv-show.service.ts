@@ -238,14 +238,20 @@ export class TvShowService {
     }
 
     async getPopularTvShows(limit: number = 20): Promise<TvShow[]> {
-        return this.titleEntityService.getPopularTvShows(limit)
+        return this.titleEntityService.getPopularTvShows(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTopRatedTvShows(limit: number = 20): Promise<TvShow[]> {
-        return this.titleEntityService.getTopRatedTvShows(limit)
+        return this.titleEntityService.getTopRatedTvShows(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTrendingTvShows(limit: number = 20): Promise<TvShow[]> {
-        return this.titleEntityService.getTrendingTvShows(limit)
+        return this.titleEntityService.getTrendingTvShows(limit, {
+            includeRelations: true,
+        })
     }
 }
