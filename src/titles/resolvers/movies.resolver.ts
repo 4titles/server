@@ -66,50 +66,12 @@ export class MoviesResolver {
 
     @ResolveField('filmingLocations')
     async getFilmingLocations(@Parent() movie: Movie) {
-        try {
-            if (!movie.imdbId) {
-                return []
-            }
-
-            let locations = await this.locationsService.getLocationsForTitle(
+        if (!movie.filmingLocations && movie.imdbId) {
+            return this.locationsService.getLocationsForTitle(
                 movie.imdbId,
                 true,
             )
-
-            if (locations.length === 0) {
-                this.logger.log(
-                    `No locations found for movie ${movie.imdbId}, fetching from IMDB...`,
-                )
-
-                const success =
-                    await this.locationsService.syncLocationsForTitle(
-                        movie.imdbId,
-                    )
-
-                if (success) {
-                    locations =
-                        await this.locationsService.getLocationsForTitle(
-                            movie.imdbId,
-                            false,
-                        )
-                    this.logger.log(
-                        `Successfully fetched and saved ${locations.length} locations for movie ${movie.imdbId}`,
-                    )
-                } else {
-                    this.logger.warn(
-                        `Failed to fetch locations for movie ${movie.imdbId}`,
-                    )
-                }
-            } else {
-                this.logger.debug(
-                    `Found ${locations.length} existing locations for movie ${movie.imdbId}`,
-                )
-            }
-
-            return locations
-        } catch (error) {
-            this.logger.error('Error fetching filming locations:', error)
-            return []
         }
+        return movie.filmingLocations || []
     }
 }

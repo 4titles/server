@@ -66,50 +66,12 @@ export class TvShowsResolver {
 
     @ResolveField('filmingLocations')
     async getFilmingLocations(@Parent() tvShow: TvShow) {
-        try {
-            if (!tvShow.imdbId) {
-                return []
-            }
-
-            let locations = await this.locationsService.getLocationsForTitle(
+        if (!tvShow.filmingLocations && tvShow.imdbId) {
+            return this.locationsService.getLocationsForTitle(
                 tvShow.imdbId,
                 false,
             )
-
-            if (locations.length === 0) {
-                this.logger.log(
-                    `No locations found for TV show ${tvShow.imdbId}, fetching from IMDB...`,
-                )
-
-                const success =
-                    await this.locationsService.syncLocationsForTitle(
-                        tvShow.imdbId,
-                    )
-
-                if (success) {
-                    locations =
-                        await this.locationsService.getLocationsForTitle(
-                            tvShow.imdbId,
-                            false,
-                        )
-                    this.logger.log(
-                        `Successfully fetched and saved ${locations.length} locations for TV show ${tvShow.imdbId}`,
-                    )
-                } else {
-                    this.logger.warn(
-                        `Failed to fetch locations for TV show ${tvShow.imdbId}`,
-                    )
-                }
-            } else {
-                this.logger.debug(
-                    `Found ${locations.length} existing locations for TV show ${tvShow.imdbId}`,
-                )
-            }
-
-            return locations
-        } catch (error) {
-            this.logger.error('Error fetching filming locations:', error)
-            return []
         }
+        return tvShow.filmingLocations || []
     }
 }

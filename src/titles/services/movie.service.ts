@@ -118,14 +118,10 @@ export class MovieService {
         category: TitleCategory = TitleCategory.POPULAR,
     ): Promise<Movie> {
         try {
+            const cacheKey = `movie_${tmdbId}`
+            const locationsCacheKey = `movie_locations_${tmdbId}`
+
             const movieResponse = await this.tmdbService.getMovieDetails(tmdbId)
-
-            await this.cacheService.set(
-                `movie_${tmdbId}`,
-                movieResponse,
-                this.CACHE_TTL,
-            )
-
             const movie = MovieMapper.mapMovieResponseToMovie(
                 movieResponse,
                 category,
@@ -133,15 +129,41 @@ export class MovieService {
 
             await this.titleEntityService.createOrUpdateMovie(movie)
 
+            this.logger.log(
+                `Syncing locations for movie ${movie.imdbId} with category ${category}`,
+            )
+
             if (movieResponse.imdb_id) {
                 await this.locationsService.syncLocationsForTitle(
                     movieResponse.imdb_id,
                 )
+                const locations =
+                    await this.locationsService.getLocationsForTitle(
+                        movieResponse.imdb_id,
+                        true,
+                    )
+
+                movie.filmingLocations = locations
+
+                await this.cacheService.set(
+                    locationsCacheKey,
+                    locations,
+                    this.CACHE_TTL,
+                )
             }
+
+            await this.cacheService.set(
+                cacheKey,
+                {
+                    ...movieResponse,
+                    filmingLocations: movie.filmingLocations,
+                },
+                this.CACHE_TTL,
+            )
 
             return movie
         } catch (error) {
-            this.logger.error(`Failed to sync movie: ${tmdbId}`, error)
+            this.logger.error('Failed to sync movie:', error)
             throw error
         }
     }
@@ -149,15 +171,28 @@ export class MovieService {
     async getMovieDetails(
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
-    ): Promise<MovieResponse> {
+    ): Promise<Movie> {
         const cacheKey = `movie_${tmdbId}`
-        const cached = await this.cacheService.get<MovieResponse>(cacheKey)
 
-        if (cached) {
-            return MovieMapper.mapMovieResponseToMovie(cached, category)
+        try {
+            const cached = await this.cacheService.get<
+                MovieResponse & { filmingLocations: any[] }
+            >(cacheKey)
+
+            if (cached) {
+                const movie = MovieMapper.mapMovieResponseToMovie(
+                    cached as Movie & { imdb_id: string },
+                    category,
+                )
+                movie.filmingLocations = cached.filmingLocations
+                return movie
+            }
+
+            return this.syncMovie(tmdbId, category)
+        } catch (error) {
+            this.logger.error(`Failed to get movie details: ${error.message}`)
+            throw error
         }
-
-        return this.syncMovie(tmdbId, category)
     }
 
     async searchMovies(
