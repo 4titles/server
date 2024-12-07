@@ -1,12 +1,12 @@
 import { registerEnumType } from '@nestjs/graphql'
 
 export enum MovieStatus {
-    Rumored = 'Rumored',
-    Planned = 'Planned',
-    InProduction = 'In Production',
-    PostProduction = 'Post Production',
-    Released = 'Released',
-    Canceled = 'Canceled',
+    RUMORED = 'Rumored',
+    PLANNED = 'Planned',
+    IN_PRODUCTION = 'In Production',
+    POST_PRODUCTION = 'Post Production',
+    RELEASED = 'Released',
+    CANCELED = 'Canceled',
 }
 
 registerEnumType(MovieStatus, {

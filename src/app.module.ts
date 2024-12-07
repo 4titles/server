@@ -7,6 +7,7 @@ import { DrizzleModule } from './drizzle/drizzle.module'
 import { CacheModule } from './cache/cache.module'
 import { TitlesModule } from './titles/titles.module'
 import { TmdbModule } from './tmdb/tmdb.module'
+import { LocationsModule } from './locations/locations.module'
 import redisConfig from './config/redis.config'
 import tmdbConfig from './config/tmdb.config'
 
@@ -28,6 +29,7 @@ import tmdbConfig from './config/tmdb.config'
         CacheModule,
         TitlesModule,
         TmdbModule,
+        LocationsModule,
     ],
 })
 export class AppModule {}

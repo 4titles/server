@@ -7,6 +7,7 @@ import {
 } from './common.model'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieStatus } from '../enums/movie-status.enum'
+import { FilmingLocation } from 'src/locations/models/filming-location.model'
 
 @ObjectType()
 export class Movie {
@@ -87,4 +88,7 @@ export class Movie {
 
     @Field(() => TitleCategory)
     category: TitleCategory
+
+    @Field(() => [FilmingLocation], { nullable: true })
+    filmingLocations?: FilmingLocation[]
 }

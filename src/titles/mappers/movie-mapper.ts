@@ -48,6 +48,7 @@ export class MovieMapper {
                 movieResponse.production_countries?.map(
                     (country) => country.iso_3166_1,
                 ) || [],
+            filmingLocations: [],
             updatedAt: new Date(),
             category,
         }

@@ -6,6 +6,7 @@ import { ShowResponse, TvResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TvShowMapper } from '../mappers/tv-show.mapper'
 import { TvShow } from '../models/tv-show.model'
+import { LocationsService } from 'src/locations/services/locations.service'
 
 @Injectable()
 export class TvShowService {
@@ -16,6 +17,7 @@ export class TvShowService {
         private readonly tmdbService: TmdbService,
         private readonly cacheService: CacheService,
         private readonly titleEntityService: TitleEntityService,
+        private readonly locationsService: LocationsService,
     ) {}
 
     async syncPopularTvShows(): Promise<ShowResponse[]> {
@@ -131,8 +133,14 @@ export class TvShowService {
             )
 
             //@todo identify should save to db search results
-            if (category !== TitleCategory.SEARCH) {
-                await this.titleEntityService.createOrUpdateTvShow(tvShow)
+            //if (category !== TitleCategory.SEARCH) {
+            await this.titleEntityService.createOrUpdateTvShow(tvShow)
+            //}
+
+            if (tvShowResponse.imdb_id) {
+                await this.locationsService.syncLocationsForTitle(
+                    tvShowResponse.imdb_id,
+                )
             }
 
             return tvShow
@@ -161,6 +169,7 @@ export class TvShowService {
 
     async searchTvShows(query: string, limit: number = 20): Promise<TvShow[]> {
         const { results } = await this.tmdbService.searchTvShows(query)
+        this.logger.log(`Found ${results.length} TV shows for query: ${query}`)
         return Promise.all(
             results
                 .slice(0, limit)
@@ -176,7 +185,7 @@ export class TvShowService {
     ): Promise<TvShow[]> {
         try {
             if (!category) {
-                return this.titleEntityService.getAllTvShows(limit)
+                return this.titleEntityService.getAllTvShows()
             }
 
             switch (category) {

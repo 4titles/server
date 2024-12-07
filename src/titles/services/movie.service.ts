@@ -6,6 +6,7 @@ import { MovieResponse, MovieResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieMapper } from '../mappers/movie-mapper'
 import { Movie } from '../models/movie.model'
+import { LocationsService } from 'src/locations/services/locations.service'
 
 @Injectable()
 export class MovieService {
@@ -16,6 +17,7 @@ export class MovieService {
         private readonly tmdbService: TmdbService,
         private readonly cacheService: CacheService,
         private readonly titleEntityService: TitleEntityService,
+        private readonly locationsService: LocationsService,
     ) {}
 
     async syncPopularMovies(): Promise<MovieResponse[]> {
@@ -50,9 +52,9 @@ export class MovieService {
         }
     }
 
-    async syncTopRatedMovies(limit: number = 100): Promise<MovieResponse[]> {
+    async syncTopRatedMovies(limit: number = 100): Promise<Movie[]> {
         try {
-            const movies: MovieResponse[] = []
+            const movies: Movie[] = []
             let page = 1
 
             while (movies.length < limit && page <= 5) {
@@ -82,7 +84,7 @@ export class MovieService {
         }
     }
 
-    async syncTrendingMovies(): Promise<MovieResponse[]> {
+    async syncTrendingMovies(): Promise<Movie[]> {
         try {
             const { results } = await this.tmdbService.getTrendingMovies()
             const validMovies = results
@@ -114,7 +116,7 @@ export class MovieService {
     async syncMovie(
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
-    ): Promise<MovieResponse> {
+    ): Promise<Movie> {
         try {
             const movieResponse = await this.tmdbService.getMovieDetails(tmdbId)
 
@@ -130,6 +132,12 @@ export class MovieService {
             )
 
             await this.titleEntityService.createOrUpdateMovie(movie)
+
+            if (movieResponse.imdb_id) {
+                await this.locationsService.syncLocationsForTitle(
+                    movieResponse.imdb_id,
+                )
+            }
 
             return movie
         } catch (error) {
@@ -172,7 +180,7 @@ export class MovieService {
     ): Promise<Movie[]> {
         try {
             if (!category) {
-                return this.titleEntityService.getAllMovies(limit)
+                return this.titleEntityService.getAllMovies()
             }
 
             switch (category) {
