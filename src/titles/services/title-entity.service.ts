@@ -327,6 +327,26 @@ export class TitleEntityService {
         }
     }
 
+    async getSearchedMovies(
+        limit: number = 20,
+        options?: QueryOptions,
+    ): Promise<Movie[]> {
+        try {
+            const movieEntities = await this.db.query.movies.findMany({
+                where: eq(movies.category, TitleCategory.SEARCH),
+                limit,
+                ...this.getQueryOptions(options),
+            })
+
+            return mapTitlesWithRelations<Movie>(movieEntities)
+        } catch (error) {
+            this.logger.error('Failed to get search movies:', error)
+            throw new DatabaseException(
+                `Failed to get search movies: ${error.message}`,
+            )
+        }
+    }
+
     async getAllMovies(
         // limit: number = 20,
         options?: QueryOptions,
