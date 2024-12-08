@@ -2,6 +2,7 @@ enum TitleCategory {
     POPULAR
     TRENDING
     TOP_RATED
+    SEARCH
 }
 
 enum TitleType {
@@ -167,6 +168,8 @@ type Query {
 
     topRatedMovies(limit: Int): [Movie!]!
     topRatedTvShows(limit: Int): [TvShow!]!
+
+    searchedMovies(limit: Int): [Movie!]!
 
     movie(tmdbId: Int!): Movie
     tvShow(tmdbId: Int!): TvShow
