@@ -51,6 +51,13 @@ export class MoviesResolver {
         return await this.movieService.getTrendingMovies(limit)
     }
 
+    @Query(() => [Movie])
+    async searchedMovies(
+        @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+    ) {
+        return await this.movieService.getSearchedMovies(limit)
+    }
+
     @Query(() => Movie, { nullable: true })
     async movie(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
         return await this.movieService.getMovieDetails(tmdbId)

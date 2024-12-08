@@ -225,6 +225,8 @@ export class MovieService {
                     return this.getTopRatedMovies(limit)
                 case TitleCategory.TRENDING:
                     return this.getTrendingMovies(limit)
+                case TitleCategory.SEARCH:
+                    return this.getSearchedMovies(limit)
                 default:
                     throw new Error('Invalid category')
             }
@@ -248,6 +250,12 @@ export class MovieService {
 
     async getTrendingMovies(limit: number = 20): Promise<Movie[]> {
         return this.titleEntityService.getTrendingMovies(limit, {
+            includeRelations: true,
+        })
+    }
+
+    async getSearchedMovies(limit: number = 20): Promise<Movie[]> {
+        return this.titleEntityService.getSearchedMovies(limit, {
             includeRelations: true,
         })
     }
