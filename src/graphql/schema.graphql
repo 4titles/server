@@ -3,6 +3,7 @@ enum TitleCategory {
     TRENDING
     TOP_RATED
     SEARCH
+    UPCOMING
 }
 
 enum TitleType {
@@ -169,6 +170,8 @@ type Query {
     topRatedMovies(limit: Int): [Movie!]!
     topRatedTvShows(limit: Int): [TvShow!]!
 
+    upcomingMovies(limit: Int): [Movie!]!
+
     searchedMovies(limit: Int): [Movie!]!
 
     movie(tmdbId: Int!): Movie
@@ -185,6 +188,7 @@ type Mutation {
     syncPopularTitles(type: TitleType): SyncResult!
     syncTrendingTitles(type: TitleType): SyncResult!
     syncTopRatedTitles(type: TitleType, limit: Int): SyncResult!
+    syncUpcomingTitles(limit: Int): SyncResult!
     syncAllContent: FullSyncResult!
 
     # Locations

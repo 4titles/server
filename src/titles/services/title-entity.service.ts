@@ -347,6 +347,46 @@ export class TitleEntityService {
         }
     }
 
+    async getSearchedTvShows(
+        limit: number = 20,
+        options?: QueryOptions,
+    ): Promise<TvShow[]> {
+        try {
+            const tvShowEntities = await this.db.query.series.findMany({
+                where: eq(series.category, TitleCategory.SEARCH),
+                limit,
+                ...this.getQueryOptions(options),
+            })
+
+            return mapTitlesWithRelations<TvShow>(tvShowEntities)
+        } catch (error) {
+            this.logger.error('Failed to get search TV shows:', error)
+            throw new DatabaseException(
+                `Failed to get search movies: ${error.message}`,
+            )
+        }
+    }
+
+    async getUpComingMovies(
+        limit: number = 20,
+        options?: QueryOptions,
+    ): Promise<Movie[]> {
+        try {
+            const movieEntities = await this.db.query.movies.findMany({
+                where: eq(movies.category, TitleCategory.UPCOMING),
+                limit,
+                ...this.getQueryOptions(options),
+            })
+
+            return mapTitlesWithRelations<Movie>(movieEntities)
+        } catch (error) {
+            this.logger.error('Failed to get upcoming movies:', error)
+            throw new DatabaseException(
+                `Failed to get upcoming movies: ${error.message}`,
+            )
+        }
+    }
+
     async getAllMovies(
         // limit: number = 20,
         options?: QueryOptions,

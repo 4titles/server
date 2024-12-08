@@ -84,6 +84,38 @@ export class MovieService {
         }
     }
 
+    async syncUpComingMovies(limit: number = 100): Promise<Movie[]> {
+        try {
+            const movies: Movie[] = []
+            let page = 1
+
+            while (movies.length < limit && page <= 5) {
+                const { results } =
+                    await this.tmdbService.getUpcomingMovies(page)
+                const validMovies = results.filter(
+                    (movie) =>
+                        movie.overview && movie.title && movie.poster_path,
+                )
+
+                for (const movie of validMovies) {
+                    if (movies.length >= limit) break
+                    const fullMovie = await this.syncMovie(
+                        movie.id,
+                        TitleCategory.UPCOMING,
+                    )
+                    movies.push(fullMovie)
+                }
+
+                page++
+            }
+
+            return movies
+        } catch (error) {
+            this.logger.error('Failed to sync upcoming movies:', error)
+            throw error
+        }
+    }
+
     async syncTrendingMovies(): Promise<Movie[]> {
         try {
             const { results } = await this.tmdbService.getTrendingMovies()
@@ -227,6 +259,8 @@ export class MovieService {
                     return this.getTrendingMovies(limit)
                 case TitleCategory.SEARCH:
                     return this.getSearchedMovies(limit)
+                case TitleCategory.UPCOMING:
+                    return this.getUpComingMovies(limit)
                 default:
                     throw new Error('Invalid category')
             }
@@ -256,6 +290,12 @@ export class MovieService {
 
     async getSearchedMovies(limit: number = 20): Promise<Movie[]> {
         return this.titleEntityService.getSearchedMovies(limit, {
+            includeRelations: true,
+        })
+    }
+
+    async getUpComingMovies(limit: number = 20): Promise<Movie[]> {
+        return this.titleEntityService.getUpComingMovies(limit, {
             includeRelations: true,
         })
     }

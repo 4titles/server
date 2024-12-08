@@ -101,6 +101,18 @@ export class TmdbService {
         }
     }
 
+    async getUpcomingMovies(page: number = 1): Promise<MovieResultsResponse> {
+        try {
+            return await this.moviedb.upcomingMovies({
+                page,
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch upcoming movies`, error)
+            throw new TmdbException(`Failed to fetch upcoming movies`)
+        }
+    }
+
     async searchMovies(
         query: string,
         page: number = 1,

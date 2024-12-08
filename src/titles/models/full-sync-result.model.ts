@@ -19,4 +19,7 @@ export class FullSyncResult {
 
     @Field(() => Int)
     topRatedTvShowsCount: number
+
+    @Field(() => Int)
+    upcomingMoviesCount: number
 }

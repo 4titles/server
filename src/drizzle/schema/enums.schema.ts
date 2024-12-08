@@ -7,6 +7,7 @@ export const titleCategoryEnum = pgEnum('title_category', [
     TitleCategory.TOP_RATED,
     TitleCategory.TRENDING,
     TitleCategory.SEARCH,
+    TitleCategory.UPCOMING,
 ] as const)
 
 export const movieStatusEnum = pgEnum('movie_status', [
