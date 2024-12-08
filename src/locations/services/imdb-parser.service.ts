@@ -405,6 +405,7 @@ export class ImdbParserService {
                         (loc) =>
                             loc.address &&
                             loc.address !== 'Create account' &&
+                            loc.address !== 'location' &&
                             loc.address.length > 0,
                     )
 
