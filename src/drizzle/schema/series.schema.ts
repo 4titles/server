@@ -19,7 +19,7 @@ import {
     SimplePerson,
 } from 'src/titles/models/common.model'
 import { TitleCategory } from 'src/titles/enums/title-category.enum'
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import { filmingLocations } from './filming-locations.schema'
 import { titleCategoryEnum } from './enums.schema'
 
@@ -30,7 +30,7 @@ export const series = pgTable(
             .primaryKey()
             .generatedAlwaysAsIdentity(),
         tmdbId: bigint('tmdb_id', { mode: 'number' }).notNull().unique(),
-        imdbId: text('imdb_id').notNull().unique(),
+        imdbId: text('imdb_id'),
         adult: boolean('adult').notNull().default(false),
         name: text('name').notNull(),
         posterPath: text('poster_path'), // TODO posters table
@@ -71,6 +71,8 @@ export const series = pgTable(
     },
     (table) => ({
         titleIdx: index('series_title_idx').on(table.name),
+
+        imdbIdUnique: sql`CREATE UNIQUE INDEX IF NOT EXISTS "movies_imdb_id_unique" ON "movies" ("imdb_id") WHERE "imdb_id" IS NOT NULL AND "imdb_id" != ''`,
 
         popularityRatingIdx: index('series_popularity_rating_idx').on(
             table.popularity,
