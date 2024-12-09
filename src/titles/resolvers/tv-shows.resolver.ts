@@ -11,6 +11,7 @@ import { TvShow } from '../models/tv-show.model'
 import { TvShowService } from '../services/tv-show.service'
 import { TitleCategory } from '../enums/title-category.enum'
 import { LocationsService } from 'src/locations/services/locations.service'
+import { FilmingLocation } from 'src/locations/models/filming-location.model'
 
 @Resolver(() => TvShow)
 export class TvShowsResolver {
@@ -64,7 +65,7 @@ export class TvShowsResolver {
         return await this.tvShowService.searchTvShows(query, limit)
     }
 
-    @ResolveField('filmingLocations')
+    @ResolveField('filmingLocations', () => [FilmingLocation])
     async getFilmingLocations(@Parent() tvShow: TvShow) {
         if (!tvShow.filmingLocations && tvShow.imdbId) {
             return this.locationsService.getLocationsForTitle(

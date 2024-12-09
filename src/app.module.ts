@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common'
 import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo'
-import { join } from 'path'
 import { ConfigModule } from '@nestjs/config'
 import { DrizzleModule } from './drizzle/drizzle.module'
 import { CacheModule } from './cache/cache.module'
@@ -12,7 +11,7 @@ import { GeocodingModule } from './geocoding/geocoding.module'
 import redisConfig from './config/redis.config'
 import tmdbConfig from './config/tmdb.config'
 import geocodingConfig from './config/geocoding.config'
-
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -21,11 +20,9 @@ import geocodingConfig from './config/geocoding.config'
         }),
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
-            typePaths: ['./**/*.graphql'],
-            definitions: {
-                path: join(process.cwd(), 'src/graphql.ts'),
-            },
-            playground: true,
+            autoSchemaFile: true,
+            plugins: [ApolloServerPluginLandingPageLocalDefault()],
+            playground: false,
         }),
         DrizzleModule,
         CacheModule,
