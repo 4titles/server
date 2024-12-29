@@ -4,27 +4,30 @@ import {
     NestFastifyApplication,
 } from '@nestjs/platform-fastify'
 import { AppModule } from './app.module'
+import { ConfigService } from '@nestjs/config'
 
 async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
         AppModule,
         new FastifyAdapter(),
     )
-
-    const PORT = process.env.PORT || 3000
-    const HOST = process.env.HOST || '0.0.0.0'
+    const config = app.get(ConfigService)
 
     app.enableCors({
-        origin: '*',
+        origin: config.getOrThrow<string>('ALLOWED_ORIGIN'),
         credentials: true,
     })
 
-    await app.listen(PORT, HOST, (err, address) => {
-        if (err) {
-            console.error(err)
-            process.exit(1)
-        }
-        console.log(`Server listening at ${address}`)
-    })
+    await app.listen(
+        config.getOrThrow<number>('APPLICATION_PORT'),
+        config.getOrThrow<string>('APPLICATION_HOST'),
+        (err, address) => {
+            if (err) {
+                console.error(err)
+                process.exit(1)
+            }
+            console.log(`Server listening at ${address}`)
+        },
+    )
 }
 bootstrap()
