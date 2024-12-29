@@ -6,6 +6,7 @@ import { MovieResponse, MovieResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieMapper } from '../mappers/movie-mapper'
 import { Movie } from '../models/movie.model'
+import { LocationsService } from 'src/locations/services/locations.service'
 
 @Injectable()
 export class MovieService {
@@ -16,6 +17,7 @@ export class MovieService {
         private readonly tmdbService: TmdbService,
         private readonly cacheService: CacheService,
         private readonly titleEntityService: TitleEntityService,
+        private readonly locationsService: LocationsService,
     ) {}
 
     async syncPopularMovies(): Promise<MovieResponse[]> {
@@ -50,9 +52,9 @@ export class MovieService {
         }
     }
 
-    async syncTopRatedMovies(limit: number = 100): Promise<MovieResponse[]> {
+    async syncTopRatedMovies(limit: number = 100): Promise<Movie[]> {
         try {
-            const movies: MovieResponse[] = []
+            const movies: Movie[] = []
             let page = 1
 
             while (movies.length < limit && page <= 5) {
@@ -82,7 +84,39 @@ export class MovieService {
         }
     }
 
-    async syncTrendingMovies(): Promise<MovieResponse[]> {
+    async syncUpComingMovies(limit: number = 100): Promise<Movie[]> {
+        try {
+            const movies: Movie[] = []
+            let page = 1
+
+            while (movies.length < limit && page <= 5) {
+                const { results } =
+                    await this.tmdbService.getUpcomingMovies(page)
+                const validMovies = results.filter(
+                    (movie) =>
+                        movie.overview && movie.title && movie.poster_path,
+                )
+
+                for (const movie of validMovies) {
+                    if (movies.length >= limit) break
+                    const fullMovie = await this.syncMovie(
+                        movie.id,
+                        TitleCategory.UPCOMING,
+                    )
+                    movies.push(fullMovie)
+                }
+
+                page++
+            }
+
+            return movies
+        } catch (error) {
+            this.logger.error('Failed to sync upcoming movies:', error)
+            throw error
+        }
+    }
+
+    async syncTrendingMovies(): Promise<Movie[]> {
         try {
             const { results } = await this.tmdbService.getTrendingMovies()
             const validMovies = results
@@ -114,16 +148,12 @@ export class MovieService {
     async syncMovie(
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
-    ): Promise<MovieResponse> {
+    ): Promise<Movie> {
         try {
+            const cacheKey = `movie_${tmdbId}`
+            const locationsCacheKey = `movie_locations_${tmdbId}`
+
             const movieResponse = await this.tmdbService.getMovieDetails(tmdbId)
-
-            await this.cacheService.set(
-                `movie_${tmdbId}`,
-                movieResponse,
-                this.CACHE_TTL,
-            )
-
             const movie = MovieMapper.mapMovieResponseToMovie(
                 movieResponse,
                 category,
@@ -131,9 +161,41 @@ export class MovieService {
 
             await this.titleEntityService.createOrUpdateMovie(movie)
 
+            this.logger.log(
+                `Syncing locations for movie ${movie.imdbId} with category ${category}`,
+            )
+
+            if (movieResponse.imdb_id) {
+                await this.locationsService.syncLocationsForTitle(
+                    movieResponse.imdb_id,
+                )
+                const locations =
+                    await this.locationsService.getLocationsForTitle(
+                        movieResponse.imdb_id,
+                        true,
+                    )
+
+                movie.filmingLocations = locations
+
+                await this.cacheService.set(
+                    locationsCacheKey,
+                    locations,
+                    this.CACHE_TTL,
+                )
+            }
+
+            await this.cacheService.set(
+                cacheKey,
+                {
+                    ...movieResponse,
+                    filmingLocations: movie.filmingLocations,
+                },
+                this.CACHE_TTL,
+            )
+
             return movie
         } catch (error) {
-            this.logger.error(`Failed to sync movie: ${tmdbId}`, error)
+            this.logger.error('Failed to sync movie:', error)
             throw error
         }
     }
@@ -141,15 +203,28 @@ export class MovieService {
     async getMovieDetails(
         tmdbId: number,
         category: TitleCategory = TitleCategory.POPULAR,
-    ): Promise<MovieResponse> {
+    ): Promise<Movie> {
         const cacheKey = `movie_${tmdbId}`
-        const cached = await this.cacheService.get<MovieResponse>(cacheKey)
 
-        if (cached) {
-            return MovieMapper.mapMovieResponseToMovie(cached, category)
+        try {
+            const cached = await this.cacheService.get<
+                MovieResponse & { filmingLocations: any[] }
+            >(cacheKey)
+
+            if (cached) {
+                const movie = MovieMapper.mapMovieResponseToMovie(
+                    cached as Movie & { imdb_id: string },
+                    category,
+                )
+                movie.filmingLocations = cached.filmingLocations
+                return movie
+            }
+
+            return this.syncMovie(tmdbId, category)
+        } catch (error) {
+            this.logger.error(`Failed to get movie details: ${error.message}`)
+            throw error
         }
-
-        return this.syncMovie(tmdbId, category)
     }
 
     async searchMovies(
@@ -172,7 +247,7 @@ export class MovieService {
     ): Promise<Movie[]> {
         try {
             if (!category) {
-                return this.titleEntityService.getAllMovies(limit)
+                return this.titleEntityService.getAllMovies()
             }
 
             switch (category) {
@@ -182,6 +257,10 @@ export class MovieService {
                     return this.getTopRatedMovies(limit)
                 case TitleCategory.TRENDING:
                     return this.getTrendingMovies(limit)
+                case TitleCategory.SEARCH:
+                    return this.getSearchedMovies(limit)
+                case TitleCategory.UPCOMING:
+                    return this.getUpComingMovies(limit)
                 default:
                     throw new Error('Invalid category')
             }
@@ -192,14 +271,32 @@ export class MovieService {
     }
 
     async getPopularMovies(limit: number = 20): Promise<Movie[]> {
-        return this.titleEntityService.getPopularMovies(limit)
+        return this.titleEntityService.getPopularMovies(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTopRatedMovies(limit: number = 20): Promise<Movie[]> {
-        return this.titleEntityService.getTopRatedMovies(limit)
+        return this.titleEntityService.getTopRatedMovies(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTrendingMovies(limit: number = 20): Promise<Movie[]> {
-        return this.titleEntityService.getTrendingMovies(limit)
+        return this.titleEntityService.getTrendingMovies(limit, {
+            includeRelations: true,
+        })
+    }
+
+    async getSearchedMovies(limit: number = 20): Promise<Movie[]> {
+        return this.titleEntityService.getSearchedMovies(limit, {
+            includeRelations: true,
+        })
+    }
+
+    async getUpComingMovies(limit: number = 20): Promise<Movie[]> {
+        return this.titleEntityService.getUpComingMovies(limit, {
+            includeRelations: true,
+        })
     }
 }

@@ -54,6 +54,7 @@ export class TvShowMapper {
             tagLine: showResponse.tagline,
             voteAverage: showResponse.vote_average,
             voteCount: showResponse.vote_count,
+            filmingLocations: [],
             updatedAt: new Date(),
             category,
         }

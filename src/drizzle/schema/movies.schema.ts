@@ -5,7 +5,6 @@ import {
     index,
     integer,
     jsonb,
-    pgEnum,
     pgTable,
     real,
     text,
@@ -19,22 +18,9 @@ import {
 } from 'src/titles/models/common.model'
 import { MovieStatus } from 'src/titles/enums/movie-status.enum'
 import { TitleCategory } from 'src/titles/enums/title-category.enum'
-
-export const movieStatusEnum = pgEnum('movie_status', [
-    'Rumored',
-    'Planned',
-    'In Production',
-    'Post Production',
-    'Released',
-    'Canceled',
-])
-
-export const titleCategoryEnum = pgEnum('title_category', [
-    'POPULAR',
-    'TOP_RATED',
-    'TRENDING',
-    'SEARCH',
-])
+import { relations, sql } from 'drizzle-orm'
+import { filmingLocations } from './filming-locations.schema'
+import { movieStatusEnum, titleCategoryEnum } from './enums.schema'
 
 export const movies = pgTable(
     'movies',
@@ -43,7 +29,7 @@ export const movies = pgTable(
             .primaryKey()
             .generatedAlwaysAsIdentity(),
         tmdbId: bigint('tmdb_id', { mode: 'number' }).notNull().unique(),
-        imdbId: text('imdb_id').notNull().unique(),
+        imdbId: text('imdb_id'),
         adult: boolean('adult').notNull().default(false),
         title: text('title').notNull(),
         posterPath: text('poster_path'), // TODO posters table
@@ -79,14 +65,26 @@ export const movies = pgTable(
     },
     (table) => ({
         titleIdx: index('movies_title_idx').on(table.title),
+
+        imdbIdUnique: sql`CREATE UNIQUE INDEX IF NOT EXISTS "movies_imdb_id_unique" ON "movies" ("imdb_id") WHERE "imdb_id" IS NOT NULL AND "imdb_id" != ''`,
+
         popularityRatingIdx: index('movies_popularity_rating_idx').on(
             table.popularity,
             table.voteAverage,
         ),
+
         releaseDateIdx: index('movies_release_date_idx').on(table.releaseDate),
+
         statusIdx: index('movies_status_idx').on(table.status),
+
         originalLanguageIdx: index('movies_original_language_idx').on(
             table.originalLanguage,
         ),
     }),
 )
+
+export const moviesRelations = relations(movies, ({ many }) => ({
+    filmingLocations: many(filmingLocations),
+}))
+
+export type DbMovie = typeof movies.$inferSelect

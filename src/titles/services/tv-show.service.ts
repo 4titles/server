@@ -6,6 +6,7 @@ import { ShowResponse, TvResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TvShowMapper } from '../mappers/tv-show.mapper'
 import { TvShow } from '../models/tv-show.model'
+import { LocationsService } from 'src/locations/services/locations.service'
 
 @Injectable()
 export class TvShowService {
@@ -16,6 +17,7 @@ export class TvShowService {
         private readonly tmdbService: TmdbService,
         private readonly cacheService: CacheService,
         private readonly titleEntityService: TitleEntityService,
+        private readonly locationsService: LocationsService,
     ) {}
 
     async syncPopularTvShows(): Promise<ShowResponse[]> {
@@ -117,23 +119,52 @@ export class TvShowService {
         category: TitleCategory = TitleCategory.POPULAR,
     ): Promise<TvShow> {
         try {
+            const cacheKey = `tv_${tmdbId}`
+            const locationsCacheKey = `tv_locations_${tmdbId}`
+
             const tvShowResponse = await this.tmdbService.getTvDetails(tmdbId)
-
-            await this.cacheService.set(
-                `tv_${tmdbId}`,
-                tvShowResponse,
-                this.CACHE_TTL,
-            )
-
             const tvShow = TvShowMapper.mapShowResponseToTvShow(
                 tvShowResponse,
                 category,
             )
 
-            //@todo identify should save to db search results
-            if (category !== TitleCategory.SEARCH) {
-                await this.titleEntityService.createOrUpdateTvShow(tvShow)
+            await this.titleEntityService.createOrUpdateTvShow(tvShow)
+
+            this.logger.log(
+                `Syncing locations for TV show ${tvShow.imdbId} with category ${category}`,
+            )
+
+            if (tvShowResponse.imdb_id) {
+                // Синхронизируем и получаем локации
+                await this.locationsService.syncLocationsForTitle(
+                    tvShowResponse.imdb_id,
+                )
+                const locations =
+                    await this.locationsService.getLocationsForTitle(
+                        tvShowResponse.imdb_id,
+                        false,
+                    )
+
+                // Добавляем локации к объекту tvShow
+                tvShow.filmingLocations = locations
+
+                // Кэшируем отдельно локации
+                await this.cacheService.set(
+                    locationsCacheKey,
+                    locations,
+                    this.CACHE_TTL,
+                )
             }
+
+            // Кэшируем полный объект tvShow с локациями
+            await this.cacheService.set(
+                cacheKey,
+                {
+                    ...tvShowResponse,
+                    filmingLocations: tvShow.filmingLocations,
+                },
+                this.CACHE_TTL,
+            )
 
             return tvShow
         } catch (error) {
@@ -147,20 +178,31 @@ export class TvShowService {
         category: TitleCategory = TitleCategory.POPULAR,
     ): Promise<TvShow> {
         const cacheKey = `tv_${tmdbId}`
-        const cached = await this.cacheService.get<ShowResponse>(cacheKey)
 
-        if (cached) {
-            return TvShowMapper.mapShowResponseToTvShow(
-                cached as ShowResponse & { imdb_id: string },
-                category,
-            )
+        try {
+            const cached = await this.cacheService.get<
+                ShowResponse & { filmingLocations: any[] }
+            >(cacheKey)
+
+            if (cached) {
+                const tvShow = TvShowMapper.mapShowResponseToTvShow(
+                    cached as TvShow & { imdb_id: string },
+                    category,
+                )
+                tvShow.filmingLocations = cached.filmingLocations
+                return tvShow
+            }
+
+            return this.syncTvShow(tmdbId, category)
+        } catch (error) {
+            this.logger.error(`Failed to get TV show details: ${error.message}`)
+            throw error
         }
-
-        return this.syncTvShow(tmdbId, category)
     }
 
     async searchTvShows(query: string, limit: number = 20): Promise<TvShow[]> {
         const { results } = await this.tmdbService.searchTvShows(query)
+        this.logger.log(`Found ${results.length} TV shows for query: ${query}`)
         return Promise.all(
             results
                 .slice(0, limit)
@@ -176,7 +218,7 @@ export class TvShowService {
     ): Promise<TvShow[]> {
         try {
             if (!category) {
-                return this.titleEntityService.getAllTvShows(limit)
+                return this.titleEntityService.getAllTvShows()
             }
 
             switch (category) {
@@ -196,14 +238,20 @@ export class TvShowService {
     }
 
     async getPopularTvShows(limit: number = 20): Promise<TvShow[]> {
-        return this.titleEntityService.getPopularTvShows(limit)
+        return this.titleEntityService.getPopularTvShows(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTopRatedTvShows(limit: number = 20): Promise<TvShow[]> {
-        return this.titleEntityService.getTopRatedTvShows(limit)
+        return this.titleEntityService.getTopRatedTvShows(limit, {
+            includeRelations: true,
+        })
     }
 
     async getTrendingTvShows(limit: number = 20): Promise<TvShow[]> {
-        return this.titleEntityService.getTrendingTvShows(limit)
+        return this.titleEntityService.getTrendingTvShows(limit, {
+            includeRelations: true,
+        })
     }
 }

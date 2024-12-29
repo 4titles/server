@@ -9,9 +9,10 @@ import { MovieService } from './services/movie.service'
 import { TvShowService } from './services/tv-show.service'
 import { MoviesResolver } from './resolvers/movies.resolver'
 import { TvShowsResolver } from './resolvers/tv-shows.resolver'
+import { LocationsModule } from 'src/locations/locations.module'
 
 @Module({
-    imports: [CacheModule, TmdbModule, DrizzleModule],
+    imports: [CacheModule, TmdbModule, DrizzleModule, LocationsModule],
     providers: [
         TitlesService,
         TitleEntityService,
