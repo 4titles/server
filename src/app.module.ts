@@ -12,6 +12,7 @@ import redisConfig from './config/redis.config'
 import tmdbConfig from './config/tmdb.config'
 import geocodingConfig from './config/geocoding.config'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
+
 @Module({
     imports: [
         ConfigModule.forRoot({
