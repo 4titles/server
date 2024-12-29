@@ -22,50 +22,75 @@ export class TvShowsResolver {
         private readonly locationsService: LocationsService,
     ) {}
 
-    @Query(() => [TvShow])
+    @Query(() => [TvShow], {
+        description:
+            'Get a list of TV shows with an optional category filter and limit',
+    })
     async tvShows(
         @Args('category', { type: () => TitleCategory, nullable: true })
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return await this.tvShowService.getTvShows(limit, category)
+        return await this.tvShowService.getTvShowsByCategory(limit, category)
     }
 
-    @Query(() => [TvShow])
+    @Query(() => [TvShow], {
+        description: 'Get a list of popular TV shows with an optional limit',
+    })
     async popularTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return await this.tvShowService.getPopularTvShows(limit)
+        return await this.tvShowService.getTvShowsByCategory(
+            limit,
+            TitleCategory.POPULAR,
+        )
     }
 
-    @Query(() => [TvShow])
+    @Query(() => [TvShow], {
+        description: 'Get a list of top-rated TV shows with an optional limit',
+    })
     async topRatedTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return await this.tvShowService.getTopRatedTvShows(limit)
+        return await this.tvShowService.getTvShowsByCategory(
+            limit,
+            TitleCategory.TOP_RATED,
+        )
     }
 
-    @Query(() => [TvShow])
+    @Query(() => [TvShow], {
+        description: 'Get a list of trending TV shows with an optional limit',
+    })
     async trendingTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return await this.tvShowService.getTrendingTvShows(limit)
+        return await this.tvShowService.getTvShowsByCategory(
+            limit,
+            TitleCategory.TRENDING,
+        )
     }
 
-    @Query(() => TvShow, { nullable: true })
+    @Query(() => TvShow, {
+        nullable: true,
+        description: 'Get a TV show by TMDB ID',
+    })
     async tvShow(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
-        return await this.tvShowService.getTvShowDetails(tmdbId)
+        return await this.tvShowService.getByTmdbId(tmdbId)
     }
 
-    @Query(() => [TvShow])
+    @Query(() => [TvShow], {
+        description: 'Search for TV shows by query with an optional limit',
+    })
     async searchTvShows(
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
-        return await this.tvShowService.searchTvShows(query, limit)
+        return await this.tvShowService.searchTvShowsOnTMDB(query, limit)
     }
 
-    @ResolveField('filmingLocations', () => [FilmingLocation])
+    @ResolveField('filmingLocations', () => [FilmingLocation], {
+        description: 'Get filming locations for the TV show',
+    })
     async getFilmingLocations(@Parent() tvShow: TvShow) {
         if (!tvShow.filmingLocations && tvShow.imdbId) {
             return this.locationsService.getLocationsForTitle(

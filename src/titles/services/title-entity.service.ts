@@ -7,12 +7,14 @@ import { DbMovie, DbSeries, movies, series } from 'src/drizzle/schema/schema'
 import { TitleCategory } from '../enums/title-category.enum'
 import { Movie } from '../models/movie.model'
 import { TvShow } from '../models/tv-show.model'
-import { TITLE_WITH_RELATIONS } from './constants/query.constants'
+import {
+    DEFAULT_LIMIT,
+    TITLE_WITH_RELATIONS,
+} from './constants/query.constants'
 import {
     mapTitlesWithRelations,
     mapTitleWithRelations,
 } from './utils/title.utils'
-import { bigIntSerializer } from './utils/json.utils'
 
 interface QueryOptions {
     includeRelations?: boolean
@@ -24,7 +26,9 @@ export class TitleEntityService {
 
     constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-    private getQueryOptions(options: QueryOptions = {}) {
+    private getQueryOptions(
+        options: QueryOptions = { includeRelations: true },
+    ) {
         return options?.includeRelations ? TITLE_WITH_RELATIONS : {}
     }
 
@@ -190,7 +194,7 @@ export class TitleEntityService {
     }
 
     async getPopularMovies(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<Movie[]> {
         try {
@@ -211,7 +215,7 @@ export class TitleEntityService {
     }
 
     async getPopularTvShows(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<TvShow[]> {
         try {
@@ -232,7 +236,7 @@ export class TitleEntityService {
     }
 
     async getTopRatedMovies(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<Movie[]> {
         try {
@@ -253,7 +257,7 @@ export class TitleEntityService {
     }
 
     async getTopRatedTvShows(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<TvShow[]> {
         try {
@@ -274,7 +278,7 @@ export class TitleEntityService {
     }
 
     async getTrendingMovies(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<Movie[]> {
         try {
@@ -284,12 +288,6 @@ export class TitleEntityService {
                 limit,
                 ...this.getQueryOptions(options),
             })
-
-            // const serializedEntities = JSON.parse(
-            //     bigIntSerializer.stringify(movieEntities),
-            // )
-
-            // this.logger.log('Serialized entities:', serializedEntities)
 
             return mapTitlesWithRelations<Movie>(movieEntities)
         } catch (error) {
@@ -301,7 +299,7 @@ export class TitleEntityService {
     }
 
     async getTrendingTvShows(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<TvShow[]> {
         try {
@@ -311,12 +309,6 @@ export class TitleEntityService {
                 limit,
                 ...this.getQueryOptions(options),
             })
-
-            // const serializedEntities = JSON.parse(
-            //     bigIntSerializer.stringify(tvShowEntities),
-            // )
-
-            // this.logger.log('Serialized entities:', serializedEntities)
 
             return mapTitlesWithRelations<TvShow>(tvShowEntities)
         } catch (error) {
@@ -328,7 +320,7 @@ export class TitleEntityService {
     }
 
     async getSearchedMovies(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<Movie[]> {
         try {
@@ -348,7 +340,7 @@ export class TitleEntityService {
     }
 
     async getSearchedTvShows(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<TvShow[]> {
         try {
@@ -368,7 +360,7 @@ export class TitleEntityService {
     }
 
     async getUpComingMovies(
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<Movie[]> {
         try {
@@ -387,14 +379,11 @@ export class TitleEntityService {
         }
     }
 
-    async getAllMovies(
-        // limit: number = 20,
-        options?: QueryOptions,
-    ): Promise<Movie[]> {
+    async getAllMovies(options?: QueryOptions): Promise<Movie[]> {
         try {
+            console.log('called')
             const movieEntities = await this.db.query.movies.findMany({
                 orderBy: (movies, { desc }) => [desc(movies.popularity)],
-                //limit,
                 ...this.getQueryOptions(options),
             })
 
@@ -407,14 +396,10 @@ export class TitleEntityService {
         }
     }
 
-    async getAllTvShows(
-        // limit: number = 20,
-        options?: QueryOptions,
-    ): Promise<TvShow[]> {
+    async getAllTvShows(options?: QueryOptions): Promise<TvShow[]> {
         try {
             const tvShowEntities = await this.db.query.series.findMany({
                 orderBy: (series, { desc }) => [desc(series.popularity)],
-                // limit,
                 ...this.getQueryOptions(options),
             })
 
@@ -429,7 +414,7 @@ export class TitleEntityService {
 
     async searchMovies(
         query: string,
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<Movie[]> {
         try {
@@ -458,7 +443,7 @@ export class TitleEntityService {
 
     async searchTvShows(
         query: string,
-        limit: number = 20,
+        limit: number = DEFAULT_LIMIT,
         options?: QueryOptions,
     ): Promise<TvShow[]> {
         try {

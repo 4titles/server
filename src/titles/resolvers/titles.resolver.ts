@@ -11,7 +11,9 @@ export class TitlesResolver {
 
     constructor(private readonly titlesService: TitlesService) {}
 
-    @Mutation(() => SyncResult)
+    @Mutation(() => SyncResult, {
+        description: 'Synchronize popular titles with an optional type filter',
+    })
     async syncPopularTitles(
         @Args('type', { type: () => TitleType, nullable: true })
         type: TitleType = TitleType.ALL,
@@ -22,7 +24,9 @@ export class TitlesResolver {
         return result
     }
 
-    @Mutation(() => SyncResult)
+    @Mutation(() => SyncResult, {
+        description: 'Synchronize trending titles with an optional type filter',
+    })
     async syncTrendingTitles(
         @Args('type', { type: () => TitleType, nullable: true })
         type: TitleType = TitleType.ALL,
@@ -33,7 +37,10 @@ export class TitlesResolver {
         return result
     }
 
-    @Mutation(() => SyncResult)
+    @Mutation(() => SyncResult, {
+        description:
+            'Synchronize top-rated titles with an optional type filter and limit',
+    })
     async syncTopRatedTitles(
         @Args('type', { type: () => TitleType, nullable: true })
         @Args('limit', { type: () => Int, nullable: true })
@@ -46,7 +53,9 @@ export class TitlesResolver {
         return result
     }
 
-    @Mutation(() => SyncResult)
+    @Mutation(() => SyncResult, {
+        description: 'Synchronize upcoming titles with an optional limit',
+    })
     async syncUpcomingTitles(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ) {
@@ -56,7 +65,9 @@ export class TitlesResolver {
         return result
     }
 
-    @Mutation(() => FullSyncResult)
+    @Mutation(() => FullSyncResult, {
+        description: 'Perform a full content cache refresh',
+    })
     async syncAllContent() {
         this.logger.log('Starting full content cache refresh')
         const result = await this.titlesService.syncAllContent()

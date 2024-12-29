@@ -23,9 +23,9 @@ export class TitlesService {
         try {
             switch (type) {
                 case TitleType.MOVIES:
-                    return this.movieService.syncMovie(tmdbId)
+                    return this.movieService.syncTitle(tmdbId)
                 case TitleType.TV_SHOWS:
-                    return this.tvShowService.syncTvShow(tmdbId)
+                    return this.tvShowService.syncTitle(tmdbId)
                 default:
                     throw new Error('Invalid title type')
             }
