@@ -12,7 +12,7 @@ export class LocationsResolver {
     })
     async movieLocations(
         @Args('imdbId', { type: () => String }) imdbId: string,
-    ) {
+    ): Promise<FilmingLocation[]> {
         return this.locationsService.getLocationsForTitle(imdbId, true)
     }
 
@@ -21,7 +21,7 @@ export class LocationsResolver {
     })
     async tvShowLocations(
         @Args('imdbId', { type: () => String }) imdbId: string,
-    ) {
+    ): Promise<FilmingLocation[]> {
         return this.locationsService.getLocationsForTitle(imdbId, false)
     }
 

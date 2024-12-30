@@ -1,4 +1,5 @@
-export const DEFAULT_LIMIT = 100
+export const DEFAULT_FETCH_LIMIT = 100
+export const DEFAULT_SEARCH_LIMIT = 5
 
 export const TITLE_RELATIONS = {
     filmingLocations: {

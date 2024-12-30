@@ -1,14 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { CacheService } from 'src/cache/cache.service'
 import { TmdbService } from 'src/tmdb/tmdb-service'
-import { TitleEntityService } from './title-entity.service'
 import { LocationsService } from 'src/locations/services/locations.service'
 import { TitleCategory } from '../enums/title-category.enum'
-import { Title } from './utils/title.utils'
 import { MovieResult, TvResult } from 'moviedb-promise'
 import { TitleType } from '@/graphql'
-import { Movie } from '../models/movie.model'
-import { TvShow } from '../models/tv-show.model'
+import { DEFAULT_FETCH_LIMIT } from './constants/query.constants'
+import { Title } from '../types/title.type'
+import { MovieEntityService } from './entity/movie-entity.service'
+import { TvShowEntityService } from './entity/tv-show-entity.service'
+import { DbMovie } from '@/drizzle/schema/movies.schema'
+import { DbSeries } from '@/drizzle/schema/series.schema'
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {
@@ -18,7 +20,8 @@ export abstract class BaseTitleSyncService<T extends Title> {
     constructor(
         protected readonly tmdbService: TmdbService,
         protected readonly cacheService: CacheService,
-        protected readonly titleEntityService: TitleEntityService,
+        protected readonly movieEntityService: MovieEntityService,
+        protected readonly tvShowEntityService: TvShowEntityService,
         protected readonly locationsService: LocationsService,
     ) {}
 
@@ -30,7 +33,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
 
     async syncTitlesByCategory(
         category: TitleCategory,
-        limit: number = 100,
+        limit: number = DEFAULT_FETCH_LIMIT,
         fetchItems: (page: number) => Promise<MovieResult[] | TvResult[]>,
     ): Promise<T[]> {
         try {
@@ -55,14 +58,14 @@ export abstract class BaseTitleSyncService<T extends Title> {
             )
             return items
         } catch (error) {
-            this.logger.error(`Failed to sync ${category} items:`, error)
+            this.logger.error(`Failed to sync ${category} titles:`, error)
             throw error
         }
     }
 
     async syncTrendingTitles(
         titleType: TitleType,
-        limit: number = 50,
+        limit: number = DEFAULT_FETCH_LIMIT,
     ): Promise<T[]> {
         try {
             const { results } =
@@ -78,11 +81,11 @@ export abstract class BaseTitleSyncService<T extends Title> {
             )
 
             this.logger.log(
-                `Successfully synced ${items.length} trending items`,
+                `Successfully synced ${items.length} trending titles`,
             )
             return items
         } catch (error) {
-            this.logger.error(`Failed to sync trending items:`, error)
+            this.logger.error(`Failed to sync trending titles:`, error)
             throw error
         }
     }
@@ -94,8 +97,8 @@ export abstract class BaseTitleSyncService<T extends Title> {
         fetchDetails: (id: number) => Promise<any>,
         mapper: (response: any, category: TitleCategory) => T,
     ): Promise<T> {
-        const cacheKey = `${titleType}_${tmdbId}`
-        const locationsCacheKey = `${titleType}_locations_${tmdbId}`
+        const cacheKey = `${category}_${titleType}_${tmdbId}`
+        const locationsCacheKey = `${category}_${titleType}_locations_${tmdbId}`
 
         try {
             const cached = await this.cacheService.get<
@@ -110,15 +113,13 @@ export abstract class BaseTitleSyncService<T extends Title> {
             const item = mapper(response, category)
 
             if (titleType === TitleType.MOVIES) {
-                await this.titleEntityService.createOrUpdateMovie(item as Movie)
+                await this.movieEntityService.createOrUpdate(item as DbMovie)
             } else {
-                await this.titleEntityService.createOrUpdateTvShow(
-                    item as TvShow,
-                )
+                await this.tvShowEntityService.createOrUpdate(item as DbSeries)
             }
 
             this.logger.log(
-                `Syncing locations for ${titleType} ${item.imdbId} with category ${category}`,
+                `Syncing locations for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
             )
 
             if (response.imdb_id) {

@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import axios from 'axios'
 import { GeocodeResult } from '../interfaces/geocode-result.interface'
+import { delay } from '@/titles/services/utils/delay.utils'
+import { chunkArray } from '@/titles/services/utils/chunk-array.utils'
 
 @Injectable()
 export class GeocodingService {
@@ -47,7 +49,7 @@ export class GeocodingService {
         addresses: string[],
     ): Promise<Map<string, GeocodeResult>> {
         const results = new Map<string, GeocodeResult>()
-        const chunks = this.chunkArray(addresses, 10)
+        const chunks = chunkArray(addresses, 10)
 
         for (const chunk of chunks) {
             const promises = chunk.map(async (address) => {
@@ -55,23 +57,13 @@ export class GeocodingService {
                 if (result) {
                     results.set(address, result)
                 }
-                await this.delay(200)
+                await delay(200)
             })
 
             await Promise.all(promises)
-            await this.delay(1000)
+            await delay(1000)
         }
 
         return results
-    }
-
-    private chunkArray<T>(array: T[], size: number): T[][] {
-        return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-            array.slice(i * size, i * size + size),
-        )
-    }
-
-    private delay(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms))
     }
 }

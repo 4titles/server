@@ -1,51 +1,75 @@
 import { Injectable } from '@nestjs/common'
 import { MovieResponse, MovieResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
-import { MovieMapper } from '../mappers/movie-mapper'
+import { MovieMapper } from '../mappers/movie.mapper'
 import { Movie } from '../models/movie.model'
 import { BaseTitleSyncService } from './base-title-sync.service'
 import { TitleType } from '../enums/title-type.enum'
-import { DEFAULT_LIMIT } from './constants/query.constants'
+import {
+    DEFAULT_FETCH_LIMIT,
+    DEFAULT_SEARCH_LIMIT,
+} from './constants/query.constants'
+import { DbMovie } from '@/drizzle/schema/movies.schema'
+import { TitleMapper } from '../mappers/title.mapper'
+import { InvalidTitleCategoryException } from '../exceptions/invalid-title-category.exception'
+import { TitleFetchException } from '../exceptions/title-fetch.exception'
 
 @Injectable()
 export class MovieService extends BaseTitleSyncService<Movie> {
+    async getMovieByImdbId(imdbId: string): Promise<Movie> {
+        return TitleMapper.mapSingleWithRelations<DbMovie>(
+            await this.movieEntityService.getByImdbId(imdbId),
+        )
+    }
+
     async getMovieByTmdbId(tmdbId: number): Promise<Movie> {
-        return await this.titleEntityService.getMovieByTmdbId(tmdbId)
+        return TitleMapper.mapSingleWithRelations<DbMovie>(
+            await this.movieEntityService.getByTmdbId(tmdbId),
+        )
     }
 
     async getMoviesByCategory(
-        limit: number = DEFAULT_LIMIT,
+        limit: number = DEFAULT_FETCH_LIMIT,
         category?: TitleCategory,
     ): Promise<Movie[]> {
+        let dbMovies: DbMovie[] = []
+
         try {
-            if (!category) {
-                return this.titleEntityService.getAllMovies()
+            switch (category) {
+                case undefined:
+                    dbMovies = await this.movieEntityService.getAll()
+                    break
+                case TitleCategory.POPULAR:
+                    dbMovies = await this.movieEntityService.getPopular(limit)
+                    break
+                case TitleCategory.TOP_RATED:
+                    dbMovies = await this.movieEntityService.getTopRated(limit)
+                    break
+                case TitleCategory.TRENDING:
+                    dbMovies = await this.movieEntityService.getTrending(limit)
+                    break
+                case TitleCategory.SEARCH:
+                    dbMovies = await this.movieEntityService.getSearched(limit)
+                    break
+                case TitleCategory.UPCOMING:
+                    dbMovies = await this.movieEntityService.getUpcoming(limit)
+                    break
+                default:
+                    throw new InvalidTitleCategoryException()
             }
 
-            switch (category) {
-                case TitleCategory.POPULAR:
-                    await this.titleEntityService.getPopularMovies(limit)
-                case TitleCategory.TOP_RATED:
-                    await this.titleEntityService.getTopRatedMovies(limit)
-                case TitleCategory.TRENDING:
-                    await this.titleEntityService.getTrendingMovies(limit)
-                case TitleCategory.SEARCH:
-                    await this.titleEntityService.getSearchedMovies(limit)
-                case TitleCategory.UPCOMING:
-                    await this.titleEntityService.getUpComingMovies(limit)
-                default:
-                    throw new Error('Invalid title category')
-            }
+            return TitleMapper.mapManyWithRelations<DbMovie>(dbMovies)
         } catch (error) {
-            this.logger.error(`Failed to get movies: ${error.message}`)
-            throw error
+            throw new TitleFetchException(
+                `Failed to fetch movies: ${error.message}`,
+            )
         }
     }
 
     async syncPopularMovies(): Promise<Movie[]> {
         return await this.syncTitlesByCategory(
             TitleCategory.POPULAR,
-            DEFAULT_LIMIT,
+            DEFAULT_FETCH_LIMIT,
             (page) =>
                 this.tmdbService
                     .getPopularMovies(page)
@@ -53,7 +77,9 @@ export class MovieService extends BaseTitleSyncService<Movie> {
         )
     }
 
-    async syncTopRatedMovies(limit: number = DEFAULT_LIMIT): Promise<Movie[]> {
+    async syncTopRatedMovies(
+        limit: number = DEFAULT_FETCH_LIMIT,
+    ): Promise<Movie[]> {
         return await this.syncTitlesByCategory(
             TitleCategory.TOP_RATED,
             limit,
@@ -64,7 +90,9 @@ export class MovieService extends BaseTitleSyncService<Movie> {
         )
     }
 
-    async syncUpComingMovies(limit: number = DEFAULT_LIMIT): Promise<Movie[]> {
+    async syncUpComingMovies(
+        limit: number = DEFAULT_FETCH_LIMIT,
+    ): Promise<Movie[]> {
         return await this.syncTitlesByCategory(
             TitleCategory.UPCOMING,
             limit,
@@ -88,13 +116,13 @@ export class MovieService extends BaseTitleSyncService<Movie> {
             TitleType.MOVIES,
             category,
             this.tmdbService.getMovieDetails.bind(this.tmdbService),
-            MovieMapper.mapMovieResponseToMovie,
+            MovieMapper.mapMovieResponseToMovie.bind(MovieMapper),
         )
     }
 
     async searchMoviesOnTMDB(
         query: string,
-        limit: number = DEFAULT_LIMIT,
+        limit: number = DEFAULT_SEARCH_LIMIT,
     ): Promise<MovieResponse[]> {
         const { results } = await this.tmdbService.searchMovies(query)
 

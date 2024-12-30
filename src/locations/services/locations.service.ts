@@ -4,16 +4,19 @@ import { DRIZZLE } from 'src/drizzle/drizzle.module'
 import { DrizzleDB } from 'src/drizzle/types/drizzle'
 import { ImdbParserService } from './imdb-parser.service'
 import { RawLocation } from '../interfaces/raw-location.interface'
-import { TitleEntityService } from 'src/titles/services/title-entity.service'
 import { eq, and, isNull } from 'drizzle-orm'
 import {
-    locations as locationsSchema,
     filmingLocations,
+    locations as locationsSchema,
 } from 'src/drizzle/schema/filming-locations.schema'
 import { FilmingLocation } from '../models/filming-location.model'
 import { LocationsSyncResult } from '../models/locations-sync-result.model'
 import { GeocodingService } from 'src/geocoding/services/geocoding.service'
 import { GeocodeResult } from 'src/geocoding/interfaces/geocode-result.interface'
+import { TitleEntityService } from '@/titles/services/entity/title-entity.service'
+import { DbMovie } from '@/drizzle/schema/movies.schema'
+import { DbSeries } from '@/drizzle/schema/series.schema'
+import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
 
 @Injectable()
 export class LocationsService {
@@ -34,12 +37,12 @@ export class LocationsService {
     ): Promise<FilmingLocation[]> {
         try {
             const entity = isMovie
-                ? await this.titleEntityService.getMovieEntityByImdbId(imdbId)
-                : await this.titleEntityService.getTvShowEntityByImdbId(imdbId)
+                ? await this.titleEntityService.findMovieByImdbId(imdbId)
+                : await this.titleEntityService.findTvShowByImdbId(imdbId)
 
             if (!entity) return []
 
-            const result = await this.db.query.filmingLocations.findMany({
+            const locations = await this.db.query.filmingLocations.findMany({
                 where: isMovie
                     ? and(
                           eq(filmingLocations.movieId, BigInt(entity.id)),
@@ -56,7 +59,7 @@ export class LocationsService {
                 },
             })
 
-            return result.map(this.mapFilmingLocation)
+            return FilmingLocationMapper.manyToGraphQL(locations)
         } catch (error) {
             this.logger.error(
                 `Error fetching locations for ImdbId ${imdbId}:`,
@@ -68,7 +71,14 @@ export class LocationsService {
 
     async syncAllLocations(): Promise<LocationsSyncResult> {
         try {
-            const imdbIds = await this.getAllImdbIds()
+            const [movies, series]: [DbMovie[], DbSeries[]] =
+                await this.titleEntityService.findAll()
+
+            const imdbIds = [
+                ...movies.filter((m) => m.imdbId).map((m) => m.imdbId),
+                ...series.filter((s) => s.imdbId).map((s) => s.imdbId),
+            ]
+
             if (!imdbIds.length) {
                 return this.createEmptyResult()
             }
@@ -144,7 +154,8 @@ export class LocationsService {
 
             if (!locations?.length) return true
 
-            const { movie, series } = await this.getTitleEntities(imdbId)
+            const { movie, series } =
+                await this.titleEntityService.findByImdbId(imdbId)
             if (!movie && !series) {
                 throw new Error(`Title with IMDB ID ${imdbId} not found`)
             }
@@ -189,30 +200,6 @@ export class LocationsService {
         }
     }
 
-    private async getAllImdbIds(): Promise<string[]> {
-        const [movies, series] = await Promise.all([
-            this.titleEntityService.getAllMovies(),
-            this.titleEntityService.getAllTvShows(),
-        ])
-
-        this.logger.log(
-            `Found ${movies.length} movies and ${series.length} series`,
-        )
-
-        return [
-            ...movies.filter((m) => m.imdbId).map((m) => m.imdbId),
-            ...series.filter((s) => s.imdbId).map((s) => s.imdbId),
-        ]
-    }
-
-    private async getTitleEntities(imdbId: string) {
-        const [movie, series] = await Promise.all([
-            this.titleEntityService.getMovieEntityByImdbId(imdbId),
-            this.titleEntityService.getTvShowEntityByImdbId(imdbId),
-        ])
-        return { movie, series }
-    }
-
     private async getOrCreateLocation(
         rawLocation: RawLocation,
         geoResult?: GeocodeResult,
@@ -229,7 +216,6 @@ export class LocationsService {
                 formattedAddress: geoResult?.formatted || null,
                 coordinates: geoResult
                     ? {
-                          // lon = x, lat = y
                           x: geoResult.lon,
                           y: geoResult.lat,
                       }
@@ -259,13 +245,6 @@ export class LocationsService {
             )
             throw error
         }
-    }
-
-    private formatPointForPostgres(lon: number, lat: number): string | null {
-        if (!lon || !lat || isNaN(lon) || isNaN(lat)) {
-            return null
-        }
-        return `(${lon},${lat})`
     }
 
     private async createFilmingLocation(
@@ -343,23 +322,5 @@ export class LocationsService {
             result.errors.push(`ID not processed: ${id}`)
         })
         result.success = result.failedCount === 0
-    }
-
-    private mapFilmingLocation(item: any): FilmingLocation {
-        let coordinates = null
-
-        if (item.location.coordinates) {
-            coordinates = {
-                longitude: item.location.coordinates.x,
-                latitude: item.location.coordinates.y,
-            }
-        }
-
-        return {
-            address: item.location.address,
-            description: item.description || null,
-            formattedAddress: item.location.formattedAddress || null,
-            coordinates,
-        }
     }
 }

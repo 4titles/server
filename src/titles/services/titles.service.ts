@@ -5,21 +5,63 @@ import { MovieService } from './movie.service'
 import { TvShowService } from './tv-show.service'
 import { SyncResult } from '../models/sync-result.model'
 import { FullSyncResult } from '../models/full-sync-result.model'
+import { DEFAULT_FETCH_LIMIT } from './constants/query.constants'
+import { Title, TitleResponse } from '../types/title.type'
 
 @Injectable()
 export class TitlesService {
     private readonly logger = new Logger(TitlesService.name)
-    private readonly CACHE_TTL = 24 * 60 * 60 // 24 hours
 
     constructor(
         private readonly movieService: MovieService,
         private readonly tvShowService: TvShowService,
     ) {}
 
-    async syncTitle(
-        tmdbId: number,
-        type?: TitleType,
-    ): Promise<MovieResponse | ShowResponse> {
+    async getAllTitles(limit: number = DEFAULT_FETCH_LIMIT): Promise<Title[]> {
+        const [movies, tvShows] = await Promise.all([
+            this.movieService.getMoviesByCategory(limit),
+            this.tvShowService.getTvShowsByCategory(limit),
+        ])
+
+        return [...movies, ...tvShows]
+    }
+
+    async syncAllContent(): Promise<FullSyncResult> {
+        try {
+            const [
+                popularMovies,
+                popularTvShows,
+                trendingMovies,
+                trendingTvShows,
+                topRatedMovies,
+                topRatedTvShows,
+                upcomingMovies,
+            ] = await Promise.all([
+                this.movieService.syncPopularMovies(),
+                this.tvShowService.syncPopularTvShows(),
+                this.movieService.syncTrendingMovies(),
+                this.tvShowService.syncTrendingTvShows(),
+                this.movieService.syncTopRatedMovies(),
+                this.tvShowService.syncTopRatedTvShows(),
+                this.movieService.syncUpComingMovies(),
+            ])
+
+            return {
+                popularMoviesCount: popularMovies.length,
+                popularTvShowsCount: popularTvShows.length,
+                trendingMoviesCount: trendingMovies.length,
+                trendingTvShowsCount: trendingTvShows.length,
+                topRatedMoviesCount: topRatedMovies.length,
+                topRatedTvShowsCount: topRatedTvShows.length,
+                upcomingMoviesCount: upcomingMovies.length,
+            }
+        } catch (error) {
+            this.logger.error('Failed to sync all content:', error)
+            throw error
+        }
+    }
+
+    async syncTitle(tmdbId: number, type?: TitleType): Promise<TitleResponse> {
         try {
             switch (type) {
                 case TitleType.MOVIES:
@@ -108,7 +150,7 @@ export class TitlesService {
 
     async syncTopRatedTitles(
         type: TitleType = TitleType.ALL,
-        limit: number = 100,
+        limit: number = DEFAULT_FETCH_LIMIT,
     ): Promise<SyncResult> {
         try {
             let movies: MovieResponse[] = []
@@ -142,46 +184,17 @@ export class TitlesService {
         }
     }
 
-    async syncUpcomingTitles(limit: number = 100) {
+    async syncUpcomingTitles(
+        limit: number = DEFAULT_FETCH_LIMIT,
+    ): Promise<SyncResult> {
         try {
-            return await this.movieService.syncUpComingMovies(limit)
-        } catch (error) {
-            this.logger.error(`Failed to sync upcoming titles:`, error)
-            throw error
-        }
-    }
-
-    async syncAllContent(): Promise<FullSyncResult> {
-        try {
-            const [
-                popularMovies,
-                popularTvShows,
-                trendingMovies,
-                trendingTvShows,
-                topRatedMovies,
-                topRatedTvShows,
-                upcomingMovies,
-            ] = await Promise.all([
-                this.movieService.syncPopularMovies(),
-                this.tvShowService.syncPopularTvShows(),
-                this.movieService.syncTrendingMovies(),
-                this.tvShowService.syncTrendingTvShows(),
-                this.movieService.syncTopRatedMovies(),
-                this.tvShowService.syncTopRatedTvShows(),
-                this.movieService.syncUpComingMovies(),
-            ])
-
+            const movies = await this.movieService.syncUpComingMovies(limit)
             return {
-                popularMoviesCount: popularMovies.length,
-                popularTvShowsCount: popularTvShows.length,
-                trendingMoviesCount: trendingMovies.length,
-                trendingTvShowsCount: trendingTvShows.length,
-                topRatedMoviesCount: topRatedMovies.length,
-                topRatedTvShowsCount: topRatedTvShows.length,
-                upcomingMoviesCount: upcomingMovies.length,
+                moviesCount: movies.length,
+                tvShowsCount: 0,
             }
         } catch (error) {
-            this.logger.error('Failed to sync all content:', error)
+            this.logger.error(`Failed to sync upcoming titles:`, error)
             throw error
         }
     }

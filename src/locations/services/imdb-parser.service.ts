@@ -1,56 +1,18 @@
 import * as puppeteer from 'puppeteer'
 import { Injectable, Logger } from '@nestjs/common'
 import { RawLocation } from '../interfaces/raw-location.interface'
+import { delay } from '@/titles/services/utils/delay.utils'
+import { ConfigService } from '@nestjs/config'
+import { chunkArray } from '@/titles/services/utils/chunk-array.utils'
+import { IImdbConfig } from '@/config/imdb/imdb-config.interface'
 
 @Injectable()
 export class ImdbParserService {
     private readonly logger = new Logger(ImdbParserService.name)
-    private browser: puppeteer.Browser | null = null
+    private readonly config: IImdbConfig
 
-    private readonly CONFIG = {
-        BROWSER_POOL_SIZE: 5,
-        CONCURRENT_PAGES: 3,
-        CHUNK_SIZE: 10,
-        MAX_RETRIES: 2,
-        TIMEOUT: {
-            BROWSER: 20000,
-            PAGE: 12000,
-            ELEMENT: 5000,
-            WAIT_FOR_BROWSER: 5000,
-        },
-        DELAY: {
-            BETWEEN_REQUESTS: 1500,
-            BETWEEN_CHUNKS: 3000,
-        },
-        VIEWPORT: { width: 1920, height: 1080 },
-        USER_AGENT:
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        BROWSER_ARGS: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-web-security',
-        ],
-        RETRY: {
-            ATTEMPTS: 2,
-            DELAY: 2000,
-        },
-        SELECTORS: {
-            LOCATIONS_SECTION: '[data-testid="sub-section-flmg_locations"]',
-            SEE_MORE_BUTTON: 'button.ipc-see-more__button',
-            LOCATION_CARD: '.ipc-list-card',
-            LOCATION_LINK: '.ipc-link',
-            LOCATION_DESCRIPTION: '[data-testid="item-attributes"]',
-            NO_LOCATIONS_SECTION: '.ipc-page-section--base',
-            LOCATIONS_LIST: '#filming_locations .ipc-metadata-list__item',
-        },
-        NO_LOCATIONS_MESSAGE:
-            "It looks like we don't have any filming & production for this title yet.",
-        TIMEOUT_ERROR: 'TimeoutError',
-        BASE_URL: 'https://www.imdb.com/title',
-    }
-
-    constructor() {
+    constructor(private readonly configService: ConfigService) {
+        this.config = this.configService.get('imdb')
         process.on('beforeExit', async () => {
             await this.cleanupBrowsers()
         })
@@ -71,7 +33,7 @@ export class ImdbParserService {
         try {
             this.logger.log('Getting available browser...')
             browser = await this.getAvailableBrowser()
-            this.logger.log('Browser acquired, processing IMDb ID...')
+            this.logger.log(`Browser acquired, processing IMDb ID ${imdbId}...`)
             return await this.processImdbId(imdbId, browser)
         } finally {
             if (browser) {
@@ -84,7 +46,7 @@ export class ImdbParserService {
         imdbIds: string[],
     ): Promise<Map<string, RawLocation[]>> {
         const results = new Map<string, RawLocation[]>()
-        const chunks = this.chunkArray(imdbIds, this.CONFIG.CHUNK_SIZE)
+        const chunks = chunkArray(imdbIds, this.config.processing.chunkSize)
         const failedIds = new Set<string>()
 
         this.logger.log(
@@ -92,15 +54,15 @@ export class ImdbParserService {
         )
 
         try {
-            await this.initializeBrowserPool(this.CONFIG.BROWSER_POOL_SIZE)
+            await this.initializeBrowserPool(this.config.browser.pool.maxSize)
             for (
                 let i = 0;
                 i < chunks.length;
-                i += this.CONFIG.CONCURRENT_PAGES
+                i += this.config.browser.pool.concurrentPages
             ) {
                 const currentChunks = chunks.slice(
                     i,
-                    i + this.CONFIG.CONCURRENT_PAGES,
+                    i + this.config.browser.pool.concurrentPages,
                 )
                 const chunkPromises = currentChunks.map((chunk) =>
                     this.processChunkWithRetries(chunk),
@@ -116,8 +78,11 @@ export class ImdbParserService {
                     }
                 })
 
-                if (i + this.CONFIG.CONCURRENT_PAGES < chunks.length) {
-                    await this.delay(this.CONFIG.DELAY.BETWEEN_CHUNKS)
+                if (
+                    i + this.config.browser.pool.concurrentPages <
+                    chunks.length
+                ) {
+                    await delay(this.config.timing.delay.chunks)
                 }
             }
 
@@ -137,7 +102,7 @@ export class ImdbParserService {
     }
 
     private async initializeBrowserPool(
-        minBrowsers: number = 1,
+        minBrowsers: number = this.config.browser.pool.minSize,
     ): Promise<void> {
         this.browserPool = this.browserPool.filter(({ browser }) => {
             try {
@@ -155,8 +120,8 @@ export class ImdbParserService {
             try {
                 const browser = await puppeteer.launch({
                     headless: true,
-                    args: this.CONFIG.BROWSER_ARGS,
-                    timeout: this.CONFIG.TIMEOUT.BROWSER,
+                    args: this.config.browser.args as string[],
+                    timeout: this.config.timing.timeout.browser,
                 })
 
                 this.browserPool.push({
@@ -173,7 +138,7 @@ export class ImdbParserService {
     }
 
     private async getAvailableBrowser(): Promise<puppeteer.Browser> {
-        const maxAttempts = 5
+        const maxAttempts = this.config.browser.pool.retrieveAttempts
         let attempts = 0
 
         while (attempts < maxAttempts) {
@@ -188,7 +153,10 @@ export class ImdbParserService {
                 availableBrowser.pages++
                 availableBrowser.lastUsed = Date.now()
 
-                if (availableBrowser.pages >= this.CONFIG.CONCURRENT_PAGES) {
+                if (
+                    availableBrowser.pages >=
+                    this.config.browser.pool.concurrentPages
+                ) {
                     availableBrowser.available = false
                 }
 
@@ -199,7 +167,7 @@ export class ImdbParserService {
                 await this.recreateBrowserPool()
             }
 
-            await this.delay(this.CONFIG.TIMEOUT.WAIT_FOR_BROWSER)
+            await delay(this.config.timing.timeout.browserWait)
             attempts++
         }
 
@@ -208,7 +176,7 @@ export class ImdbParserService {
 
     private async recreateBrowserPool(): Promise<void> {
         await this.cleanupBrowsers()
-        await this.initializeBrowserPool(this.CONFIG.BROWSER_POOL_SIZE)
+        await this.initializeBrowserPool(this.config.browser.pool.maxSize)
     }
 
     private async processImdbId(
@@ -221,17 +189,19 @@ export class ImdbParserService {
             page = await this.setupPage(browser)
 
             await Promise.all([
-                page.waitForNavigation({ timeout: this.CONFIG.TIMEOUT.PAGE }),
-                page.goto(`${this.CONFIG.BASE_URL}/${imdbId}/locations`),
+                page.waitForNavigation({
+                    timeout: this.config.timing.timeout.page,
+                }),
+                page.goto(`${this.config.baseUrl}/${imdbId}/locations`),
             ])
 
             const noLocations = await this.checkForNoLocations(page)
             if (noLocations) return []
 
             await page.waitForSelector(
-                this.CONFIG.SELECTORS.LOCATIONS_SECTION,
+                this.config.selectors.locations.section,
                 {
-                    timeout: this.CONFIG.TIMEOUT.ELEMENT,
+                    timeout: this.config.timing.timeout.element,
                 },
             )
 
@@ -243,7 +213,7 @@ export class ImdbParserService {
             )
             if (browserInfo) browserInfo.errors++
 
-            if (error.name === this.CONFIG.TIMEOUT_ERROR) {
+            if (error.name === this.config.timing.timeout.error) {
                 this.logger.warn(`Timeout while processing IMDb ID ${imdbId}`)
             } else {
                 this.logger.error(
@@ -273,7 +243,7 @@ export class ImdbParserService {
     > {
         const browserPromises = chunk.map(async (id) => {
             let retries = 0
-            while (retries < this.CONFIG.MAX_RETRIES) {
+            while (retries < this.config.processing.maxRetries) {
                 try {
                     const browser = await this.getAvailableBrowser()
                     const locations = await this.processImdbId(id, browser)
@@ -281,9 +251,7 @@ export class ImdbParserService {
                     return { id, locations, success: true }
                 } catch {
                     retries++
-                    await this.delay(
-                        this.CONFIG.DELAY.BETWEEN_REQUESTS * retries,
-                    )
+                    await delay(this.config.timing.delay.requests * retries)
                 }
             }
             return { id, locations: [], success: false }
@@ -296,9 +264,9 @@ export class ImdbParserService {
         failedIds: string[],
     ): Promise<Map<string, RawLocation[]>> {
         const results = new Map<string, RawLocation[]>()
-        const retryChunks = this.chunkArray(
+        const retryChunks = chunkArray(
             failedIds,
-            Math.ceil(this.CONFIG.CHUNK_SIZE / 2),
+            Math.ceil(this.config.processing.chunkSize / 2),
         )
 
         for (const chunk of retryChunks) {
@@ -307,7 +275,7 @@ export class ImdbParserService {
                 .filter(({ success }) => success)
                 .forEach(({ id, locations }) => results.set(id, locations))
 
-            await this.delay(this.CONFIG.DELAY.BETWEEN_CHUNKS * 2)
+            await delay(this.config.timing.delay.chunks * 2)
         }
 
         return results
@@ -319,8 +287,8 @@ export class ImdbParserService {
         const page = await browser.newPage()
 
         await Promise.all([
-            page.setUserAgent(this.CONFIG.USER_AGENT),
-            page.setViewport(this.CONFIG.VIEWPORT),
+            page.setUserAgent(this.config.browser.userAgent),
+            page.setViewport(this.config.browser.viewport),
             page.setRequestInterception(true),
             page.setCacheEnabled(true),
         ])
@@ -346,18 +314,18 @@ export class ImdbParserService {
                 const element = document.querySelector(selector)
                 return element?.textContent?.includes(message) ?? false
             },
-            this.CONFIG.SELECTORS.NO_LOCATIONS_SECTION,
-            this.CONFIG.NO_LOCATIONS_MESSAGE,
+            this.config.selectors.locations.noContentSection,
+            this.config.noLocationsMessage,
         )
     }
 
     private async expandLocationsList(page: puppeteer.Page): Promise<void> {
         const seeMoreButton = await page.$(
-            this.CONFIG.SELECTORS.SEE_MORE_BUTTON,
+            this.config.selectors.locations.expandButton,
         )
         if (seeMoreButton) {
             const initialCount = await page.$$eval(
-                this.CONFIG.SELECTORS.LOCATION_CARD,
+                this.config.selectors.locations.card,
                 (cards) => cards.length,
             )
 
@@ -368,55 +336,51 @@ export class ImdbParserService {
                     return cards.length > count
                 },
                 {},
-                this.CONFIG.SELECTORS.LOCATION_CARD,
+                this.config.selectors.locations.card,
                 initialCount,
             )
 
-            await this.delay(1000)
+            await delay(1000)
         }
     }
 
     private async parseLocations(page: puppeteer.Page): Promise<RawLocation[]> {
-        return page.evaluate(
-            ({ LOCATION_CARD, LOCATION_LINK, LOCATION_DESCRIPTION }) => {
-                function countCommas(str: string): number {
-                    return (
-                        str.split(',').filter((part) => part.trim().length > 0)
-                            .length - 1
-                    )
-                }
+        return page.evaluate(({ locations }) => {
+            function countCommas(str: string): number {
+                return (
+                    str.split(',').filter((part) => part.trim().length > 0)
+                        .length - 1
+                )
+            }
 
-                const locationCards = document.querySelectorAll(LOCATION_CARD)
-                const allLocations = Array.from(locationCards)
-                    .map((card) => {
-                        const linkElement = card.querySelector(LOCATION_LINK)
-                        const descriptionElement =
-                            card.querySelector(LOCATION_DESCRIPTION)
-
-                        return {
-                            address: linkElement?.textContent?.trim() || '',
-                            description:
-                                descriptionElement?.textContent
-                                    ?.trim()
-                                    ?.replace(/^\(|\)$/g, '') || '',
-                        }
-                    })
-                    .filter(
-                        (loc) =>
-                            loc.address &&
-                            loc.address !== 'Create account' &&
-                            loc.address !== 'location' &&
-                            loc.address.length > 0,
+            const locationCards = document.querySelectorAll(locations.card)
+            const allLocations = Array.from(locationCards)
+                .map((card) => {
+                    const linkElement = card.querySelector(locations.link)
+                    const descriptionElement = card.querySelector(
+                        locations.description,
                     )
 
-                return allLocations.length <= 2
-                    ? allLocations
-                    : allLocations.filter(
-                          (loc) => countCommas(loc.address) >= 2,
-                      )
-            },
-            this.CONFIG.SELECTORS,
-        )
+                    return {
+                        address: linkElement?.textContent?.trim() || '',
+                        description:
+                            descriptionElement?.textContent
+                                ?.trim()
+                                ?.replace(/^\(|\)$/g, '') || '',
+                    }
+                })
+                .filter(
+                    (loc) =>
+                        loc.address &&
+                        loc.address !== 'Create account' &&
+                        loc.address !== 'location' &&
+                        loc.address.length > 0,
+                )
+
+            return allLocations.length <= 2
+                ? allLocations
+                : allLocations.filter((loc) => countCommas(loc.address) >= 2)
+        }, this.config.selectors)
     }
 
     private releaseBrowser(browser: puppeteer.Browser): void {
@@ -425,7 +389,7 @@ export class ImdbParserService {
         if (browserInfo) {
             browserInfo.pages = Math.max(0, browserInfo.pages - 1)
             browserInfo.available =
-                browserInfo.pages < this.CONFIG.CONCURRENT_PAGES
+                browserInfo.pages < this.config.browser.pool.concurrentPages
 
             if (browserInfo.errors >= 3) {
                 this.replaceBrowser(browserInfo)
@@ -443,8 +407,8 @@ export class ImdbParserService {
         try {
             const newBrowser = await puppeteer.launch({
                 headless: true,
-                args: this.CONFIG.BROWSER_ARGS,
-                timeout: this.CONFIG.TIMEOUT.BROWSER,
+                args: this.config.browser.args as string[],
+                timeout: this.config.timing.timeout.browser,
             })
 
             Object.assign(browserInfo, {
@@ -471,15 +435,5 @@ export class ImdbParserService {
             }),
         )
         this.browserPool = []
-    }
-
-    private chunkArray<T>(array: T[], size: number): T[][] {
-        return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-            array.slice(i * size, i * size + size),
-        )
-    }
-
-    private async delay(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms))
     }
 }

@@ -6,7 +6,6 @@ import {
     ResolveField,
     Parent,
 } from '@nestjs/graphql'
-import { Logger } from '@nestjs/common'
 import { TvShow } from '../models/tv-show.model'
 import { TvShowService } from '../services/tv-show.service'
 import { TitleCategory } from '../enums/title-category.enum'
@@ -15,8 +14,6 @@ import { FilmingLocation } from 'src/locations/models/filming-location.model'
 
 @Resolver(() => TvShow)
 export class TvShowsResolver {
-    private readonly logger = new Logger(TvShowsResolver.name)
-
     constructor(
         private readonly tvShowService: TvShowService,
         private readonly locationsService: LocationsService,
@@ -75,7 +72,7 @@ export class TvShowsResolver {
         description: 'Get a TV show by TMDB ID',
     })
     async tvShow(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
-        return await this.tvShowService.getByTmdbId(tmdbId)
+        return await this.tvShowService.getTvShowByTmdbId(tmdbId)
     }
 
     @Query(() => [TvShow], {

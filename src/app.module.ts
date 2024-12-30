@@ -12,12 +12,13 @@ import redisConfig from './config/redis.config'
 import tmdbConfig from './config/tmdb.config'
 import geocodingConfig from './config/geocoding.config'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
+import imdbConfig from './config/imdb/imdb.config'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [redisConfig, tmdbConfig, geocodingConfig],
+            load: [redisConfig, tmdbConfig, geocodingConfig, imdbConfig],
         }),
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,

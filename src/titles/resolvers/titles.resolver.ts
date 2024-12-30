@@ -18,7 +18,9 @@ export class TitlesResolver {
         @Args('type', { type: () => TitleType, nullable: true })
         type: TitleType = TitleType.ALL,
     ) {
-        this.logger.log(`Starting titles cache refresh for type: ${type}`)
+        this.logger.log(
+            `Starting popular titles cache refresh for type: ${type}`,
+        )
         const result = await this.titlesService.syncPopularTitles(type)
         this.logger.log('Cache refresh completed')
         return result
@@ -31,7 +33,9 @@ export class TitlesResolver {
         @Args('type', { type: () => TitleType, nullable: true })
         type: TitleType = TitleType.ALL,
     ) {
-        this.logger.log(`Starting titles cache refresh for type: ${type}`)
+        this.logger.log(
+            `Starting trending titles cache refresh for type: ${type}`,
+        )
         const result = await this.titlesService.syncTrendingTitles(type)
         this.logger.log('Cache refresh completed')
         return result
