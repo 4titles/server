@@ -18,10 +18,11 @@ import {
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
+    Genre,
 } from '@/modules/titles/models/common.model'
-import { Genre } from '@/modules/titles/models/common.model'
 import { SimplePerson } from '@/modules/titles/models/common.model'
 import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
+import { seriesGenres } from './genres.schema'
 
 export const series = pgTable(
     'series',
@@ -97,6 +98,7 @@ export const series = pgTable(
 
 export const seriesRelations = relations(series, ({ many }) => ({
     filmingLocations: many(filmingLocations),
+    genres: many(seriesGenres),
 }))
 
 export type DbSeries = typeof series.$inferSelect

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { DbMovie } from '@/drizzle/schema/movies.schema'
-import { DbSeries } from '@/drizzle/schema/series.schema'
+import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
+import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { MovieEntityService } from './movie-entity.service'
 import { TvShowEntityService } from './tv-show-entity.service'
 import { TitleCategory } from '../../enums/title-category.enum'

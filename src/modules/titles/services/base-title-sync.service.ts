@@ -8,9 +8,9 @@ import { DEFAULT_FETCH_LIMIT } from './constants/query.constants'
 import { Title } from '../types/title.type'
 import { MovieEntityService } from './entity/movie-entity.service'
 import { TvShowEntityService } from './entity/tv-show-entity.service'
-import { DbMovie } from '@/drizzle/schema/movies.schema'
-import { DbSeries } from '@/drizzle/schema/series.schema'
-import { TmdbService } from '@/modules/tmdb/tmdb-service'
+import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
+import { DbSeries } from '@/modules/drizzle/schema/series.schema'
+import { TmdbService } from '@/modules/tmdb/tmdb.service'
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {

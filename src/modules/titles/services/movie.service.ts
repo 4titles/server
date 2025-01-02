@@ -9,7 +9,7 @@ import {
     DEFAULT_FETCH_LIMIT,
     DEFAULT_SEARCH_LIMIT,
 } from './constants/query.constants'
-import { DbMovie } from '@/drizzle/schema/movies.schema'
+import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
 import { TitleMapper } from '../mappers/title.mapper'
 import { InvalidTitleCategoryException } from '../exceptions/invalid-title-category.exception'
 import { TitleFetchException } from '../exceptions/title-fetch.exception'

@@ -1,7 +1,7 @@
-import { DbMovie } from 'src/drizzle/schema/schema'
+import { DbMovie } from '@/modules/drizzle/schema/schema'
 import { Injectable } from '@nestjs/common'
-import { movies } from '@/drizzle/schema/movies.schema'
-import { DrizzleDB } from '@/drizzle/types/drizzle'
+import { movies } from '@/modules/drizzle/schema/movies.schema'
+import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import {
     BaseTitleEntityService,
     QueryOptions,

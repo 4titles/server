@@ -24,7 +24,7 @@ export class CacheService implements OnModuleInit {
         const redis = new Redis({
             host: config.host,
             port: config.port,
-            retryStrategy(times) {
+            retryStrategy: (times) => {
                 const delay = Math.min(times * 50, config.retryDelay)
                 this.logger.log(`Retrying Redis connection in ${delay}ms...`)
                 return delay

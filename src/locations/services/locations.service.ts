@@ -1,22 +1,20 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CacheService } from '@/modules/cache/cache.service'
-import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { ImdbParserService } from './imdb-parser.service'
-import { RawLocation } from '../interfaces/raw-location.interface'
 import { eq, and, isNull } from 'drizzle-orm'
-import {
-    filmingLocations,
-    locations as locationsSchema,
-} from '@/modules/drizzle/schema/filming-locations.schema'
-import { FilmingLocation } from '../models/filming-location.model'
-import { LocationsSyncResult } from '../models/locations-sync-result.model'
-import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
-import { DbSeries } from '@/modules/drizzle/schema/series.schema'
-import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
+import { locations as locationsSchema } from '@/modules/drizzle/schema/filming-locations.schema'
 import { GeocodingService } from '@/modules/geocoding/services/geocoding.service'
-import { TitleEntityService } from '@/modules/titles/services/entity/title-entity.service'
 import { GeocodeResult } from '@/modules/geocoding/interfaces/geocode-result.interface'
+import { DbMovie } from '@/drizzle/schema/movies.schema'
+import { FilmingLocationMapper } from '@/modules/locations/mappers/filming-location.mapper'
+import { DbSeries } from '@/modules/drizzle/schema/series.schema'
+import { filmingLocations } from '@/modules/drizzle/schema/filming-locations.schema'
+import { TitleEntityService } from '@/modules/titles/services/entity'
+import { LocationsSyncResult } from '@/modules/locations/models/locations-sync-result.model'
+import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
+import { ImdbParserService } from '@/modules/locations/services/imdb-parser.service'
+import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
+import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
+import { RawLocation } from '@/modules/locations/interfaces/raw-location.interface'
 
 @Injectable()
 export class LocationsService {

@@ -9,7 +9,9 @@ import {
     real,
     text,
 } from 'drizzle-orm/pg-core'
+import { timestamps } from '../helpers/column.helpers'
 import { relations, sql } from 'drizzle-orm'
+import { filmingLocations } from './filming-locations.schema'
 import { movieStatusEnum, titleCategoryEnum } from './enums.schema'
 import {
     Genre,
@@ -19,9 +21,7 @@ import {
 } from '@/modules/titles/models/common.model'
 import { MovieStatus } from '@/modules/titles/enums/movie-status.enum'
 import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
-import { timestamps } from '@/modules/drizzle/helpers/column.helpers'
-import { filmingLocations } from '@/modules/drizzle/schema/filming-locations.schema'
-import { movieGenres } from '@/modules/drizzle/schema/genres.schema'
+import { movieGenres } from './genres.schema'
 
 export const movies = pgTable(
     'movies',

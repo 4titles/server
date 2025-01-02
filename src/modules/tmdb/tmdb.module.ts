@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common'
-import { TmdbService } from './tmdb-service'
-import { ConfigService } from '@nestjs/config'
+import { TmdbService } from './tmdb.service'
 
 @Module({
-    providers: [TmdbService, ConfigService],
+    providers: [TmdbService],
     exports: [TmdbService],
 })
 export class TmdbModule {}

@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common'
-import { DRIZZLE } from 'src/drizzle/drizzle.module'
+import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DatabaseException } from '../../exceptions/database.exception'
-import { DrizzleDB } from 'src/drizzle/types/drizzle'
+import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { eq } from 'drizzle-orm'
 import { TitleCategory } from '../../enums/title-category.enum'
 import {

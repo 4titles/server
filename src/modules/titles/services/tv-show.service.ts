@@ -10,7 +10,7 @@ import {
     DEFAULT_SEARCH_LIMIT,
 } from './constants/query.constants'
 import { TitleMapper } from '../mappers/title.mapper'
-import { DbSeries } from '@/drizzle/schema/series.schema'
+import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { InvalidTitleCategoryException } from '../exceptions/invalid-title-category.exception'
 import { TitleFetchException } from '../exceptions/title-fetch.exception'
 

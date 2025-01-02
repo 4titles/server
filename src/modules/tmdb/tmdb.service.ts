@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
+    CountriesResponse,
+    CreditsResponse,
     MovieDb,
     MovieResponse,
     MovieResultsResponse,
@@ -8,6 +10,7 @@ import {
     TvResultsResponse,
 } from 'moviedb-promise'
 import { TmdbException } from './exceptions/tmdb.exception'
+import axios from 'axios'
 
 @Injectable()
 export class TmdbService {
@@ -191,7 +194,7 @@ export class TmdbService {
         }
     }
 
-    async getMovieCredits(movieId: number) {
+    async getMovieCredits(movieId: number): Promise<CreditsResponse> {
         try {
             return await this.moviedb.movieCredits({ id: movieId })
         } catch (error) {
@@ -205,7 +208,7 @@ export class TmdbService {
         }
     }
 
-    async getTvCredits(tvId: number) {
+    async getTvCredits(tvId: number): Promise<CreditsResponse> {
         try {
             return await this.moviedb.tvCredits({ id: tvId })
         } catch (error) {
@@ -216,6 +219,55 @@ export class TmdbService {
             throw new TmdbException(
                 `Failed to fetch TV credits: ${error.message}`,
             )
+        }
+    }
+
+    async getMovieGenres() {
+        try {
+            const [enGenres, ruGenres] = await Promise.all([
+                this.moviedb.genreMovieList({ language: 'en' }),
+                this.moviedb.genreMovieList({ language: 'ru' }),
+            ])
+
+            return {
+                en: enGenres,
+                ru: ruGenres,
+            }
+        } catch (error) {
+            this.logger.error('Failed to fetch movie genres:', error)
+            throw new TmdbException('Failed to fetch movie genres')
+        }
+    }
+
+    async getTvGenres() {
+        try {
+            const [enGenres, ruGenres] = await Promise.all([
+                this.moviedb.genreTvList({ language: 'en' }),
+                this.moviedb.genreTvList({ language: 'ru' }),
+            ])
+
+            return {
+                en: enGenres,
+                ru: ruGenres,
+            }
+        } catch (error) {
+            this.logger.error('Failed to fetch TV genres:', error)
+            throw new TmdbException('Failed to fetch TV genres')
+        }
+    }
+
+    async getCountries(): Promise<CountriesResponse> {
+        try {
+            const response = await axios.get(
+                `${this.moviedb.baseUrl}/configuration/countries?language=${this.defaultLanguage}`,
+                {
+                    headers: this.configService.get('tmdb.headers'),
+                },
+            )
+            return response.data
+        } catch (error) {
+            this.logger.error('Failed to fetch countries:', error)
+            throw new TmdbException('Failed to fetch countries')
         }
     }
 }
