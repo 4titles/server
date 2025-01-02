@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { CacheService } from 'src/cache/cache.service'
+import { CacheService } from '@/modules/cache/cache.service'
 import { DRIZZLE } from 'src/drizzle/drizzle.module'
 import { DrizzleDB } from 'src/drizzle/types/drizzle'
 import { ImdbParserService } from './imdb-parser.service'
@@ -11,12 +11,12 @@ import {
 } from 'src/drizzle/schema/filming-locations.schema'
 import { FilmingLocation } from '../models/filming-location.model'
 import { LocationsSyncResult } from '../models/locations-sync-result.model'
-import { GeocodingService } from 'src/geocoding/services/geocoding.service'
-import { GeocodeResult } from 'src/geocoding/interfaces/geocode-result.interface'
-import { TitleEntityService } from '@/titles/services/entity/title-entity.service'
 import { DbMovie } from '@/drizzle/schema/movies.schema'
 import { DbSeries } from '@/drizzle/schema/series.schema'
 import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
+import { GeocodingService } from '@/modules/geocoding/services/geocoding.service'
+import { TitleEntityService } from '@/modules/titles/services/entity/title-entity.service'
+import { GeocodeResult } from '@/modules/geocoding/interfaces/geocode-result.interface'
 
 @Injectable()
 export class LocationsService {

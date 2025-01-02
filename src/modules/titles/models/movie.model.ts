@@ -4,25 +4,24 @@ import {
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
-    Network,
-    SimplePerson,
 } from './common.model'
 import { TitleCategory } from '../enums/title-category.enum'
-import { FilmingLocation } from 'src/locations/models/filming-location.model'
+import { MovieStatus } from '../enums/movie-status.enum'
+import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 
 @ObjectType()
-export class TvShow {
+export class Movie {
     @Field(() => Int)
     tmdbId: number
 
-    @Field(() => String)
+    @Field()
     imdbId: string
 
     @Field()
-    name: string
+    title: string
 
     @Field()
-    originalName: string
+    originalTitle: string
 
     @Field()
     overview: string
@@ -33,14 +32,11 @@ export class TvShow {
     @Field({ nullable: true })
     backdropPath?: string
 
-    @Field(() => [SimplePerson])
-    createdBy: SimplePerson[]
+    @Field()
+    adult: boolean
 
-    @Field(() => [Int])
-    episodeRunTime: number[]
-
-    @Field({ nullable: true })
-    firstAirDate?: string
+    @Field(() => Int)
+    budget: number
 
     @Field(() => [Genre])
     genres: Genre[]
@@ -49,43 +45,22 @@ export class TvShow {
     homepage?: string
 
     @Field()
-    inProduction: boolean
-
-    @Field(() => [String])
-    languages: string[]
-
-    @Field({ nullable: true })
-    lastAirDate?: string
-
-    @Field(() => [Network])
-    networks: Network[]
-
-    @Field(() => Int)
-    numberOfEpisodes: number
-
-    @Field(() => Int)
-    numberOfSeasons: number
-
-    @Field(() => [String])
-    originCountry: string[]
-
-    @Field()
     originalLanguage: string
 
     @Field(() => Float)
     popularity: number
 
-    @Field(() => [ProductionCompany])
-    productionCompanies: ProductionCompany[]
+    @Field({ nullable: true })
+    releaseDate?: string
 
-    @Field(() => [ProductionCountry])
-    productionCountries: ProductionCountry[]
+    @Field(() => Int)
+    revenue: number
 
-    @Field(() => [SpokenLanguage])
-    spokenLanguages: SpokenLanguage[]
+    @Field(() => Int)
+    runtime: number
 
-    @Field()
-    status: string
+    @Field(() => MovieStatus)
+    status: MovieStatus
 
     @Field({ nullable: true })
     tagLine?: string
@@ -96,8 +71,20 @@ export class TvShow {
     @Field(() => Int)
     voteCount: number
 
-    @Field(() => String, { nullable: true })
-    updatedAt?: Date
+    @Field(() => [ProductionCompany])
+    productionCompanies: ProductionCompany[]
+
+    @Field(() => [ProductionCountry])
+    productionCountries: ProductionCountry[]
+
+    @Field(() => [SpokenLanguage])
+    spokenLanguages: SpokenLanguage[]
+
+    @Field(() => [String])
+    originCountry: string[]
+
+    @Field()
+    updatedAt: Date
 
     @Field(() => TitleCategory)
     category: TitleCategory

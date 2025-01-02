@@ -10,8 +10,8 @@ import { Logger } from '@nestjs/common'
 import { Movie } from '../models/movie.model'
 import { MovieService } from '../services/movie.service'
 import { TitleCategory } from '../enums/title-category.enum'
-import { LocationsService } from 'src/locations/services/locations.service'
-import { FilmingLocation } from 'src/locations/models/filming-location.model'
+import { LocationsService } from '@/modules/locations/services/locations.service'
+import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 
 @Resolver(() => Movie)
 export class MoviesResolver {

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { CacheService } from 'src/cache/cache.service'
-import { TmdbService } from 'src/tmdb/tmdb-service'
-import { LocationsService } from 'src/locations/services/locations.service'
+import { CacheService } from '@/modules/cache/cache.service'
+import { LocationsService } from '@/modules/locations/services/locations.service'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieResult, TvResult } from 'moviedb-promise'
 import { TitleType } from '@/graphql'
@@ -11,6 +10,7 @@ import { MovieEntityService } from './entity/movie-entity.service'
 import { TvShowEntityService } from './entity/tv-show-entity.service'
 import { DbMovie } from '@/drizzle/schema/movies.schema'
 import { DbSeries } from '@/drizzle/schema/series.schema'
+import { TmdbService } from '@/modules/tmdb/tmdb-service'
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {

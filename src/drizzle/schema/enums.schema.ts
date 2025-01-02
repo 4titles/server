@@ -1,6 +1,6 @@
+import { MovieStatus } from '@/modules/titles/enums/movie-status.enum'
+import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
 import { pgEnum } from 'drizzle-orm/pg-core'
-import { MovieStatus } from 'src/titles/enums/movie-status.enum'
-import { TitleCategory } from 'src/titles/enums/title-category.enum'
 
 export const titleCategoryEnum = pgEnum('title_category', [
     TitleCategory.POPULAR,

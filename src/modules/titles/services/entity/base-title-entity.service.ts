@@ -8,7 +8,7 @@ import {
     DEFAULT_FETCH_LIMIT,
     TITLE_WITH_RELATIONS,
 } from '../constants/query.constants'
-import { DbTitle, DbTitleTable } from '@/titles/types/title.type'
+import { DbTitle, DbTitleTable } from '../../types/title.type'
 
 export interface QueryOptions {
     includeRelations?: boolean

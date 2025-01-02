@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { DbMovie } from '@/drizzle/schema/movies.schema'
 import { DbSeries } from '@/drizzle/schema/series.schema'
-import { TitleType } from '@/titles/enums/title-type.enum'
 import { MovieEntityService } from './movie-entity.service'
 import { TvShowEntityService } from './tv-show-entity.service'
-import { Movie } from '@/titles/models/movie.model'
-import { TvShow } from '@/titles/models/tv-show.model'
-import { TitleCategory } from '@/titles/enums/title-category.enum'
+import { TitleCategory } from '../../enums/title-category.enum'
+import { TitleType } from '../../enums/title-type.enum'
+import { Title } from '../../types/title.type'
 
 export interface TitleResult<M, S> {
     movie: M
@@ -51,10 +50,7 @@ export class TitleEntityService {
         return [movies, series]
     }
 
-    async createOrUpdate(
-        entity: Movie | TvShow,
-        type: TitleType,
-    ): Promise<void> {
+    async createOrUpdate(entity: Title, type: TitleType): Promise<void> {
         if (!type) {
             throw new Error(
                 'Title type must be specified for create/update operation',

@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import axios from 'axios'
 import { GeocodeResult } from '../interfaces/geocode-result.interface'
-import { delay } from '@/titles/services/utils/delay.utils'
-import { chunkArray } from '@/titles/services/utils/chunk-array.utils'
+import { chunkArray } from '@/modules/titles/services/utils/chunk-array.utils'
+import { delay } from '@/modules/titles/services/utils/delay.utils'
 
 @Injectable()
 export class GeocodingService {

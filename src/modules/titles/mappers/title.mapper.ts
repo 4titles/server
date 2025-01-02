@@ -1,7 +1,7 @@
-import { FilmingLocationMapper } from 'src/locations/mappers/filming-location.mapper'
+import { FilmingLocationMapper } from '@/modules/locations/mappers/filming-location.mapper'
 import { bigIntSerializer } from '../services/utils/json.utils'
 import { DbTitle, Title } from '../types/title.type'
-import { FilmingLocation } from '@/locations/models/filming-location.model'
+import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 
 export class TitleMapper {
     private static mapFilmingLocations(

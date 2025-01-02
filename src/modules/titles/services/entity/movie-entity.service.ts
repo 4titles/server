@@ -7,7 +7,7 @@ import {
     QueryOptions,
 } from './base-title-entity.service'
 import { DEFAULT_FETCH_LIMIT } from '../constants/query.constants'
-import { TitleCategory } from '@/titles/enums/title-category.enum'
+import { TitleCategory } from '../../enums/title-category.enum'
 
 @Injectable()
 export class MovieEntityService extends BaseTitleEntityService<DbMovie> {

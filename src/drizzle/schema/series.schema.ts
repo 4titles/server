@@ -10,18 +10,18 @@ import {
     text,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
+import { relations, sql } from 'drizzle-orm'
+import { filmingLocations } from './filming-locations.schema'
+import { titleCategoryEnum } from './enums.schema'
 import {
-    Genre,
     Network,
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
-    SimplePerson,
-} from 'src/titles/models/common.model'
-import { TitleCategory } from 'src/titles/enums/title-category.enum'
-import { relations, sql } from 'drizzle-orm'
-import { filmingLocations } from './filming-locations.schema'
-import { titleCategoryEnum } from './enums.schema'
+} from '@/modules/titles/models/common.model'
+import { Genre } from '@/modules/titles/models/common.model'
+import { SimplePerson } from '@/modules/titles/models/common.model'
+import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
 
 export const series = pgTable(
     'series',

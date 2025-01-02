@@ -1,10 +1,10 @@
 import * as puppeteer from 'puppeteer'
 import { Injectable, Logger } from '@nestjs/common'
 import { RawLocation } from '../interfaces/raw-location.interface'
-import { delay } from '@/titles/services/utils/delay.utils'
 import { ConfigService } from '@nestjs/config'
-import { chunkArray } from '@/titles/services/utils/chunk-array.utils'
 import { IImdbConfig } from '@/config/imdb/imdb-config.interface'
+import { chunkArray } from '@/modules/titles/services/utils/chunk-array.utils'
+import { delay } from '@/modules/titles/services/utils/delay.utils'
 
 @Injectable()
 export class ImdbParserService {
