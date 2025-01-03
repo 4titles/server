@@ -54,6 +54,9 @@ export class TvShowService extends BaseTitleSyncService<TvShow> {
                     dbTvShows =
                         await this.tvShowEntityService.getSearched(limit)
                     break
+                case TitleCategory.AIRING:
+                    dbTvShows = await this.tvShowEntityService.getAiring(limit)
+                    break
                 default:
                     throw new InvalidTitleCategoryException()
             }
@@ -86,6 +89,19 @@ export class TvShowService extends BaseTitleSyncService<TvShow> {
             (page) =>
                 this.tmdbService
                     .getTopRatedTvShows(page)
+                    .then((res) => res.results),
+        )
+    }
+
+    async syncAiringTvShows(
+        limit: number = DEFAULT_FETCH_LIMIT,
+    ): Promise<TvShow[]> {
+        return await this.syncTitlesByCategory(
+            TitleCategory.AIRING,
+            limit,
+            (page) =>
+                this.tmdbService
+                    .getAiringTodayTvShows(page)
                     .then((res) => res.results),
         )
     }

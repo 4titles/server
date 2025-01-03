@@ -67,6 +67,18 @@ export class TvShowsResolver {
         )
     }
 
+    @Query(() => [TvShow], {
+        description: 'Get a list of an airing TV shows with an optional limit',
+    })
+    async airingTvShows(
+        @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+    ) {
+        return await this.tvShowService.getTvShowsByCategory(
+            limit,
+            TitleCategory.AIRING,
+        )
+    }
+
     @Query(() => TvShow, {
         nullable: true,
         description: 'Get a TV show by TMDB ID',

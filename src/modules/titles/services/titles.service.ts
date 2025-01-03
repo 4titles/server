@@ -36,6 +36,7 @@ export class TitlesService {
                 topRatedMovies,
                 topRatedTvShows,
                 upcomingMovies,
+                airingTvShows,
             ] = await Promise.all([
                 this.movieService.syncPopularMovies(),
                 this.tvShowService.syncPopularTvShows(),
@@ -44,6 +45,7 @@ export class TitlesService {
                 this.movieService.syncTopRatedMovies(),
                 this.tvShowService.syncTopRatedTvShows(),
                 this.movieService.syncUpComingMovies(),
+                this.tvShowService.syncAiringTvShows(),
             ])
 
             return {
@@ -54,6 +56,7 @@ export class TitlesService {
                 topRatedMoviesCount: topRatedMovies.length,
                 topRatedTvShowsCount: topRatedTvShows.length,
                 upcomingMoviesCount: upcomingMovies.length,
+                airingTvShowsCount: airingTvShows.length,
             }
         } catch (error) {
             this.logger.error('Failed to sync all content:', error)
@@ -195,6 +198,21 @@ export class TitlesService {
             }
         } catch (error) {
             this.logger.error(`Failed to sync upcoming titles:`, error)
+            throw error
+        }
+    }
+
+    async syncAiringTitles(
+        limit: number = DEFAULT_FETCH_LIMIT,
+    ): Promise<SyncResult> {
+        try {
+            const tvShows = await this.tvShowService.syncAiringTvShows(limit)
+            return {
+                tvShowsCount: tvShows.length,
+                moviesCount: 0,
+            }
+        } catch (error) {
+            this.logger.error(`Failed to sync airing titles:`, error)
             throw error
         }
     }

@@ -69,6 +69,18 @@ export class TitlesResolver {
         return result
     }
 
+    @Mutation(() => SyncResult, {
+        description: 'Synchronize airing titles with an optional limit',
+    })
+    async syncAiringTitles(
+        @Args('limit', { type: () => Int, nullable: true }) limit?: number,
+    ) {
+        this.logger.log(`Starting titles cache refresh for airing`)
+        const result = await this.titlesService.syncAiringTitles(limit)
+        this.logger.log('Cache refresh completed')
+        return result
+    }
+
     @Mutation(() => FullSyncResult, {
         description: 'Perform a full content cache refresh',
     })

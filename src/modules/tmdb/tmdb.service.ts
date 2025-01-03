@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import {
     CountriesResponse,
     CreditsResponse,
+    Language,
     MovieDb,
     MovieResponse,
     MovieResultsResponse,
@@ -10,7 +11,8 @@ import {
     TvResultsResponse,
 } from 'moviedb-promise'
 import { TmdbException } from './exceptions/tmdb.exception'
-import axios from 'axios'
+import { HttpService } from '@nestjs/axios'
+import { firstValueFrom } from 'rxjs'
 
 @Injectable()
 export class TmdbService {
@@ -18,7 +20,10 @@ export class TmdbService {
     private readonly logger = new Logger(TmdbService.name)
     private readonly defaultLanguage: string
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly httpService: HttpService,
+    ) {
         const apiKey = this.configService.get<string>('tmdb.apiKey')
         if (!apiKey) {
             throw new Error('TMDB_API_KEY is not defined')
@@ -99,8 +104,8 @@ export class TmdbService {
                 language: this.defaultLanguage,
             })
         } catch (error) {
-            this.logger.error(`Failed to fetch popular tv shows`, error)
-            throw new TmdbException(`Failed to fetch popular tv shows`)
+            this.logger.error(`Failed to fetch popular tvShows`, error)
+            throw new TmdbException(`Failed to fetch popular tvShows`)
         }
     }
 
@@ -113,6 +118,18 @@ export class TmdbService {
         } catch (error) {
             this.logger.error(`Failed to fetch upcoming movies`, error)
             throw new TmdbException(`Failed to fetch upcoming movies`)
+        }
+    }
+
+    async getAiringTodayTvShows(page: number = 1): Promise<TvResultsResponse> {
+        try {
+            return await this.moviedb.tvAiringToday({
+                page,
+                language: this.defaultLanguage,
+            })
+        } catch (error) {
+            this.logger.error(`Failed to fetch airing tvShows`, error)
+            throw new TmdbException(`Failed to fetch airing tvShows`)
         }
     }
 
@@ -258,16 +275,28 @@ export class TmdbService {
 
     async getCountries(): Promise<CountriesResponse> {
         try {
-            const response = await axios.get(
-                `${this.moviedb.baseUrl}/configuration/countries?language=${this.defaultLanguage}`,
-                {
-                    headers: this.configService.get('tmdb.headers'),
-                },
+            const response = await firstValueFrom(
+                this.httpService.get(
+                    `${this.moviedb.baseUrl}/configuration/countries?language=${this.defaultLanguage}`,
+                    {
+                        headers: this.configService.get('tmdb.headers'),
+                    },
+                ),
             )
+
             return response.data
         } catch (error) {
             this.logger.error('Failed to fetch countries:', error)
             throw new TmdbException('Failed to fetch countries')
+        }
+    }
+
+    async getLanguages(): Promise<Array<Language>> {
+        try {
+            return await this.moviedb.languages()
+        } catch (error) {
+            this.logger.error('Failed to fetch languages:', error)
+            throw new TmdbException('Failed to fetch languages')
         }
     }
 }

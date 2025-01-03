@@ -6,6 +6,7 @@ export enum TitleCategory {
     TRENDING = 'TRENDING',
     SEARCH = 'SEARCH',
     UPCOMING = 'UPCOMING',
+    AIRING = 'AIRING',
 }
 
 registerEnumType(TitleCategory, {
