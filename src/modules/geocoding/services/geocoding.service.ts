@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import axios from 'axios'
 import { GeocodeResult } from '../interfaces/geocode-result.interface'
 import { chunkArray } from '@/modules/titles/services/utils/chunk-array.utils'
 import { delay } from '@/modules/titles/services/utils/delay.utils'
+import { HttpService } from '@nestjs/axios'
+import { firstValueFrom } from 'rxjs'
 
 @Injectable()
 export class GeocodingService {
@@ -11,7 +12,10 @@ export class GeocodingService {
     private readonly apiKey: string
     private readonly baseUrl: string
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly httpService: HttpService,
+    ) {
         this.apiKey = this.configService.get<string>('geocoding.apiKey')
         this.baseUrl = this.configService.get<string>('geocoding.baseUrl')
     }
@@ -25,7 +29,9 @@ export class GeocodingService {
                 limit: '1',
             })
 
-            const response = await axios.get(`${this.baseUrl}?${params}`)
+            const response = await firstValueFrom(
+                this.httpService.get(`${this.baseUrl}?${params}`),
+            )
             const results = response.data.results
 
             if (results && results.length > 0) {
