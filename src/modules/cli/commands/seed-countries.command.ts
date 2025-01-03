@@ -13,6 +13,6 @@ export class SeedCountriesCommand {
     async run(): Promise<void> {
         console.log('Starting countries seeding...')
         await this.countrySeeder.seed()
-        console.log('Genres counries completed')
+        console.log('Countries seeding completed')
     }
 }

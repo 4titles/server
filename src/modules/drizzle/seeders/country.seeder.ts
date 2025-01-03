@@ -4,6 +4,7 @@ import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DrizzleDB } from '../types/drizzle'
 import { countries } from '../schema/countries.schema'
 import { TmdbCountry } from '@/modules/tmdb/types/country.type'
+import { sql } from 'drizzle-orm'
 
 @Injectable()
 export class CountrySeeder {
@@ -23,18 +24,26 @@ export class CountrySeeder {
                 `Fetched countries: ${JSON.stringify(tmdbCountries)}`,
             )
 
-            await this.db.delete(countries)
-
             const countriesToInsert = tmdbCountries.map((c) => ({
                 englishName: c.english_name,
                 iso: c.iso_3166_1,
                 nativeName: c?.native_name,
             }))
 
-            await this.db.insert(countries).values(countriesToInsert)
+            await this.db
+                .insert(countries)
+                .values(countriesToInsert)
+                .onConflictDoUpdate({
+                    target: countries.id,
+                    set: {
+                        englishName: sql`EXCLUDED.english_name`,
+                        nativeName: sql`EXCLUDED.native_name`,
+                        iso: sql`EXCLUDED.iso`,
+                    },
+                })
 
             this.logger.log(
-                `Successfully seeded ${tmdbCountries.length} countries`,
+                `Successfully seeded ${countriesToInsert.length} countries`,
             )
         } catch (error) {
             this.logger.error('Failed to seed countries:', error)
