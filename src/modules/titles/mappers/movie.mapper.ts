@@ -1,19 +1,14 @@
-import { MovieResponse, Genre as TmdbGenre } from 'moviedb-promise'
+import { MovieResponse } from 'moviedb-promise'
 import { Movie } from '../models/movie.model'
-import {
-    Genre,
-    ProductionCompany,
-    ProductionCountry,
-    SpokenLanguage,
-} from '../models/common.model'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieStatus } from '../enums/movie-status.enum'
+import { TitleMapper } from './title.mapper'
 
-export class MovieMapper {
-    static mapMovieResponseToMovie(
+export class MovieMapper extends TitleMapper {
+    async mapMovieResponseToMovie(
         movieResponse: MovieResponse,
         category: TitleCategory,
-    ): Movie {
+    ): Promise<Movie> {
         return {
             tmdbId: movieResponse.id,
             imdbId: movieResponse.imdb_id || '',
@@ -24,7 +19,12 @@ export class MovieMapper {
             backdropPath: movieResponse.backdrop_path,
             adult: movieResponse.adult,
             budget: movieResponse.budget,
-            genres: this.mapGenres(movieResponse.genres),
+            genres: await this.mapGenres(
+                movieResponse.genres.map((g) => ({
+                    tmdbId: String(g.id || 0),
+                    names: { en: '', ru: g.name },
+                })),
+            ),
             homepage: movieResponse.homepage || null,
             originalLanguage: movieResponse.original_language,
             popularity: movieResponse.popularity,
@@ -52,44 +52,5 @@ export class MovieMapper {
             updatedAt: new Date(),
             category,
         }
-    }
-
-    private static mapGenres(genres?: TmdbGenre[]): Genre[] {
-        if (!genres) return []
-        return genres.map((genre) => ({
-            id: genre.id || 0,
-            name: genre.name || '',
-        }))
-    }
-
-    private static mapProductionCompanies(
-        companies?: any[],
-    ): ProductionCompany[] {
-        if (!companies) return []
-        return companies.map((company) => ({
-            id: company.id || 0,
-            name: company.name || '',
-            logo_path: company.logo_path,
-            origin_country: company.origin_country || '',
-        }))
-    }
-
-    private static mapProductionCountries(
-        countries?: any[],
-    ): ProductionCountry[] {
-        if (!countries) return []
-        return countries.map((country) => ({
-            iso_3166_1: country.iso_3166_1 || '',
-            name: country.name || '',
-        }))
-    }
-
-    private static mapSpokenLanguages(languages?: any[]): SpokenLanguage[] {
-        if (!languages) return []
-        return languages.map((language) => ({
-            english_name: language.english_name || '',
-            iso_639_1: language.iso_639_1 || '',
-            name: language.name || '',
-        }))
     }
 }

@@ -14,7 +14,6 @@ import { relations, sql } from 'drizzle-orm'
 import { filmingLocations } from './filming-locations.schema'
 import { movieStatusEnum, titleCategoryEnum } from './enums.schema'
 import {
-    Genre,
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
@@ -36,7 +35,6 @@ export const movies = pgTable(
         posterPath: text('poster_path'), // TODO posters table
         backdropPath: text('backdrop_path'), // TODO posters table
         budget: integer('budget').default(0),
-        genres: jsonb('genres').$type<Genre[]>().notNull(), // TODO create genres table
         homepage: text('homepage'),
         originCountry: jsonb('origin_country').$type<string[]>().notNull(), // TODO create countries table
         originalLanguage: text('original_language').notNull(), // TODO create languages table

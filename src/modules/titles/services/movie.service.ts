@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { MovieResponse, MovieResult } from 'moviedb-promise'
+import { MovieResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
-import { MovieMapper } from '../mappers/movie.mapper'
 import { Movie } from '../models/movie.model'
 import { BaseTitleSyncService } from './base-title-sync.service'
 import { TitleType } from '../enums/title-type.enum'
@@ -10,20 +9,19 @@ import {
     DEFAULT_SEARCH_LIMIT,
 } from './constants/query.constants'
 import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
-import { TitleMapper } from '../mappers/title.mapper'
 import { InvalidTitleCategoryException } from '../exceptions/invalid-title-category.exception'
 import { TitleFetchException } from '../exceptions/title-fetch.exception'
 
 @Injectable()
 export class MovieService extends BaseTitleSyncService<Movie> {
     async getMovieByImdbId(imdbId: string): Promise<Movie> {
-        return TitleMapper.mapSingleWithRelations<DbMovie>(
+        return this.titleMapper.mapSingleWithRelations<DbMovie>(
             await this.movieEntityService.getByImdbId(imdbId),
         )
     }
 
     async getMovieByTmdbId(tmdbId: number): Promise<Movie> {
-        return TitleMapper.mapSingleWithRelations<DbMovie>(
+        return this.titleMapper.mapSingleWithRelations<DbMovie>(
             await this.movieEntityService.getByTmdbId(tmdbId),
         )
     }
@@ -58,7 +56,7 @@ export class MovieService extends BaseTitleSyncService<Movie> {
                     throw new InvalidTitleCategoryException()
             }
 
-            return TitleMapper.mapManyWithRelations<DbMovie>(dbMovies)
+            return this.titleMapper.mapManyWithRelations<DbMovie>(dbMovies)
         } catch (error) {
             throw new TitleFetchException(
                 `Failed to fetch movies: ${error.message}`,
@@ -116,14 +114,14 @@ export class MovieService extends BaseTitleSyncService<Movie> {
             TitleType.MOVIES,
             category,
             this.tmdbService.getMovieDetails.bind(this.tmdbService),
-            MovieMapper.mapMovieResponseToMovie.bind(MovieMapper),
+            this.movieMapper.mapMovieResponseToMovie.bind(this.movieMapper),
         )
     }
 
     async searchMoviesOnTMDB(
         query: string,
         limit: number = DEFAULT_SEARCH_LIMIT,
-    ): Promise<MovieResponse[]> {
+    ): Promise<Movie[]> {
         const { results } = await this.tmdbService.searchMovies(query)
 
         return Promise.all(

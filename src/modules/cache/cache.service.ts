@@ -2,6 +2,7 @@ import { Global, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Redis } from 'ioredis'
 import { IRedisConfig } from 'src/config/redis.config'
+import { bigIntSerializer } from '../titles/services/utils/json.utils'
 
 @Global()
 @Injectable()
@@ -55,7 +56,7 @@ export class CacheService implements OnModuleInit {
     ): Promise<void> {
         await this.redis.set(
             key,
-            JSON.stringify(value),
+            bigIntSerializer.stringify(value),
             'EX',
             expirationSeconds,
         )

@@ -8,6 +8,7 @@ import { TmdbModule } from '../tmdb/tmdb.module'
 import * as resolvers from './resolvers'
 import * as services from './services'
 import * as entityServices from './services/entity'
+import * as mappers from './mappers'
 
 @Module({
     imports: [CacheModule, TmdbModule, DrizzleModule, LocationsModule],
@@ -15,11 +16,14 @@ import * as entityServices from './services/entity'
         // services
         ...Object.values(services),
 
-        //entity services
+        // entity services
         ...Object.values(entityServices),
 
         // resolvers
         ...Object.values(resolvers),
+
+        // mappers
+        ...Object.values(mappers),
     ],
     exports: [TitlesService, TitleEntityService],
 })

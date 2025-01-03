@@ -136,7 +136,7 @@ export class LocationsService {
             return await this.syncLocations(imdbId, locations)
         } catch (error) {
             this.logger.error(
-                `Failed to sync locations for title ${imdbId}:`,
+                `Failed to sync locations for title with imdbId: ${imdbId}:`,
                 error,
             )
             return false

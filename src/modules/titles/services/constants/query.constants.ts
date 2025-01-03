@@ -7,6 +7,11 @@ export const TITLE_RELATIONS = {
             location: true,
         },
     },
+    genres: {
+        with: {
+            genre: true,
+        },
+    },
 } as const
 
 export const TITLE_WITH_RELATIONS = {

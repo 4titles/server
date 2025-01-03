@@ -11,6 +11,10 @@ import { TvShowEntityService } from './entity/tv-show-entity.service'
 import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
 import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { TmdbService } from '@/modules/tmdb/tmdb.service'
+import { TitleMapper } from '../mappers/title.mapper'
+import { TvShowMapper } from '../mappers/tv-show.mapper'
+import { MovieMapper } from '../mappers/movie.mapper'
+import { GenreEntityService } from './entity/genre-entity.service'
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {
@@ -18,11 +22,15 @@ export abstract class BaseTitleSyncService<T extends Title> {
     protected readonly CACHE_TTL = 24 * 60 * 60
 
     constructor(
+        protected readonly titleMapper: TitleMapper,
+        protected readonly movieMapper: MovieMapper,
+        protected readonly tvShowMapper: TvShowMapper,
         protected readonly tmdbService: TmdbService,
         protected readonly cacheService: CacheService,
         protected readonly movieEntityService: MovieEntityService,
         protected readonly tvShowEntityService: TvShowEntityService,
         protected readonly locationsService: LocationsService,
+        protected readonly genreEntityService: GenreEntityService,
     ) {}
 
     protected abstract syncTitle(
@@ -95,7 +103,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
         titleType: TitleType,
         category: TitleCategory,
         fetchDetails: (id: number) => Promise<any>,
-        mapper: (response: any, category: TitleCategory) => T,
+        mapper: (response: any, category: TitleCategory) => Promise<T>,
     ): Promise<T> {
         const cacheKey = `${category}_${titleType}_${tmdbId}`
         const locationsCacheKey = `${category}_${titleType}_locations_${tmdbId}`
@@ -110,7 +118,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
             }
 
             const response = await fetchDetails(tmdbId)
-            const item = mapper(response, category)
+            const item: T = await mapper(response, category)
 
             if (titleType === TitleType.MOVIES) {
                 await this.movieEntityService.createOrUpdate(item as DbMovie)
@@ -118,18 +126,17 @@ export abstract class BaseTitleSyncService<T extends Title> {
                 await this.tvShowEntityService.createOrUpdate(item as DbSeries)
             }
 
-            this.logger.log(
-                `Syncing locations for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
-            )
-
             if (response.imdb_id) {
+                this.logger.log(
+                    `Syncing locations for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
+                )
                 await this.locationsService.syncLocationsForTitle(
                     response.imdb_id,
                 )
                 const locations =
                     await this.locationsService.getLocationsForTitle(
                         response.imdb_id,
-                        true,
+                        titleType === TitleType.MOVIES,
                     )
                 item.filmingLocations = locations
 
@@ -137,6 +144,21 @@ export abstract class BaseTitleSyncService<T extends Title> {
                     locationsCacheKey,
                     locations,
                     this.CACHE_TTL,
+                )
+            }
+
+            if (item.genres?.length) {
+                this.logger.log(
+                    `Syncing genres for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
+                )
+                await this.genreEntityService.syncGenresForTitle(
+                    item.imdbId,
+                    item.genres,
+                )
+
+                item.genres = await this.genreEntityService.getGenresForTitle(
+                    item.imdbId,
+                    titleType === TitleType.MOVIES,
                 )
             }
 

@@ -18,7 +18,6 @@ import {
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
-    Genre,
 } from '@/modules/titles/models/common.model'
 import { SimplePerson } from '@/modules/titles/models/common.model'
 import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
@@ -39,7 +38,6 @@ export const series = pgTable(
         createdBy: jsonb('created_by').$type<SimplePerson[]>().notNull(), // TODO create credits table
         episodeRunTime: jsonb('episode_run_time').$type<number[]>().default([]), // array of integers
         firstAirDate: date('first_air_date'),
-        genres: jsonb('genres').$type<Genre[]>().notNull(), // TODO create genres table
         homepage: text('homepage'),
         inProduction: boolean('in_production').notNull().default(false),
         languages: jsonb('languages').$type<string[]>().default([]), // TODO create languages table, array of strings

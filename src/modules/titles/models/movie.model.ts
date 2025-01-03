@@ -1,6 +1,5 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql'
 import {
-    Genre,
     ProductionCompany,
     ProductionCountry,
     SpokenLanguage,
@@ -8,6 +7,7 @@ import {
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieStatus } from '../enums/movie-status.enum'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
+import { Genre } from './genre.model'
 
 @ObjectType()
 export class Movie {
@@ -37,9 +37,6 @@ export class Movie {
 
     @Field(() => Int)
     budget: number
-
-    @Field(() => [Genre])
-    genres: Genre[]
 
     @Field({ nullable: true })
     homepage?: string
@@ -83,7 +80,7 @@ export class Movie {
     @Field(() => [String])
     originCountry: string[]
 
-    @Field()
+    @Field(() => String, { nullable: true })
     updatedAt: Date
 
     @Field(() => TitleCategory)
@@ -91,4 +88,7 @@ export class Movie {
 
     @Field(() => [FilmingLocation], { nullable: true })
     filmingLocations?: FilmingLocation[]
+
+    @Field(() => [Genre], { nullable: true })
+    genres?: Genre[]
 }

@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { MovieResponse, ShowResponse } from 'moviedb-promise'
 import { TitleType } from '../enums/title-type.enum'
 import { MovieService } from './movie.service'
 import { TvShowService } from './tv-show.service'
 import { SyncResult } from '../models/sync-result.model'
 import { FullSyncResult } from '../models/full-sync-result.model'
 import { DEFAULT_FETCH_LIMIT } from './constants/query.constants'
-import { Title, TitleResponse } from '../types/title.type'
+import { Title } from '../types/title.type'
+import { Movie } from '../models/movie.model'
+import { TvShow } from '../models/tv-show.model'
 
 @Injectable()
 export class TitlesService {
@@ -64,7 +65,7 @@ export class TitlesService {
         }
     }
 
-    async syncTitle(tmdbId: number, type?: TitleType): Promise<TitleResponse> {
+    async syncTitle(tmdbId: number, type?: TitleType): Promise<Title> {
         try {
             switch (type) {
                 case TitleType.MOVIES:
@@ -87,8 +88,8 @@ export class TitlesService {
         type: TitleType = TitleType.ALL,
     ): Promise<SyncResult> {
         try {
-            let movies: MovieResponse[] = []
-            let tvShows: ShowResponse[] = []
+            let movies: Movie[] = []
+            let tvShows: TvShow[] = []
 
             switch (type) {
                 case TitleType.MOVIES:
@@ -121,8 +122,8 @@ export class TitlesService {
         type: TitleType = TitleType.ALL,
     ): Promise<SyncResult> {
         try {
-            let movies: MovieResponse[] = []
-            let tvShows: ShowResponse[] = []
+            let movies: Movie[] = []
+            let tvShows: TvShow[] = []
 
             switch (type) {
                 case TitleType.MOVIES:
@@ -156,8 +157,8 @@ export class TitlesService {
         limit: number = DEFAULT_FETCH_LIMIT,
     ): Promise<SyncResult> {
         try {
-            let movies: MovieResponse[] = []
-            let tvShows: ShowResponse[] = []
+            let movies: Movie[] = []
+            let tvShows: TvShow[] = []
 
             switch (type) {
                 case TitleType.MOVIES:

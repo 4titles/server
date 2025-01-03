@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { ShowResponse, TvResult } from 'moviedb-promise'
+import { TvResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
-import { TvShowMapper } from '../mappers/tv-show.mapper'
 import { TvShow } from '../models/tv-show.model'
 import { BaseTitleSyncService } from './base-title-sync.service'
 import { TitleType } from '../enums/title-type.enum'
@@ -9,7 +8,6 @@ import {
     DEFAULT_FETCH_LIMIT,
     DEFAULT_SEARCH_LIMIT,
 } from './constants/query.constants'
-import { TitleMapper } from '../mappers/title.mapper'
 import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { InvalidTitleCategoryException } from '../exceptions/invalid-title-category.exception'
 import { TitleFetchException } from '../exceptions/title-fetch.exception'
@@ -17,13 +15,13 @@ import { TitleFetchException } from '../exceptions/title-fetch.exception'
 @Injectable()
 export class TvShowService extends BaseTitleSyncService<TvShow> {
     async getTvShowByImdbId(imdbId: string): Promise<TvShow> {
-        return TitleMapper.mapSingleWithRelations<DbSeries>(
+        return await this.titleMapper.mapSingleWithRelations<DbSeries>(
             await this.tvShowEntityService.getByImdbId(imdbId),
         )
     }
 
     async getTvShowByTmdbId(tmdbId: number): Promise<TvShow> {
-        return TitleMapper.mapSingleWithRelations<DbSeries>(
+        return await this.titleMapper.mapSingleWithRelations<DbSeries>(
             await this.tvShowEntityService.getByTmdbId(tmdbId),
         )
     }
@@ -61,7 +59,9 @@ export class TvShowService extends BaseTitleSyncService<TvShow> {
                     throw new InvalidTitleCategoryException()
             }
 
-            return TitleMapper.mapManyWithRelations<DbSeries>(dbTvShows)
+            return await this.titleMapper.mapManyWithRelations<DbSeries>(
+                dbTvShows,
+            )
         } catch (error) {
             throw new TitleFetchException(
                 `Failed to fetch tvShows: ${error.message}`,
@@ -106,7 +106,7 @@ export class TvShowService extends BaseTitleSyncService<TvShow> {
         )
     }
 
-    async syncTrendingTvShows(): Promise<ShowResponse[]> {
+    async syncTrendingTvShows(): Promise<TvShow[]> {
         return await this.syncTrendingTitles(TitleType.TV_SHOWS)
     }
 
@@ -119,7 +119,7 @@ export class TvShowService extends BaseTitleSyncService<TvShow> {
             TitleType.TV_SHOWS,
             category,
             this.tmdbService.getTvDetails.bind(this.tmdbService),
-            TvShowMapper.mapShowResponseToTvShow.bind(TvShowMapper),
+            this.tvShowMapper.mapShowResponseToTvShow.bind(this.tvShowMapper),
         )
     }
 
