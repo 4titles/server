@@ -14,7 +14,7 @@ import { TmdbService } from '@/modules/tmdb/tmdb.service'
 import { TitleMapper } from '../mappers/title.mapper'
 import { TvShowMapper } from '../mappers/tv-show.mapper'
 import { MovieMapper } from '../mappers/movie.mapper'
-import { GenreEntityService } from './entity/genre-entity.service'
+import { GenreService } from './genre.service'
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {
@@ -30,7 +30,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
         protected readonly movieEntityService: MovieEntityService,
         protected readonly tvShowEntityService: TvShowEntityService,
         protected readonly locationsService: LocationsService,
-        protected readonly genreEntityService: GenreEntityService,
+        protected readonly genreService: GenreService,
     ) {}
 
     protected abstract syncTitle(
@@ -151,12 +151,12 @@ export abstract class BaseTitleSyncService<T extends Title> {
                 this.logger.log(
                     `Syncing genres for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
                 )
-                await this.genreEntityService.syncGenresForTitle(
+                await this.genreService.syncGenresForTitle(
                     item.imdbId,
                     item.genres,
                 )
 
-                item.genres = await this.genreEntityService.getGenresForTitle(
+                item.genres = await this.genreService.getGenresForTitle(
                     item.imdbId,
                     titleType === TitleType.MOVIES,
                 )

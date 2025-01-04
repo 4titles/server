@@ -3,7 +3,7 @@ import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { Genre } from '../../models/genre.model'
 import { TitleEntityService } from './title-entity.service'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import {
     DbGenre,
     genres,
@@ -13,7 +13,6 @@ import {
 import { DatabaseException } from '../../exceptions/database.exception'
 import { DbTitle } from '../../types/title.type'
 import { bigIntSerializer } from '../utils/json.utils'
-import { GenreMapper } from '../../mappers/genre.mapper'
 
 @Injectable()
 export class GenreEntityService {
@@ -23,7 +22,19 @@ export class GenreEntityService {
         private readonly titleEntityService: TitleEntityService,
     ) {}
 
-    async getGenreByTmdbId(tmdbId: bigint): Promise<DbGenre> {
+    async getAll(): Promise<DbGenre[]> {
+        try {
+            return await this.db.query.genres.findMany({
+                orderBy: sql`names->>'en' asc`,
+            })
+        } catch (error) {
+            throw new DatabaseException(
+                `Failed to fetch all genres: ${error.message}`,
+            )
+        }
+    }
+
+    async getByTmdbId(tmdbId: bigint): Promise<DbGenre> {
         try {
             return await this.db.query.genres.findFirst({
                 where: eq(genres.tmdbId, tmdbId),
@@ -35,10 +46,7 @@ export class GenreEntityService {
         }
     }
 
-    async getGenresForTitle(
-        imdbId: string,
-        isMovie: boolean,
-    ): Promise<Genre[]> {
+    async getForTitle(imdbId: string, isMovie: boolean): Promise<DbGenre[]> {
         try {
             const entity: DbTitle = isMovie
                 ? await this.titleEntityService.findMovieByImdbId(imdbId)
@@ -65,7 +73,7 @@ export class GenreEntityService {
                 }
             }
 
-            return GenreMapper.manyToGraphQL(dbGenres)
+            return dbGenres
         } catch (error) {
             this.logger.error(
                 `Error fetching genres for imdbId ${imdbId}:`,
@@ -75,29 +83,7 @@ export class GenreEntityService {
         }
     }
 
-    async syncGenresForTitle(
-        imdbId: string,
-        genres: Genre[],
-    ): Promise<boolean> {
-        try {
-            if (!genres.length) return true
-
-            const { movie, series } =
-                await this.titleEntityService.findByImdbId(imdbId)
-
-            await this.saveGenres(genres, movie?.id, series?.id)
-
-            return true
-        } catch (error) {
-            this.logger.error(
-                `Failed to sync genres for title with imdbId: ${imdbId} - `,
-                error,
-            )
-            return false
-        }
-    }
-
-    private async saveGenres(
+    async saveGenres(
         genres: Genre[],
         movieId?: bigint,
         seriesId?: bigint,
@@ -108,9 +94,7 @@ export class GenreEntityService {
             }
 
             for (const genre of genres) {
-                const genreEntity = await this.getGenreByTmdbId(
-                    BigInt(genre.tmdbId),
-                )
+                const genreEntity = await this.getByTmdbId(BigInt(genre.tmdbId))
 
                 this.logger.debug(bigIntSerializer.stringify(genreEntity))
 

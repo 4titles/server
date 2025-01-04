@@ -1,4 +1,4 @@
-import { ObjectType, Field } from '@nestjs/graphql'
+import { ObjectType, Field, Int } from '@nestjs/graphql'
 
 @ObjectType()
 export class GenreTranslations {
@@ -11,8 +11,8 @@ export class GenreTranslations {
 
 @ObjectType()
 export class Genre {
-    @Field(() => String)
-    id?: string
+    @Field(() => Int)
+    id?: number
 
     @Field(() => String)
     tmdbId: string
@@ -26,8 +26,8 @@ export class MovieGenre {
     @Field(() => String)
     movieId: string
 
-    @Field(() => String)
-    genreId: string
+    @Field(() => Int)
+    genreId: number
 
     @Field(() => Genre)
     genre: Genre
@@ -38,8 +38,8 @@ export class TvShowGenre {
     @Field(() => String)
     seriesId: string
 
-    @Field(() => String)
-    genreId: string
+    @Field(() => Int)
+    genreId: number
 
     @Field(() => Genre)
     genre: Genre

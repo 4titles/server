@@ -1,4 +1,11 @@
-import { bigint, index, jsonb, pgTable, uniqueIndex } from 'drizzle-orm/pg-core'
+import {
+    bigint,
+    index,
+    integer,
+    jsonb,
+    pgTable,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core'
 import { movies } from './movies.schema'
 import { series } from './series.schema'
 import { relations } from 'drizzle-orm'
@@ -7,9 +14,7 @@ import { GenreTranslations } from '@/modules/titles/models/genre.model'
 export const genres = pgTable(
     'genres',
     {
-        id: bigint('id', { mode: 'bigint' })
-            .primaryKey()
-            .generatedAlwaysAsIdentity(),
+        id: integer('genre_id').primaryKey().generatedAlwaysAsIdentity(),
         tmdbId: bigint('tmdb_id', { mode: 'bigint' }).notNull().unique(),
         names: jsonb('names').$type<GenreTranslations>().notNull(),
     },
@@ -24,7 +29,7 @@ export const movieGenres = pgTable(
         movieId: bigint('movie_id', { mode: 'bigint' })
             .notNull()
             .references(() => movies.id),
-        genreId: bigint('genre_id', { mode: 'bigint' })
+        genreId: integer('genre_id')
             .notNull()
             .references(() => genres.id),
     },
@@ -45,7 +50,7 @@ export const seriesGenres = pgTable(
         seriesId: bigint('series_id', { mode: 'bigint' })
             .notNull()
             .references(() => series.id),
-        genreId: bigint('genre_id', { mode: 'bigint' })
+        genreId: integer('genre_id')
             .notNull()
             .references(() => genres.id),
     },
