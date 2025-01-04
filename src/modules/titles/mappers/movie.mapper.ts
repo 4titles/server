@@ -26,7 +26,6 @@ export class MovieMapper extends TitleMapper {
                 })),
             ),
             homepage: movieResponse.homepage || null,
-            originalLanguage: movieResponse.original_language,
             popularity: movieResponse.popularity,
             releaseDate: movieResponse.release_date || null,
             revenue: movieResponse.revenue,
@@ -41,14 +40,10 @@ export class MovieMapper extends TitleMapper {
             productionCountries: this.mapProductionCountries(
                 movieResponse.production_countries,
             ),
-            spokenLanguages: this.mapSpokenLanguages(
-                movieResponse.spoken_languages,
-            ),
             originCountry:
                 movieResponse.production_countries?.map(
                     (country) => country.iso_3166_1,
                 ) || [],
-            filmingLocations: [],
             updatedAt: new Date(),
             category,
         }

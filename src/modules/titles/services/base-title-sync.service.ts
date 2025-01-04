@@ -15,6 +15,7 @@ import { TitleMapper } from '../mappers/title.mapper'
 import { TvShowMapper } from '../mappers/tv-show.mapper'
 import { MovieMapper } from '../mappers/movie.mapper'
 import { GenreService } from './genre.service'
+import { LanguageService } from './language.service'
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {
@@ -31,6 +32,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
         protected readonly tvShowEntityService: TvShowEntityService,
         protected readonly locationsService: LocationsService,
         protected readonly genreService: GenreService,
+        protected readonly languageService: LanguageService,
     ) {}
 
     protected abstract syncTitle(
@@ -119,8 +121,9 @@ export abstract class BaseTitleSyncService<T extends Title> {
 
             const response = await fetchDetails(tmdbId)
             const item: T = await mapper(response, category)
+            const isMovie: boolean = titleType === TitleType.MOVIES
 
-            if (titleType === TitleType.MOVIES) {
+            if (isMovie) {
                 await this.movieEntityService.createOrUpdate(item as DbMovie)
             } else {
                 await this.tvShowEntityService.createOrUpdate(item as DbSeries)
@@ -136,7 +139,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
                 const locations =
                     await this.locationsService.getLocationsForTitle(
                         response.imdb_id,
-                        titleType === TitleType.MOVIES,
+                        isMovie,
                     )
                 item.filmingLocations = locations
 
@@ -158,9 +161,32 @@ export abstract class BaseTitleSyncService<T extends Title> {
 
                 item.genres = await this.genreService.getGenresForTitle(
                     item.imdbId,
-                    titleType === TitleType.MOVIES,
+                    isMovie,
                 )
             }
+
+            this.logger.log(
+                `Syncing languages for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
+            )
+
+            if (isMovie) {
+                await this.languageService.syncLanguagesForMovie(
+                    item.imdbId,
+                    response.original_language,
+                    response.spoken_languages,
+                )
+            } else {
+                await this.languageService.syncLanguagesForSeries(
+                    item.imdbId,
+                    response.original_language,
+                    response.spoken_languages,
+                    response.languages,
+                )
+            }
+
+            item.languages = await this.languageService.getLanguagesForTitle(
+                item.imdbId,
+            )
 
             await this.cacheService.set(cacheKey, item, this.CACHE_TTL)
             return item

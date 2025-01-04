@@ -27,13 +27,11 @@ export class TvShowMapper extends TitleMapper {
             ),
             homepage: showResponse.homepage,
             inProduction: showResponse.in_production,
-            languages: showResponse.languages,
             lastAirDate: showResponse.last_air_date,
             networks: this.mapNetworks(showResponse.networks),
             numberOfEpisodes: showResponse.number_of_episodes,
             numberOfSeasons: showResponse.number_of_seasons,
             originCountry: showResponse.origin_country,
-            originalLanguage: showResponse.original_language,
             popularity: showResponse.popularity,
             productionCompanies: this.mapProductionCompanies(
                 showResponse.production_companies,
@@ -41,14 +39,10 @@ export class TvShowMapper extends TitleMapper {
             productionCountries: this.mapProductionCountries(
                 showResponse.production_countries,
             ),
-            spokenLanguages: this.mapSpokenLanguages(
-                showResponse.spoken_languages,
-            ),
             status: showResponse.status,
             tagLine: showResponse.tagline,
             voteAverage: showResponse.vote_average,
             voteCount: showResponse.vote_count,
-            filmingLocations: [],
             updatedAt: new Date(),
             category,
         }

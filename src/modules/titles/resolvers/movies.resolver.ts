@@ -12,6 +12,8 @@ import { MovieService } from '../services/movie.service'
 import { TitleCategory } from '../enums/title-category.enum'
 import { LocationsService } from '@/modules/locations/services/locations.service'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
+import { MovieLanguage } from '../models/language.model'
+import { LanguageService } from '../services'
 
 @Resolver(() => Movie)
 export class MoviesResolver {
@@ -20,6 +22,7 @@ export class MoviesResolver {
     constructor(
         private readonly movieService: MovieService,
         private readonly locationsService: LocationsService,
+        private readonly languageService: LanguageService,
     ) {}
 
     @Query(() => [Movie], {
@@ -123,5 +126,12 @@ export class MoviesResolver {
             )
         }
         return movie.filmingLocations || []
+    }
+
+    @ResolveField('languages', () => [MovieLanguage], {
+        description: 'Get languages for the movie',
+    })
+    async getLanguages(@Parent() movie: Movie) {
+        return await this.languageService.getLanguagesForTitle(movie.imdbId)
     }
 }

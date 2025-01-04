@@ -2,13 +2,13 @@ import { ObjectType, Field, Int, Float } from '@nestjs/graphql'
 import {
     ProductionCompany,
     ProductionCountry,
-    SpokenLanguage,
     Network,
     SimplePerson,
 } from './common.model'
 import { TitleCategory } from '../enums/title-category.enum'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 import { Genre } from './genre.model'
+import { SeriesLanguage } from './language.model'
 
 @ObjectType()
 export class TvShow {
@@ -48,9 +48,6 @@ export class TvShow {
     @Field()
     inProduction: boolean
 
-    @Field(() => [String])
-    languages: string[]
-
     @Field({ nullable: true })
     lastAirDate?: string
 
@@ -66,9 +63,6 @@ export class TvShow {
     @Field(() => [String])
     originCountry: string[]
 
-    @Field()
-    originalLanguage: string
-
     @Field(() => Float)
     popularity: number
 
@@ -77,9 +71,6 @@ export class TvShow {
 
     @Field(() => [ProductionCountry])
     productionCountries: ProductionCountry[]
-
-    @Field(() => [SpokenLanguage])
-    spokenLanguages: SpokenLanguage[]
 
     @Field()
     status: string
@@ -99,9 +90,13 @@ export class TvShow {
     @Field(() => TitleCategory)
     category: TitleCategory
 
+    // Relationships
     @Field(() => [FilmingLocation], { nullable: true })
     filmingLocations?: FilmingLocation[]
 
     @Field(() => [Genre, { nullable: true }])
     genres?: Genre[]
+
+    @Field(() => [SeriesLanguage], { nullable: true })
+    languages?: SeriesLanguage[]
 }
