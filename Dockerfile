@@ -1,4 +1,4 @@
-FROM node:22.9.0
+FROM node:22.12.0
 
 ARG APP_TIMEZONE=Europe/Moscow
 ENV TZ=${APP_TIMEZONE}
