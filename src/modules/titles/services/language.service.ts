@@ -27,6 +27,12 @@ export class LanguageService {
         private readonly titleMapper: TitleMapper,
     ) {}
 
+    async getAll(): Promise<Language[]> {
+        return LanguageMapper.manyToGraphQL(
+            await this.languageEntityService.getAll(),
+        )
+    }
+
     async getLanguageByIso(iso: string): Promise<Language | null> {
         const language = await this.languageEntityService.getByIso(iso)
         return language ? LanguageMapper.toGraphQL(language) : null

@@ -12,14 +12,27 @@ import { SeriesLanguageType } from '../../enums/series-language-type.enum'
 import { Language } from '../../models/language.model'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DatabaseException } from '../../exceptions/database.exception'
+import { DEFAULT_FETCH_LIMIT } from '../constants/query.constants'
 
 @Injectable()
 export class LanguageEntityService {
     constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
+    async getAll(): Promise<DbLanguage[]> {
+        try {
+            return await this.db.query.languages.findMany({
+                limit: DEFAULT_FETCH_LIMIT,
+            })
+        } catch (error) {
+            throw new DatabaseException(
+                `Failed to fetch all languages: ${error.message}`,
+            )
+        }
+    }
+
     async getByIso(iso: string): Promise<DbLanguage> {
         try {
-            return this.db.query.languages.findFirst({
+            return await this.db.query.languages.findFirst({
                 where: eq(languages.iso, iso),
             })
         } catch (error) {

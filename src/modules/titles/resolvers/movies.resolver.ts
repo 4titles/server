@@ -6,7 +6,6 @@ import {
     ResolveField,
     Parent,
 } from '@nestjs/graphql'
-import { Logger } from '@nestjs/common'
 import { Movie } from '../models/movie.model'
 import { MovieService } from '../services/movie.service'
 import { TitleCategory } from '../enums/title-category.enum'
@@ -17,8 +16,6 @@ import { LanguageService } from '../services'
 
 @Resolver(() => Movie)
 export class MoviesResolver {
-    private readonly logger = new Logger(MoviesResolver.name)
-
     constructor(
         private readonly movieService: MovieService,
         private readonly locationsService: LocationsService,
