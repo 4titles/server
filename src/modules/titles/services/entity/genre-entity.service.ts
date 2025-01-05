@@ -12,7 +12,6 @@ import {
 } from '@/modules/drizzle/schema/genres.schema'
 import { DatabaseException } from '../../exceptions/database.exception'
 import { DbTitle } from '../../types/title.type'
-import { bigIntSerializer } from '../utils/json.utils'
 
 @Injectable()
 export class GenreEntityService {
@@ -95,8 +94,6 @@ export class GenreEntityService {
 
             for (const genre of genres) {
                 const genreEntity = await this.getByTmdbId(BigInt(genre.tmdbId))
-
-                this.logger.debug(bigIntSerializer.stringify(genreEntity))
 
                 if (movieId) {
                     await this.db
