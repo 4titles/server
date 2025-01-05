@@ -8,7 +8,7 @@ import {
 import { TitleCategory } from '../enums/title-category.enum'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 import { Genre } from './genre.model'
-import { SeriesLanguage } from './language.model'
+import { TvShowLanguages } from './language.model'
 
 @ObjectType()
 export class TvShow {
@@ -97,6 +97,6 @@ export class TvShow {
     @Field(() => [Genre, { nullable: true }])
     genres?: Genre[]
 
-    @Field(() => [SeriesLanguage], { nullable: true })
-    languages?: SeriesLanguage[]
+    @Field(() => TvShowLanguages, { nullable: true })
+    languages?: TvShowLanguages
 }

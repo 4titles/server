@@ -1,20 +1,15 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { LanguageEntityService } from './entity/language-entity.service'
-import {
-    Language,
-    MovieLanguage,
-    SeriesLanguage,
-} from '../models/language.model'
+import { Language } from '../models/language.model'
 import { LanguageMapper } from '../mappers/language.mapper'
 import { SeriesLanguageType } from '../enums/series-language-type.enum'
 import { MovieLanguageType } from '../enums/movie-language-type.enum'
 import { SpokenLanguage } from '../models/common.model'
 import { TitleEntityService } from './entity'
-import {
-    MovieLanguageWithRelations,
-    SeriesLanguageWithRelations,
-} from '../types/language.type'
-import { TitleMapper } from '../mappers'
+import { GroupedLanguages, TitleLanguage } from '../types/language.type'
+import { TitleType } from '../enums/title-type.enum'
+import { LANGUAGE_TYPE_MAPPING } from './constants/language.constants'
+import { DbLanguage } from '@/modules/drizzle/schema/languages.schema'
 
 @Injectable()
 export class LanguageService {
@@ -23,8 +18,6 @@ export class LanguageService {
     constructor(
         private readonly languageEntityService: LanguageEntityService,
         private readonly titleEntityService: TitleEntityService,
-        @Inject(forwardRef(() => TitleMapper))
-        private readonly titleMapper: TitleMapper,
     ) {}
 
     async getAll(): Promise<Language[]> {
@@ -40,38 +33,72 @@ export class LanguageService {
 
     async getLanguagesForTitle(
         imdbId: string,
-    ): Promise<MovieLanguage[] | SeriesLanguage[]> {
+        titleType: TitleType,
+    ): Promise<GroupedLanguages> {
         try {
-            const { movie, series } =
-                await this.titleEntityService.findByImdbId(imdbId)
+            const isMovie: boolean = titleType === TitleType.MOVIES
+            const title = isMovie
+                ? await this.titleEntityService.findMovieByImdbId(imdbId)
+                : await this.titleEntityService.findTvShowByImdbId(imdbId)
 
-            if (!!movie) {
-                const languages = (await this.languageEntityService.getForMovie(
-                    movie.id,
-                )) as MovieLanguageWithRelations[]
+            const languagesData = await this.fetchLanguagesData(
+                title.id,
+                isMovie,
+            )
+            return this.groupLanguages(languagesData, titleType)
+        } catch (error) {
+            this.logger.log(
+                `Failed to find languages for title with imdbId ${imdbId}: ${error.message}`,
+            )
+        }
+    }
 
-                return languages.map((lang) => ({
-                    language: LanguageMapper.toGraphQL(lang),
-                    type: lang.movies[0]?.type || MovieLanguageType.SPOKEN,
+    private async fetchLanguagesData(
+        titleId: bigint,
+        isMovie: boolean,
+    ): Promise<TitleLanguage[]> {
+        try {
+            if (isMovie) {
+                const movieLanguages =
+                    await this.languageEntityService.getForMovie(titleId)
+                return movieLanguages.map((relation) => ({
+                    language: relation.language,
+                    type: relation.type,
                 }))
             } else {
-                const languages =
-                    (await this.languageEntityService.getForSeries(
-                        series.id,
-                    )) as SeriesLanguageWithRelations[]
-
-                return languages.map((lang) => ({
-                    language: LanguageMapper.toGraphQL(lang),
-                    type: lang.series[0]?.type || SeriesLanguageType.SPOKEN,
+                const seriesLanguages =
+                    await this.languageEntityService.getForSeries(titleId)
+                return seriesLanguages.map((relation) => ({
+                    language: relation.language,
+                    type: relation.type,
                 }))
             }
         } catch (error) {
             this.logger.error(
-                `Failed to get languages for title with imdbId ${imdbId}:`,
-                error,
+                `Failed to fetch languages for title ${titleId}: ${error.message}`,
+                error.stack,
             )
             return []
         }
+    }
+
+    private groupLanguages(
+        data: TitleLanguage[],
+        titleType: TitleType,
+    ): GroupedLanguages {
+        const typeConfig = LANGUAGE_TYPE_MAPPING[titleType]
+
+        return Object.entries(typeConfig).reduce(
+            (acc, [group, expectedType]) => {
+                acc[group as keyof GroupedLanguages] = data
+                    .filter(({ type }) => type === expectedType)
+                    .map(({ language }) =>
+                        LanguageMapper.toGraphQL(language as DbLanguage),
+                    )
+                return acc
+            },
+            {} as GroupedLanguages,
+        )
     }
 
     async syncLanguagesForMovie(

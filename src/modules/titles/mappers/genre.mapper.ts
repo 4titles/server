@@ -1,6 +1,5 @@
 import { DbGenre } from '@/modules/drizzle/schema/genres.schema'
 import { Genre } from '../models/genre.model'
-
 export class GenreMapper {
     static toGraphQL(dbGenre: DbGenre): Genre {
         return {

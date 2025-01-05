@@ -4,7 +4,7 @@ import { TitleCategory } from '../enums/title-category.enum'
 import { MovieStatus } from '../enums/movie-status.enum'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 import { Genre } from './genre.model'
-import { MovieLanguage } from './language.model'
+import { MovieLanguages } from './language.model'
 
 @ObjectType()
 export class Movie {
@@ -84,6 +84,6 @@ export class Movie {
     @Field(() => [Genre], { nullable: true })
     genres?: Genre[]
 
-    @Field(() => [MovieLanguage], { nullable: true })
-    languages?: MovieLanguage[]
+    @Field(() => MovieLanguages, { nullable: true })
+    languages?: MovieLanguages
 }

@@ -11,8 +11,9 @@ import { TvShowService } from '../services/tv-show.service'
 import { TitleCategory } from '../enums/title-category.enum'
 import { LocationsService } from '@/modules/locations/services/locations.service'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
-import { SeriesLanguage } from '../models/language.model'
+import { TvShowLanguages } from '../models/language.model'
 import { LanguageService } from '../services'
+import { TitleType } from '../enums/title-type.enum'
 
 @Resolver(() => TvShow)
 export class TvShowsResolver {
@@ -115,10 +116,21 @@ export class TvShowsResolver {
         return tvShow.filmingLocations || []
     }
 
-    @ResolveField('languages', () => [SeriesLanguage], {
+    @ResolveField('languages', () => TvShowLanguages, {
         description: 'Get languages for the TV show',
     })
     async getLanguages(@Parent() tvShow: TvShow) {
-        return await this.languageService.getLanguagesForTitle(tvShow.imdbId)
+        console.log(
+            JSON.stringify(
+                await this.languageService.getLanguagesForTitle(
+                    tvShow.imdbId,
+                    TitleType.TV_SHOWS,
+                ),
+            ),
+        )
+        return await this.languageService.getLanguagesForTitle(
+            tvShow.imdbId,
+            TitleType.TV_SHOWS,
+        )
     }
 }

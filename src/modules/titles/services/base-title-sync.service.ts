@@ -16,6 +16,9 @@ import { TvShowMapper } from '../mappers/tv-show.mapper'
 import { MovieMapper } from '../mappers/movie.mapper'
 import { GenreService } from './genre.service'
 import { LanguageService } from './language.service'
+import { GroupedLanguages } from '../types/language.type'
+import { Genre } from '../models/genre.model'
+import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 
 interface TitleSyncContext {
     tmdbId: number
@@ -179,7 +182,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
         context: TitleSyncContext,
         imdbId: string,
         isMovie: boolean,
-    ): Promise<any[]> {
+    ): Promise<FilmingLocation[]> {
         this.logSync('locations', context)
 
         const locationsCacheKey = this.generateLocationsCacheKey(context)
@@ -200,7 +203,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
     private async syncGenres(
         context: TitleSyncContext,
         item: T,
-    ): Promise<any[]> {
+    ): Promise<Genre[]> {
         this.logSync('genres', context)
 
         await this.genreService.syncGenresForTitle(item.imdbId, item.genres)
@@ -213,7 +216,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
     private async syncLanguages(
         context: TitleSyncContext,
         imdbId: string,
-    ): Promise<any[]> {
+    ): Promise<GroupedLanguages> {
         this.logSync('languages', context)
 
         if (context.titleType === TitleType.MOVIES) {
@@ -231,7 +234,10 @@ export abstract class BaseTitleSyncService<T extends Title> {
             )
         }
 
-        return this.languageService.getLanguagesForTitle(imdbId)
+        return this.languageService.getLanguagesForTitle(
+            imdbId,
+            context.titleType,
+        )
     }
 
     private async getCachedTitle(cacheKey: string): Promise<T | null> {

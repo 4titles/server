@@ -13,6 +13,10 @@ import { Language } from '../../models/language.model'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DatabaseException } from '../../exceptions/database.exception'
 import { DEFAULT_FETCH_LIMIT } from '../constants/query.constants'
+import {
+    DbMovieLanguageResult,
+    DbSeriesLanguageResult,
+} from '../../types/language.type'
 
 @Injectable()
 export class LanguageEntityService {
@@ -62,40 +66,22 @@ export class LanguageEntityService {
         }
     }
 
-    async getForMovie(movieId: bigint) {
-        const results = await this.db.query.movieLanguages.findMany({
+    async getForMovie(movieId: bigint): Promise<DbMovieLanguageResult[]> {
+        return await this.db.query.movieLanguages.findMany({
             where: eq(movieLanguages.movieId, movieId),
             with: {
                 language: true,
             },
         })
-
-        return results.map((result) => ({
-            ...result.language,
-            movies: [
-                {
-                    type: result.type,
-                },
-            ],
-        }))
     }
 
-    async getForSeries(seriesId: bigint) {
-        const results = await this.db.query.seriesLanguages.findMany({
+    async getForSeries(seriesId: bigint): Promise<DbSeriesLanguageResult[]> {
+        return await this.db.query.seriesLanguages.findMany({
             where: eq(seriesLanguages.seriesId, seriesId),
             with: {
                 language: true,
             },
         })
-
-        return results.map((result) => ({
-            ...result.language,
-            series: [
-                {
-                    type: result.type,
-                },
-            ],
-        }))
     }
 
     async saveMovieLanguages(

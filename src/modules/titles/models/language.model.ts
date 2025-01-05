@@ -1,6 +1,4 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql'
-import { MovieLanguageType } from '../enums/movie-language-type.enum'
-import { SeriesLanguageType } from '../enums/series-language-type.enum'
 
 @ObjectType()
 export class Language {
@@ -18,19 +16,22 @@ export class Language {
 }
 
 @ObjectType()
-export class MovieLanguage {
-    @Field(() => Language)
-    language: Language
+export class MovieLanguages {
+    @Field(() => [Language])
+    original: Language[]
 
-    @Field(() => MovieLanguageType)
-    type: MovieLanguageType
+    @Field(() => [Language])
+    spoken: Language[]
 }
 
 @ObjectType()
-export class SeriesLanguage {
-    @Field(() => Language)
-    language: Language
+export class TvShowLanguages {
+    @Field(() => [Language])
+    original: Language[]
 
-    @Field(() => SeriesLanguageType)
-    type: SeriesLanguageType
+    @Field(() => [Language])
+    spoken: Language[]
+
+    @Field(() => [Language])
+    available: Language[]
 }
