@@ -30,7 +30,7 @@ export class MoviesResolver {
         @Args('category', { type: () => TitleCategory, nullable: true })
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(limit, category)
     }
 
@@ -39,7 +39,7 @@ export class MoviesResolver {
     })
     async popularMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.POPULAR,
@@ -51,7 +51,7 @@ export class MoviesResolver {
     })
     async topRatedMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.TOP_RATED,
@@ -63,7 +63,7 @@ export class MoviesResolver {
     })
     async trendingMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.TRENDING,
@@ -75,7 +75,7 @@ export class MoviesResolver {
     })
     async searchedMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.SEARCH,
@@ -87,7 +87,7 @@ export class MoviesResolver {
     })
     async upcomingMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.UPCOMING,
@@ -98,7 +98,9 @@ export class MoviesResolver {
         nullable: true,
         description: 'Get a movie by TMDB ID',
     })
-    async movie(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
+    async movie(
+        @Args('tmdbId', { type: () => Int }) tmdbId: number,
+    ): Promise<Movie> {
         return await this.movieService.getMovieByTmdbId(tmdbId)
     }
 
@@ -108,7 +110,7 @@ export class MoviesResolver {
     async searchMovies(
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.searchMoviesOnTMDB(query, limit)
     }
 

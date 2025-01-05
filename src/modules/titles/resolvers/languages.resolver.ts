@@ -17,7 +17,9 @@ export class LanguagesResolver {
         nullable: true,
         description: 'Get a language by ISO code',
     })
-    async language(@Args('iso', { type: () => String }) iso: string) {
+    async language(
+        @Args('iso', { type: () => String }) iso: string,
+    ): Promise<Language> {
         return await this.languageService.getLanguageByIso(iso)
     }
 }

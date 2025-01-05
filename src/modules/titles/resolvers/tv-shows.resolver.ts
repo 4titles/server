@@ -30,7 +30,7 @@ export class TvShowsResolver {
         @Args('category', { type: () => TitleCategory, nullable: true })
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(limit, category)
     }
 
@@ -39,7 +39,7 @@ export class TvShowsResolver {
     })
     async popularTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.POPULAR,
@@ -51,7 +51,7 @@ export class TvShowsResolver {
     })
     async topRatedTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.TOP_RATED,
@@ -63,7 +63,7 @@ export class TvShowsResolver {
     })
     async trendingTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.TRENDING,
@@ -75,7 +75,7 @@ export class TvShowsResolver {
     })
     async airingTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.AIRING,
@@ -86,7 +86,9 @@ export class TvShowsResolver {
         nullable: true,
         description: 'Get a TV show by TMDB ID',
     })
-    async tvShow(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
+    async tvShow(
+        @Args('tmdbId', { type: () => Int }) tmdbId: number,
+    ): Promise<TvShow> {
         return await this.tvShowService.getTvShowByTmdbId(tmdbId)
     }
 
@@ -96,7 +98,7 @@ export class TvShowsResolver {
     async searchTvShows(
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.searchTvShowsOnTMDB(query, limit)
     }
 
