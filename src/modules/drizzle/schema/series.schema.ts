@@ -17,7 +17,6 @@ import {
     Network,
     ProductionCompany,
     ProductionCountry,
-    // SpokenLanguage,
 } from '@/modules/titles/models/common.model'
 import { SimplePerson } from '@/modules/titles/models/common.model'
 import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
@@ -41,14 +40,12 @@ export const series = pgTable(
         firstAirDate: date('first_air_date'),
         homepage: text('homepage'),
         inProduction: boolean('in_production').notNull().default(false),
-        // languages: jsonb('languages').$type<string[]>().default([]), // TODO create languages table, array of strings
         lastAirDate: date('last_air_date'),
         networks: jsonb('networks').$type<Network[]>().notNull(), // TODO create networks table
         numberOfEpisodes: integer('number_of_episodes').default(0),
         numberOfSeasons: integer('number_of_seasons').default(0),
         originCountry: jsonb('origin_country').$type<string[]>().notNull(), // TODO create countries table
         originalName: text('original_name'),
-        // originalLanguage: text('original_language').notNull(), // TODO create languages table
         overview: text('overview').notNull(),
         popularity: real('popularity').default(0), // TODO create ratings table
         productionCompanies: jsonb('production_companies')
@@ -57,9 +54,6 @@ export const series = pgTable(
         productionCountries: jsonb('production_countries')
             .$type<ProductionCountry[]>()
             .notNull(), // TODO create countries table
-        // spokenLanguages: jsonb('spoken_languages')
-        //     .$type<SpokenLanguage[]>()
-        //     .notNull(), // TODO create languages table
         status: text('status').notNull(),
         tagLine: text('tag_line'),
         voteAverage: real('vote_average').default(0),

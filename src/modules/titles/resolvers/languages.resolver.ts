@@ -1,4 +1,4 @@
-import { Query, Resolver } from '@nestjs/graphql'
+import { Args, Query, Resolver } from '@nestjs/graphql'
 import { Language } from '../models/language.model'
 import { LanguageService } from '../services'
 
@@ -11,5 +11,13 @@ export class LanguagesResolver {
     })
     async languages(): Promise<Language[]> {
         return await this.languageService.getAll()
+    }
+
+    @Query(() => Language, {
+        nullable: true,
+        description: 'Get a language by ISO code',
+    })
+    async language(@Args('iso', { type: () => String }) iso: string) {
+        return await this.languageService.getLanguageByIso(iso)
     }
 }
