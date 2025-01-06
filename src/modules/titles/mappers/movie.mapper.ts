@@ -1,51 +1,92 @@
-import { MovieResponse } from 'moviedb-promise'
 import { Movie } from '../models/movie.model'
-import { TitleCategory } from '../enums/title-category.enum'
 import { MovieStatus } from '../enums/movie-status.enum'
-import { TitleMapper } from './title.mapper'
+import { BaseMapper } from './base.mapper'
+import { MovieMappingContext, TitleMappingContext } from '../types/mapping.type'
+import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
+import { Injectable } from '@nestjs/common'
 
-export class MovieMapper extends TitleMapper {
-    async mapMovieResponseToMovie(
-        movieResponse: MovieResponse,
-        category: TitleCategory,
-    ): Promise<Movie> {
-        return {
-            tmdbId: movieResponse.id,
-            imdbId: movieResponse.imdb_id || '',
-            title: movieResponse.title,
-            originalTitle: movieResponse.original_title || '',
-            overview: movieResponse.overview || '',
-            posterPath: movieResponse.poster_path || null,
-            backdropPath: movieResponse.backdrop_path,
-            adult: movieResponse.adult,
-            budget: movieResponse.budget,
-            genres: await this.mapGenres(
-                movieResponse.genres.map((g) => ({
-                    tmdbId: String(g.id || 0),
-                    names: { en: '', ru: g.name },
-                })),
+@Injectable()
+export class MovieMapper extends BaseMapper {
+    async mapToEntity(context: MovieMappingContext): Promise<Movie> {
+        const { movieResponse: response, category } = context
+
+        const movie: Movie = {
+            tmdbId: response.id,
+            imdbId: response.imdb_id || '',
+            title: response.title,
+            originalTitle: response.original_title || '',
+            overview: response.overview || '',
+            posterPath: response.poster_path || null,
+            backdropPath: response.backdrop_path,
+            adult: response.adult,
+            budget: response.budget,
+            homepage: response.homepage || null,
+            popularity: response.popularity,
+            releaseDate: response.release_date || null,
+            revenue: response.revenue,
+            runtime: response.runtime,
+            status: response.status as MovieStatus,
+            tagLine: response.tagline,
+            voteAverage: response.vote_average,
+            voteCount: response.vote_count,
+            productionCompanies: this.mapTmdbProductionCompanies(
+                response.production_companies,
             ),
-            homepage: movieResponse.homepage || null,
-            popularity: movieResponse.popularity,
-            releaseDate: movieResponse.release_date || null,
-            revenue: movieResponse.revenue,
-            runtime: movieResponse.runtime,
-            status: movieResponse.status as MovieStatus,
-            tagLine: movieResponse.tagline,
-            voteAverage: movieResponse.vote_average,
-            voteCount: movieResponse.vote_count,
-            productionCompanies: this.mapProductionCompanies(
-                movieResponse.production_companies,
-            ),
-            productionCountries: this.mapProductionCountries(
-                movieResponse.production_countries,
+            productionCountries: this.mapTmdbProductionCountries(
+                response.production_countries,
             ),
             originCountry:
-                movieResponse.production_countries?.map(
+                response.production_countries?.map(
                     (country) => country.iso_3166_1,
                 ) || [],
             updatedAt: new Date(),
+            genres: this.mapTmdbGenres(response.genres),
             category,
         }
+
+        return this.mapRelations(movie, context)
+    }
+
+    async mapFromDatabase(
+        dbMovie: DbMovie,
+        context: TitleMappingContext,
+    ): Promise<Movie> {
+        const movie: Movie = {
+            ...dbMovie,
+            tmdbId: Number(dbMovie.tmdbId),
+            budget: Number(dbMovie.budget),
+            revenue: Number(dbMovie.revenue),
+            runtime: Number(dbMovie.runtime),
+            voteCount: Number(dbMovie.voteCount),
+        }
+
+        return this.mapRelations(movie, context)
+    }
+
+    async mapMany<T extends DbMovie>(
+        entities: T[],
+        context: TitleMappingContext,
+    ): Promise<Movie[]> {
+        return Promise.all(
+            entities.map((entity) =>
+                this.mapFromDatabase(entity, {
+                    ...context,
+                    category: entity.category,
+                }),
+            ),
+        )
+    }
+
+    async mapManyWithRelations<T extends DbMovie>(
+        entities: T[],
+    ): Promise<Movie[]> {
+        return Promise.all(
+            entities.map((dbMovie) =>
+                this.mapFromDatabase(dbMovie, {
+                    category: dbMovie.category,
+                    includeRelations: true,
+                }),
+            ),
+        )
     }
 }

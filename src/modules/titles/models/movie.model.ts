@@ -11,8 +11,8 @@ export class Movie {
     @Field(() => Int)
     tmdbId: number
 
-    @Field()
-    imdbId: string
+    @Field(() => String, { nullable: true })
+    imdbId?: string
 
     @Field()
     title: string
@@ -82,7 +82,7 @@ export class Movie {
     filmingLocations?: FilmingLocation[]
 
     @Field(() => [Genre], { nullable: true })
-    genres?: Genre[]
+    genres?: Genre[] | null
 
     @Field(() => MovieLanguages, { nullable: true })
     languages?: MovieLanguages

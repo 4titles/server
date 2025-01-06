@@ -1,27 +1,10 @@
-import {
-    Resolver,
-    Query,
-    Args,
-    Int,
-    ResolveField,
-    Parent,
-} from '@nestjs/graphql'
+import { Resolver, Query, Args, Int } from '@nestjs/graphql'
 import { TvShow } from '../models/tv-show.model'
 import { TvShowService } from '../services/tv-show.service'
 import { TitleCategory } from '../enums/title-category.enum'
-import { LocationsService } from '@/modules/locations/services/locations.service'
-import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
-import { TvShowLanguages } from '../models/language.model'
-import { LanguageService } from '../services'
-import { TitleType } from '../enums/title-type.enum'
-
 @Resolver(() => TvShow)
 export class TvShowsResolver {
-    constructor(
-        private readonly tvShowService: TvShowService,
-        private readonly locationsService: LocationsService,
-        private readonly languageService: LanguageService,
-    ) {}
+    constructor(private readonly tvShowService: TvShowService) {}
 
     @Query(() => [TvShow], {
         description:
@@ -101,36 +84,5 @@ export class TvShowsResolver {
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ): Promise<TvShow[]> {
         return await this.tvShowService.searchTvShowsOnTMDB(query, limit)
-    }
-
-    @ResolveField('filmingLocations', () => [FilmingLocation], {
-        description: 'Get filming locations for the TV show',
-    })
-    async getFilmingLocations(@Parent() tvShow: TvShow) {
-        if (!tvShow.filmingLocations && tvShow.imdbId) {
-            return this.locationsService.getLocationsForTitle(
-                tvShow.imdbId,
-                false,
-            )
-        }
-        return tvShow.filmingLocations || []
-    }
-
-    @ResolveField('languages', () => TvShowLanguages, {
-        description: 'Get languages for the TV show',
-    })
-    async getLanguages(@Parent() tvShow: TvShow) {
-        console.log(
-            JSON.stringify(
-                await this.languageService.getLanguagesForTitle(
-                    tvShow.imdbId,
-                    TitleType.TV_SHOWS,
-                ),
-            ),
-        )
-        return await this.languageService.getLanguagesForTitle(
-            tvShow.imdbId,
-            TitleType.TV_SHOWS,
-        )
     }
 }

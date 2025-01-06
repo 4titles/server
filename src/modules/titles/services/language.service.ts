@@ -33,19 +33,16 @@ export class LanguageService {
 
     async getLanguagesForTitle(
         imdbId: string,
-        titleType: TitleType,
+        isMovie?: boolean,
     ): Promise<GroupedLanguages> {
         try {
-            const isMovie: boolean = titleType === TitleType.MOVIES
-            const title = isMovie
-                ? await this.titleEntityService.findMovieByImdbId(imdbId)
-                : await this.titleEntityService.findTvShowByImdbId(imdbId)
-
-            const languagesData = await this.fetchLanguagesData(
-                title.id,
+            const { title, type } = await this.titleEntityService.findByImdbId(
+                imdbId,
                 isMovie,
             )
-            return this.groupLanguages(languagesData, titleType)
+
+            const languagesData = await this.fetchLanguagesData(title.id, type)
+            return this.groupLanguages(languagesData, type)
         } catch (error) {
             this.logger.log(
                 `Failed to find languages for title with imdbId ${imdbId}: ${error.message}`,
@@ -55,10 +52,10 @@ export class LanguageService {
 
     private async fetchLanguagesData(
         titleId: bigint,
-        isMovie: boolean,
+        type: TitleType,
     ): Promise<TitleLanguage[]> {
         try {
-            if (isMovie) {
+            if (type === TitleType.MOVIES) {
                 const movieLanguages =
                     await this.languageEntityService.getForMovie(titleId)
                 return movieLanguages.map((relation) => ({

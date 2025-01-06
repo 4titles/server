@@ -1,16 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Genre } from '../models/genre.model'
-import { GenreEntityService, TitleEntityService } from './entity'
+import { GenreEntityService } from './entity'
 import { GenreMapper } from '../mappers/genre.mapper'
 
 @Injectable()
 export class GenreService {
     private readonly logger: Logger = new Logger(GenreService.name)
 
-    constructor(
-        private readonly genreEntityService: GenreEntityService,
-        private readonly titleEntityService: TitleEntityService,
-    ) {}
+    constructor(private readonly genreEntityService: GenreEntityService) {}
 
     async getGenreByTmdbId(tmdbId: string): Promise<Genre> {
         return GenreMapper.toGraphQL(
@@ -26,17 +23,6 @@ export class GenreService {
         imdbId: string,
         isMovie?: boolean,
     ): Promise<Genre[]> {
-        if (typeof isMovie !== 'boolean') {
-            const { movie, series } =
-                await this.titleEntityService.findByImdbId(imdbId)
-
-            if (!movie && !series) {
-                return []
-            }
-
-            isMovie = !!movie
-        }
-
         return GenreMapper.manyToGraphQL(
             await this.genreEntityService.getForTitle(imdbId, isMovie),
         )
@@ -45,18 +31,12 @@ export class GenreService {
     async syncGenresForTitle(
         imdbId: string,
         genres: Genre[],
+        isMovie?: boolean,
     ): Promise<boolean> {
         try {
             if (!genres.length) return true
 
-            const { movie, series } =
-                await this.titleEntityService.findByImdbId(imdbId)
-
-            await this.genreEntityService.saveGenres(
-                genres,
-                movie?.id,
-                series?.id,
-            )
+            await this.genreEntityService.saveGenres(genres, imdbId, isMovie)
 
             return true
         } catch (error) {

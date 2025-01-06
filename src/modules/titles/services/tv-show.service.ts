@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
+import { BaseTitleSyncService } from './base-title-sync.service'
 import { TvResult } from 'moviedb-promise'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TvShow } from '../models/tv-show.model'
-import { BaseTitleSyncService } from './base-title-sync.service'
 import { TitleType } from '../enums/title-type.enum'
 import {
     DEFAULT_FETCH_LIMIT,
@@ -15,58 +15,71 @@ import { TitleFetchException } from '../exceptions/title-fetch.exception'
 @Injectable()
 export class TvShowService extends BaseTitleSyncService<TvShow> {
     async getTvShowByImdbId(imdbId: string): Promise<TvShow> {
-        return await this.titleMapper.mapSingleWithRelations<DbSeries>(
-            await this.tvShowEntityService.getByImdbId(imdbId),
-        )
+        const dbTvShow = await this.tvShowEntityService.getByImdbId(imdbId)
+        return this.tvShowMapper.mapFromDatabase(dbTvShow, {
+            category: dbTvShow.category,
+            includeRelations: true,
+        })
     }
 
     async getTvShowByTmdbId(tmdbId: number): Promise<TvShow> {
-        return await this.titleMapper.mapSingleWithRelations<DbSeries>(
-            await this.tvShowEntityService.getByTmdbId(tmdbId),
-        )
+        const dbTvShow = await this.tvShowEntityService.getByTmdbId(tmdbId)
+        return this.tvShowMapper.mapFromDatabase(dbTvShow, {
+            category: dbTvShow.category,
+            includeRelations: true,
+        })
     }
 
     async getTvShowsByCategory(
         limit: number = DEFAULT_FETCH_LIMIT,
         category?: TitleCategory,
     ): Promise<TvShow[]> {
-        let dbTvShows: DbSeries[] = []
-
         try {
-            switch (category) {
-                case undefined:
-                    dbTvShows = await this.tvShowEntityService.getAll()
-                    break
-                case TitleCategory.POPULAR:
-                    dbTvShows = await this.tvShowEntityService.getPopular(limit)
-                    break
-                case TitleCategory.TOP_RATED:
-                    dbTvShows =
-                        await this.tvShowEntityService.getTopRated(limit)
-                    break
-                case TitleCategory.TRENDING:
-                    dbTvShows =
-                        await this.tvShowEntityService.getTrending(limit)
-                    break
-                case TitleCategory.SEARCH:
-                    dbTvShows =
-                        await this.tvShowEntityService.getSearched(limit)
-                    break
-                case TitleCategory.AIRING:
-                    dbTvShows = await this.tvShowEntityService.getAiring(limit)
-                    break
-                default:
-                    throw new InvalidTitleCategoryException()
+            let dbTvShows: DbSeries[]
+
+            if (!category) {
+                dbTvShows = await this.tvShowEntityService.getAll(limit)
+            } else {
+                const fetcher = this.getCategoryFetcher(category)
+                dbTvShows = await fetcher(limit)
             }
 
-            return await this.titleMapper.mapManyWithRelations<DbSeries>(
-                dbTvShows,
-            )
+            return this.tvShowMapper.mapManyWithRelations(dbTvShows)
         } catch (error) {
             throw new TitleFetchException(
-                `Failed to fetch tvShows: ${error.message}`,
+                `Failed to fetch movies: ${error.message}`,
             )
         }
+    }
+
+    private getCategoryFetcher(
+        category: TitleCategory,
+    ): (limit: number) => Promise<DbSeries[]> {
+        const fetchers = {
+            [TitleCategory.POPULAR]: this.tvShowEntityService.getPopular.bind(
+                this.tvShowEntityService,
+            ),
+            [TitleCategory.TOP_RATED]:
+                this.tvShowEntityService.getTopRated.bind(
+                    this.tvShowEntityService,
+                ),
+            [TitleCategory.TRENDING]: this.tvShowEntityService.getTrending.bind(
+                this.tvShowEntityService,
+            ),
+            [TitleCategory.SEARCH]: this.tvShowEntityService.getSearched.bind(
+                this.tvShowEntityService,
+            ),
+            [TitleCategory.AIRING]: this.tvShowEntityService.getAiring.bind(
+                this.tvShowEntityService,
+            ),
+        }
+
+        const fetcher = fetchers[category]
+        if (!fetcher) {
+            throw new InvalidTitleCategoryException()
+        }
+
+        return fetcher
     }
 
     async syncPopularTvShows(): Promise<TvShow[]> {
@@ -119,7 +132,7 @@ export class TvShowService extends BaseTitleSyncService<TvShow> {
             TitleType.TV_SHOWS,
             category,
             this.tmdbService.getTvDetails.bind(this.tmdbService),
-            this.tvShowMapper.mapShowResponseToTvShow.bind(this.tvShowMapper),
+            this.tvShowMapper.mapToEntity.bind(this.tvShowMapper),
         )
     }
 

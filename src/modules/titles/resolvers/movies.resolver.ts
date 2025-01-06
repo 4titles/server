@@ -1,27 +1,10 @@
-import {
-    Resolver,
-    Query,
-    Args,
-    Int,
-    ResolveField,
-    Parent,
-} from '@nestjs/graphql'
+import { Resolver, Query, Args, Int } from '@nestjs/graphql'
 import { Movie } from '../models/movie.model'
 import { MovieService } from '../services/movie.service'
 import { TitleCategory } from '../enums/title-category.enum'
-import { LocationsService } from '@/modules/locations/services/locations.service'
-import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
-import { MovieLanguages } from '../models/language.model'
-import { LanguageService } from '../services'
-import { TitleType } from '../enums/title-type.enum'
-
 @Resolver(() => Movie)
 export class MoviesResolver {
-    constructor(
-        private readonly movieService: MovieService,
-        private readonly locationsService: LocationsService,
-        private readonly languageService: LanguageService,
-    ) {}
+    constructor(private readonly movieService: MovieService) {}
 
     @Query(() => [Movie], {
         description:
@@ -113,28 +96,5 @@ export class MoviesResolver {
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
     ): Promise<Movie[]> {
         return await this.movieService.searchMoviesOnTMDB(query, limit)
-    }
-
-    @ResolveField('filmingLocations', () => [FilmingLocation], {
-        description: 'Get filming locations for the movie',
-    })
-    async getFilmingLocations(@Parent() movie: Movie) {
-        if (!movie.filmingLocations && movie.imdbId) {
-            return this.locationsService.getLocationsForTitle(
-                movie.imdbId,
-                true,
-            )
-        }
-        return movie.filmingLocations || []
-    }
-
-    @ResolveField('languages', () => MovieLanguages, {
-        description: 'Get languages for the movie',
-    })
-    async getLanguages(@Parent() movie: Movie) {
-        return await this.languageService.getLanguagesForTitle(
-            movie.imdbId,
-            TitleType.MOVIES,
-        )
     }
 }

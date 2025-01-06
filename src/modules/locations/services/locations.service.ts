@@ -15,8 +15,9 @@ import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
 import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
 import { GeocodingService } from '@/modules/geocoding/services/geocoding.service'
-import { TitleEntityService } from '@/modules/titles/services/entity/title-entity.service'
 import { GeocodeResult } from '@/modules/geocoding/interfaces/geocode-result.interface'
+import { TitleType } from '@/modules/titles/enums/title-type.enum'
+import { TitlesService } from '@/modules/titles/services'
 
 @Injectable()
 export class LocationsService {
@@ -27,42 +28,42 @@ export class LocationsService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly cacheService: CacheService,
         private readonly imdbParserService: ImdbParserService,
-        private readonly titleEntityService: TitleEntityService,
+        private readonly titleService: TitlesService,
         private readonly geocodingService: GeocodingService,
     ) {}
 
     async getLocationsForTitle(
         imdbId: string,
-        isMovie: boolean,
+        isMovie?: boolean,
     ): Promise<FilmingLocation[]> {
         try {
-            const entity = isMovie
-                ? await this.titleEntityService.findMovieByImdbId(imdbId)
-                : await this.titleEntityService.findTvShowByImdbId(imdbId)
-
-            if (!entity) return []
+            const { title, type } = await this.titleService.findByImdbId(
+                imdbId,
+                isMovie,
+            )
+            const isTypeMovie: boolean = type === TitleType.MOVIES
 
             const locations = await this.db.query.filmingLocations.findMany({
-                where: isMovie
+                where: isTypeMovie
                     ? and(
-                          eq(filmingLocations.movieId, BigInt(entity.id)),
+                          eq(filmingLocations.movieId, title.id),
                           isNull(filmingLocations.seriesId),
                       )
                     : and(
-                          eq(filmingLocations.seriesId, BigInt(entity.id)),
+                          eq(filmingLocations.seriesId, title.id),
                           isNull(filmingLocations.movieId),
                       ),
                 with: {
                     location: true,
-                    movie: isMovie ? true : undefined,
-                    tvShow: !isMovie ? true : undefined,
+                    movie: isTypeMovie ? true : undefined,
+                    tvShow: !isTypeMovie ? true : undefined,
                 },
             })
 
             return FilmingLocationMapper.manyToGraphQL(locations)
         } catch (error) {
             this.logger.error(
-                `Error fetching locations for ImdbId ${imdbId}:`,
+                `Error fetching locations for title with imdbId ${imdbId}:`,
                 error,
             )
             throw error
@@ -72,7 +73,7 @@ export class LocationsService {
     async syncAllLocations(): Promise<LocationsSyncResult> {
         try {
             const [movies, series]: [DbMovie[], DbSeries[]] =
-                await this.titleEntityService.findAll()
+                await this.titleService.findAll()
 
             const imdbIds = [
                 ...movies.filter((m) => m.imdbId).map((m) => m.imdbId),
@@ -125,7 +126,10 @@ export class LocationsService {
         }
     }
 
-    async syncLocationsForTitle(imdbId: string): Promise<boolean> {
+    async syncLocationsForTitle(
+        imdbId: string,
+        isMovie?: boolean,
+    ): Promise<boolean> {
         try {
             const locations =
                 await this.imdbParserService.getFilmingLocations(imdbId)
@@ -133,7 +137,7 @@ export class LocationsService {
             const cacheKey = `locations_${imdbId}`
             await this.cacheService.set(cacheKey, locations, this.CACHE_TTL)
 
-            return await this.syncLocations(imdbId, locations)
+            return await this.syncLocations(imdbId, locations, isMovie)
         } catch (error) {
             this.logger.error(
                 `Failed to sync locations for title with imdbId: ${imdbId}:`,
@@ -146,6 +150,7 @@ export class LocationsService {
     private async syncLocations(
         imdbId: string,
         locations: RawLocation[],
+        isMovie?: boolean,
     ): Promise<boolean> {
         const cacheKey = `locations_${imdbId}`
 
@@ -154,13 +159,12 @@ export class LocationsService {
 
             if (!locations?.length) return true
 
-            const { movie, series } =
-                await this.titleEntityService.findByImdbId(imdbId)
-            if (!movie && !series) {
-                throw new Error(`Title with IMDB ID ${imdbId} not found`)
-            }
+            const { title, type } = await this.titleService.findByImdbId(
+                imdbId,
+                isMovie,
+            )
 
-            await this.saveLocations(locations, movie?.id, series?.id)
+            await this.saveLocations(locations, title.id, type)
             return true
         } catch (error) {
             this.logger.error(`Error syncing locations for ${imdbId}:`, error)
@@ -170,8 +174,8 @@ export class LocationsService {
 
     private async saveLocations(
         locations: RawLocation[],
-        movieId?: bigint,
-        seriesId?: bigint,
+        titleId: bigint,
+        titleType: TitleType,
     ): Promise<void> {
         try {
             const addresses = locations.map((loc) => loc.address)
@@ -186,16 +190,13 @@ export class LocationsService {
                 )
                 await this.createFilmingLocation(
                     location.id,
-                    movieId,
-                    seriesId,
                     rawLocation,
+                    titleId,
+                    titleType,
                 )
             }
         } catch (error) {
-            this.logger.error(
-                `Error saving locations for ${movieId || seriesId}:`,
-                error,
-            )
+            this.logger.error(`Error saving locations for title:`, error)
             throw error
         }
     }
@@ -249,14 +250,19 @@ export class LocationsService {
 
     private async createFilmingLocation(
         locationId: bigint,
-        movieId: bigint | null,
-        seriesId: bigint | null,
         rawLocation: RawLocation,
+        titleId: bigint,
+        titleType: TitleType,
     ) {
+        const [movieId, seriesId] = [
+            titleType === TitleType.MOVIES ? titleId : null,
+            titleType === TitleType.MOVIES ? null : titleId,
+        ]
+
         const filmingLocation = {
             locationId,
-            movieId: movieId ?? null,
-            seriesId: seriesId ?? null,
+            movieId,
+            seriesId,
             description: rawLocation.description || '',
         }
 

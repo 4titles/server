@@ -1,3 +1,4 @@
+import { TitleEntityFetchResult } from './../types/title.type'
 import { Injectable, Logger } from '@nestjs/common'
 import { TitleType } from '../enums/title-type.enum'
 import { MovieService } from './movie.service'
@@ -8,6 +9,10 @@ import { DEFAULT_FETCH_LIMIT } from './constants/query.constants'
 import { Title } from '../types/title.type'
 import { Movie } from '../models/movie.model'
 import { TvShow } from '../models/tv-show.model'
+import { DbSeries } from '@/modules/drizzle/schema/series.schema'
+import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
+import { TitleCategory } from '../enums/title-category.enum'
+import { TitleEntityService } from './entity'
 
 @Injectable()
 export class TitlesService {
@@ -16,15 +21,21 @@ export class TitlesService {
     constructor(
         private readonly movieService: MovieService,
         private readonly tvShowService: TvShowService,
+        private readonly titleEntityService: TitleEntityService,
     ) {}
 
-    async getAllTitles(limit: number = DEFAULT_FETCH_LIMIT): Promise<Title[]> {
-        const [movies, tvShows] = await Promise.all([
-            this.movieService.getMoviesByCategory(limit),
-            this.tvShowService.getTvShowsByCategory(limit),
-        ])
+    async findByImdbId(
+        imdbId: string,
+        isMovie?: boolean,
+    ): Promise<TitleEntityFetchResult> {
+        return await this.titleEntityService.findByImdbId(imdbId, isMovie)
+    }
 
-        return [...movies, ...tvShows]
+    async findAll(
+        limit: number = DEFAULT_FETCH_LIMIT,
+        category?: TitleCategory,
+    ): Promise<[DbMovie[], DbSeries[]]> {
+        return await this.titleEntityService.findAll(category, limit)
     }
 
     async syncAllContent(): Promise<FullSyncResult> {

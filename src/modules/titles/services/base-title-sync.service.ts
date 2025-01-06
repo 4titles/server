@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CacheService } from '@/modules/cache/cache.service'
 import { LocationsService } from '@/modules/locations/services/locations.service'
 import { TitleCategory } from '../enums/title-category.enum'
@@ -11,14 +11,18 @@ import { TvShowEntityService } from './entity/tv-show-entity.service'
 import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
 import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { TmdbService } from '@/modules/tmdb/tmdb.service'
-import { TitleMapper } from '../mappers/title.mapper'
 import { TvShowMapper } from '../mappers/tv-show.mapper'
-import { MovieMapper } from '../mappers/movie.mapper'
 import { GenreService } from './genre.service'
 import { LanguageService } from './language.service'
 import { GroupedLanguages } from '../types/language.type'
 import { Genre } from '../models/genre.model'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
+import {
+    MovieMappingContext,
+    TitleMappingContext,
+    TvShowMappingContext,
+} from '../types/mapping.type'
+import { MovieMapper } from '../mappers'
 
 interface TitleSyncContext {
     tmdbId: number
@@ -26,6 +30,7 @@ interface TitleSyncContext {
     category: TitleCategory
     imdbId?: string
     response: any
+    isMovie: boolean
 }
 
 @Injectable()
@@ -34,16 +39,16 @@ export abstract class BaseTitleSyncService<T extends Title> {
     protected readonly CACHE_TTL = 24 * 60 * 60
 
     constructor(
-        protected readonly titleMapper: TitleMapper,
-        protected readonly movieMapper: MovieMapper,
-        protected readonly tvShowMapper: TvShowMapper,
         protected readonly tmdbService: TmdbService,
         protected readonly cacheService: CacheService,
         protected readonly movieEntityService: MovieEntityService,
         protected readonly tvShowEntityService: TvShowEntityService,
-        protected readonly locationsService: LocationsService,
         protected readonly genreService: GenreService,
         protected readonly languageService: LanguageService,
+        @Inject(forwardRef(() => LocationsService))
+        protected readonly locationsService: LocationsService,
+        protected readonly movieMapper: MovieMapper,
+        protected readonly tvShowMapper: TvShowMapper,
     ) {}
 
     protected abstract syncTitle(
@@ -116,7 +121,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
         titleType: TitleType,
         category: TitleCategory,
         fetchDetails: (id: number) => Promise<any>,
-        mapper: (response: any, category: TitleCategory) => Promise<T>,
+        mapper: (context: TitleMappingContext) => Promise<T>,
     ): Promise<T> {
         const cacheKey = this.generateCacheKey(category, titleType, tmdbId)
 
@@ -129,6 +134,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
                     category,
                     response,
                     imdbId: response.imdb_id,
+                    isMovie: titleType === TitleType.MOVIES,
                 },
                 mapper,
             )
@@ -143,18 +149,23 @@ export abstract class BaseTitleSyncService<T extends Title> {
 
     private async processTitleDetails(
         context: TitleSyncContext,
-        mapper: (response: any, category: TitleCategory) => Promise<T>,
+        mapper: (
+            context: MovieMappingContext | TvShowMappingContext,
+        ) => Promise<T>,
     ): Promise<T> {
-        const item: T = await mapper(context.response, context.category)
-        const isMovie = context.titleType === TitleType.MOVIES
+        const item: T = await mapper({
+            category: context.category,
+            includeRelations: false,
+            movieResponse: context.response,
+            showResponse: context.response,
+        })
 
-        await this.persistTitleToDatabase(item, isMovie)
+        await this.persistTitleToDatabase(item, context.isMovie)
 
         if (context.imdbId) {
             item.filmingLocations = await this.syncLocations(
                 context,
                 item.imdbId,
-                isMovie,
             )
         }
 
@@ -181,15 +192,17 @@ export abstract class BaseTitleSyncService<T extends Title> {
     private async syncLocations(
         context: TitleSyncContext,
         imdbId: string,
-        isMovie: boolean,
     ): Promise<FilmingLocation[]> {
         this.logSync('locations', context)
 
         const locationsCacheKey = this.generateLocationsCacheKey(context)
-        await this.locationsService.syncLocationsForTitle(imdbId)
+        await this.locationsService.syncLocationsForTitle(
+            imdbId,
+            context.isMovie,
+        )
         const locations = await this.locationsService.getLocationsForTitle(
             imdbId,
-            isMovie,
+            context.isMovie,
         )
 
         await this.cacheService.set(
@@ -206,11 +219,12 @@ export abstract class BaseTitleSyncService<T extends Title> {
     ): Promise<Genre[]> {
         this.logSync('genres', context)
 
-        await this.genreService.syncGenresForTitle(item.imdbId, item.genres)
-        return this.genreService.getGenresForTitle(
+        await this.genreService.syncGenresForTitle(
             item.imdbId,
-            context.titleType === TitleType.MOVIES,
+            item.genres,
+            context.isMovie,
         )
+        return this.genreService.getGenresForTitle(item.imdbId, context.isMovie)
     }
 
     private async syncLanguages(
@@ -219,7 +233,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
     ): Promise<GroupedLanguages> {
         this.logSync('languages', context)
 
-        if (context.titleType === TitleType.MOVIES) {
+        if (context.isMovie) {
             await this.languageService.syncLanguagesForMovie(
                 imdbId,
                 context.response.original_language,
@@ -236,7 +250,7 @@ export abstract class BaseTitleSyncService<T extends Title> {
 
         return this.languageService.getLanguagesForTitle(
             imdbId,
-            context.titleType,
+            context.isMovie,
         )
     }
 

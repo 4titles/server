@@ -1,50 +1,92 @@
-import { ShowResponse } from 'moviedb-promise'
+import { Injectable } from '@nestjs/common'
+import { BaseMapper } from './base.mapper'
+import {
+    TitleMappingContext,
+    TvShowMappingContext,
+} from '../types/mapping.type'
 import { TvShow } from '../models/tv-show.model'
-import { TitleCategory } from '../enums/title-category.enum'
-import { TitleMapper } from './title.mapper'
+import { DbSeries } from '@/modules/drizzle/schema/series.schema'
+@Injectable()
+export class TvShowMapper extends BaseMapper {
+    async mapToEntity(context: TvShowMappingContext): Promise<TvShow> {
+        const { showResponse: response, category } = context
 
-export class TvShowMapper extends TitleMapper {
-    async mapShowResponseToTvShow(
-        showResponse: ShowResponse & { imdb_id: string },
-        category: TitleCategory,
-    ): Promise<TvShow> {
-        return {
-            tmdbId: showResponse.id,
-            imdbId: showResponse.imdb_id,
-            name: showResponse.name,
-            originalName: showResponse.original_name,
-            overview: showResponse.overview,
-            posterPath: showResponse.poster_path,
-            backdropPath: showResponse.backdrop_path,
-            createdBy: this.mapCreatedBy(showResponse.created_by),
-            episodeRunTime: showResponse.episode_run_time,
-            firstAirDate: showResponse.first_air_date,
-            genres: await this.mapGenres(
-                showResponse.genres.map((g) => ({
-                    tmdbId: String(g.id || 0),
-                    names: { en: '', ru: g.name },
-                })),
+        const tvShow: TvShow = {
+            tmdbId: response.id,
+            imdbId: response.imdb_id,
+            name: response.name,
+            originalName: response.original_name,
+            overview: response.overview,
+            posterPath: response.poster_path,
+            backdropPath: response.backdrop_path,
+            createdBy: this.mapTmdbCreatedBy(response.created_by),
+            episodeRunTime: response.episode_run_time,
+            firstAirDate: response.first_air_date,
+            homepage: response.homepage,
+            inProduction: response.in_production,
+            lastAirDate: response.last_air_date,
+            networks: this.mapTmdbNetworks(response.networks),
+            numberOfEpisodes: response.number_of_episodes,
+            numberOfSeasons: response.number_of_seasons,
+            originCountry: response.origin_country,
+            popularity: response.popularity,
+            productionCompanies: this.mapTmdbProductionCompanies(
+                response.production_companies,
             ),
-            homepage: showResponse.homepage,
-            inProduction: showResponse.in_production,
-            lastAirDate: showResponse.last_air_date,
-            networks: this.mapNetworks(showResponse.networks),
-            numberOfEpisodes: showResponse.number_of_episodes,
-            numberOfSeasons: showResponse.number_of_seasons,
-            originCountry: showResponse.origin_country,
-            popularity: showResponse.popularity,
-            productionCompanies: this.mapProductionCompanies(
-                showResponse.production_companies,
+            productionCountries: this.mapTmdbProductionCountries(
+                response.production_countries,
             ),
-            productionCountries: this.mapProductionCountries(
-                showResponse.production_countries,
-            ),
-            status: showResponse.status,
-            tagLine: showResponse.tagline,
-            voteAverage: showResponse.vote_average,
-            voteCount: showResponse.vote_count,
+            status: response.status,
+            tagLine: response.tagline,
+            voteAverage: response.vote_average,
+            voteCount: response.vote_count,
             updatedAt: new Date(),
+            genres: this.mapTmdbGenres(response.genres),
             category,
         }
+
+        return this.mapRelations(tvShow, context)
+    }
+
+    async mapFromDatabase(
+        dbSeries: DbSeries,
+        context: TitleMappingContext,
+    ): Promise<TvShow> {
+        const tvShow: TvShow = {
+            ...dbSeries,
+            tmdbId: Number(dbSeries.tmdbId),
+            numberOfEpisodes: Number(dbSeries.numberOfEpisodes),
+            numberOfSeasons: Number(dbSeries.numberOfSeasons),
+            voteCount: Number(dbSeries.voteCount),
+        }
+
+        return this.mapRelations(tvShow, context)
+    }
+
+    async mapMany<T extends DbSeries>(
+        entities: T[],
+        context: TitleMappingContext,
+    ): Promise<TvShow[]> {
+        return Promise.all(
+            entities.map((entity) =>
+                this.mapFromDatabase(entity, {
+                    ...context,
+                    category: entity.category,
+                }),
+            ),
+        )
+    }
+
+    async mapManyWithRelations<T extends DbSeries>(
+        entities: T[],
+    ): Promise<TvShow[]> {
+        return Promise.all(
+            entities.map((dbTvShow) =>
+                this.mapFromDatabase(dbTvShow, {
+                    category: dbTvShow.category,
+                    includeRelations: true,
+                }),
+            ),
+        )
     }
 }

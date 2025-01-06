@@ -15,8 +15,8 @@ export class TvShow {
     @Field(() => Int)
     tmdbId: number
 
-    @Field(() => String)
-    imdbId: string
+    @Field(() => String, { nullable: true })
+    imdbId?: string
 
     @Field()
     name: string
@@ -94,8 +94,8 @@ export class TvShow {
     @Field(() => [FilmingLocation], { nullable: true })
     filmingLocations?: FilmingLocation[]
 
-    @Field(() => [Genre, { nullable: true }])
-    genres?: Genre[]
+    @Field(() => [Genre], { nullable: true })
+    genres?: Genre[] | null
 
     @Field(() => TvShowLanguages, { nullable: true })
     languages?: TvShowLanguages

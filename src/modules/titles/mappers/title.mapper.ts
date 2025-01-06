@@ -16,16 +16,9 @@ import {
     SpokenLanguage,
 } from '../models/common.model'
 import { GenreMapper } from './genre.mapper'
-// import { MovieLanguage, SeriesLanguage } from '../models/language.model'
 
 export class TitleMapper {
     constructor(@Inject(DRIZZLE) protected db: DrizzleDB) {}
-
-    // async onModuleInit() {
-    //     this.languageService = this.moduleRef.get(LanguageService, {
-    //         strict: false,
-    //     })
-    // }
 
     async mapSingleWithRelations<T extends Title>(
         title: DbTitle | null,
