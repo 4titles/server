@@ -40,8 +40,6 @@ export abstract class BaseMapper {
             this.mapLanguages(entity),
         ])
 
-        console.log(bigIntSerializer.stringify(entity))
-
         return {
             ...entity,
             genres,
