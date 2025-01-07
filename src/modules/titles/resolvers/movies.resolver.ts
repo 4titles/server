@@ -1,26 +1,10 @@
-import {
-    Resolver,
-    Query,
-    Args,
-    Int,
-    ResolveField,
-    Parent,
-} from '@nestjs/graphql'
-import { Logger } from '@nestjs/common'
+import { Resolver, Query, Args, Int } from '@nestjs/graphql'
 import { Movie } from '../models/movie.model'
 import { MovieService } from '../services/movie.service'
 import { TitleCategory } from '../enums/title-category.enum'
-import { LocationsService } from '@/modules/locations/services/locations.service'
-import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
-
 @Resolver(() => Movie)
 export class MoviesResolver {
-    private readonly logger = new Logger(MoviesResolver.name)
-
-    constructor(
-        private readonly movieService: MovieService,
-        private readonly locationsService: LocationsService,
-    ) {}
+    constructor(private readonly movieService: MovieService) {}
 
     @Query(() => [Movie], {
         description:
@@ -30,7 +14,7 @@ export class MoviesResolver {
         @Args('category', { type: () => TitleCategory, nullable: true })
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(limit, category)
     }
 
@@ -39,7 +23,7 @@ export class MoviesResolver {
     })
     async popularMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.POPULAR,
@@ -51,7 +35,7 @@ export class MoviesResolver {
     })
     async topRatedMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.TOP_RATED,
@@ -63,7 +47,7 @@ export class MoviesResolver {
     })
     async trendingMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.TRENDING,
@@ -75,7 +59,7 @@ export class MoviesResolver {
     })
     async searchedMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.SEARCH,
@@ -87,7 +71,7 @@ export class MoviesResolver {
     })
     async upcomingMovies(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.getMoviesByCategory(
             limit,
             TitleCategory.UPCOMING,
@@ -98,7 +82,9 @@ export class MoviesResolver {
         nullable: true,
         description: 'Get a movie by TMDB ID',
     })
-    async movie(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
+    async movie(
+        @Args('tmdbId', { type: () => Int }) tmdbId: number,
+    ): Promise<Movie> {
         return await this.movieService.getMovieByTmdbId(tmdbId)
     }
 
@@ -108,20 +94,7 @@ export class MoviesResolver {
     async searchMovies(
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<Movie[]> {
         return await this.movieService.searchMoviesOnTMDB(query, limit)
-    }
-
-    @ResolveField('filmingLocations', () => [FilmingLocation], {
-        description: 'Get filming locations for the movie',
-    })
-    async getFilmingLocations(@Parent() movie: Movie) {
-        if (!movie.filmingLocations && movie.imdbId) {
-            return this.locationsService.getLocationsForTitle(
-                movie.imdbId,
-                true,
-            )
-        }
-        return movie.filmingLocations || []
     }
 }

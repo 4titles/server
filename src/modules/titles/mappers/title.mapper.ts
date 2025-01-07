@@ -33,6 +33,7 @@ export class TitleMapper {
                 serialized.filmingLocations,
             ),
             genres: await this.mapGenres(serialized.genres),
+            // languages: await this.mapLanguages(serialized.id),
         } as T
     }
 
@@ -45,6 +46,7 @@ export class TitleMapper {
             ...title,
             filmingLocations: this.mapFilmingLocations(title.filmingLocations),
             genres: await this.mapGenres(title.genres),
+            // languages: await this.mapLanguages(serialized.id),
         })) as T[]
     }
 
@@ -69,13 +71,16 @@ export class TitleMapper {
                 })
 
                 if (!dbGenre) {
-                    await this.db.insert(genres).values({
-                        tmdbId: BigInt(genreItem.tmdbId),
-                        names: {
-                            en: genreItem.names.en ?? '',
-                            ru: genreItem.names.ru ?? '',
-                        },
-                    })
+                    await this.db
+                        .insert(genres)
+                        .values({
+                            tmdbId: BigInt(genreItem.tmdbId),
+                            names: {
+                                en: genreItem.names.en ?? '',
+                                ru: genreItem.names.ru ?? '',
+                            },
+                        })
+                        .onConflictDoNothing()
                     dbGenre = await this.db.query.genres.findFirst({
                         where: eq(genres.tmdbId, BigInt(genreItem.tmdbId)),
                     })
@@ -90,6 +95,16 @@ export class TitleMapper {
         return mappedGenres
     }
 
+    // protected async mapLanguages(
+    //     imdbId: string,
+    // ): Promise<MovieLanguage[] | SeriesLanguage[]> {
+    //     try {
+    //         return await this.languageService.getLanguagesForTitle(imdbId)
+    //     } catch (error) {
+    //         console.error(`Failed to map languages for title ${imdbId}:`, error)
+    //         return []
+    //     }
+    // }
     protected mapCreatedBy(people?: SimplePerson[]): SimplePerson[] {
         if (!people) return []
         return people.map((person) => ({

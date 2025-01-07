@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { CacheService } from '@/modules/cache/cache.service'
 import { LocationsService } from '@/modules/locations/services/locations.service'
 import { TitleCategory } from '../enums/title-category.enum'
@@ -11,10 +11,27 @@ import { TvShowEntityService } from './entity/tv-show-entity.service'
 import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
 import { DbSeries } from '@/modules/drizzle/schema/series.schema'
 import { TmdbService } from '@/modules/tmdb/tmdb.service'
-import { TitleMapper } from '../mappers/title.mapper'
 import { TvShowMapper } from '../mappers/tv-show.mapper'
-import { MovieMapper } from '../mappers/movie.mapper'
 import { GenreService } from './genre.service'
+import { LanguageService } from './language.service'
+import { GroupedLanguages } from '../types/language.type'
+import { Genre } from '../models/genre.model'
+import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
+import {
+    MovieMappingContext,
+    TitleMappingContext,
+    TvShowMappingContext,
+} from '../types/mapping.type'
+import { MovieMapper } from '../mappers'
+
+interface TitleSyncContext {
+    tmdbId: number
+    titleType: TitleType
+    category: TitleCategory
+    imdbId?: string
+    response: any
+    isMovie: boolean
+}
 
 @Injectable()
 export abstract class BaseTitleSyncService<T extends Title> {
@@ -22,15 +39,16 @@ export abstract class BaseTitleSyncService<T extends Title> {
     protected readonly CACHE_TTL = 24 * 60 * 60
 
     constructor(
-        protected readonly titleMapper: TitleMapper,
-        protected readonly movieMapper: MovieMapper,
-        protected readonly tvShowMapper: TvShowMapper,
         protected readonly tmdbService: TmdbService,
         protected readonly cacheService: CacheService,
         protected readonly movieEntityService: MovieEntityService,
         protected readonly tvShowEntityService: TvShowEntityService,
-        protected readonly locationsService: LocationsService,
         protected readonly genreService: GenreService,
+        protected readonly languageService: LanguageService,
+        @Inject(forwardRef(() => LocationsService))
+        protected readonly locationsService: LocationsService,
+        protected readonly movieMapper: MovieMapper,
+        protected readonly tvShowMapper: TvShowMapper,
     ) {}
 
     protected abstract syncTitle(
@@ -103,64 +121,23 @@ export abstract class BaseTitleSyncService<T extends Title> {
         titleType: TitleType,
         category: TitleCategory,
         fetchDetails: (id: number) => Promise<any>,
-        mapper: (response: any, category: TitleCategory) => Promise<T>,
+        mapper: (context: TitleMappingContext) => Promise<T>,
     ): Promise<T> {
-        const cacheKey = `${category}_${titleType}_${tmdbId}`
-        const locationsCacheKey = `${category}_${titleType}_locations_${tmdbId}`
+        const cacheKey = this.generateCacheKey(category, titleType, tmdbId)
 
         try {
-            const cached = await this.cacheService.get<
-                T & { filmingLocations: any[] }
-            >(cacheKey)
-
-            if (cached) {
-                return cached
-            }
-
             const response = await fetchDetails(tmdbId)
-            const item: T = await mapper(response, category)
-
-            if (titleType === TitleType.MOVIES) {
-                await this.movieEntityService.createOrUpdate(item as DbMovie)
-            } else {
-                await this.tvShowEntityService.createOrUpdate(item as DbSeries)
-            }
-
-            if (response.imdb_id) {
-                this.logger.log(
-                    `Syncing locations for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
-                )
-                await this.locationsService.syncLocationsForTitle(
-                    response.imdb_id,
-                )
-                const locations =
-                    await this.locationsService.getLocationsForTitle(
-                        response.imdb_id,
-                        titleType === TitleType.MOVIES,
-                    )
-                item.filmingLocations = locations
-
-                await this.cacheService.set(
-                    locationsCacheKey,
-                    locations,
-                    this.CACHE_TTL,
-                )
-            }
-
-            if (item.genres?.length) {
-                this.logger.log(
-                    `Syncing genres for ${titleType} with imdbId ${item.imdbId}, with category ${category}`,
-                )
-                await this.genreService.syncGenresForTitle(
-                    item.imdbId,
-                    item.genres,
-                )
-
-                item.genres = await this.genreService.getGenresForTitle(
-                    item.imdbId,
-                    titleType === TitleType.MOVIES,
-                )
-            }
+            const item = await this.processTitleDetails(
+                {
+                    tmdbId,
+                    titleType,
+                    category,
+                    response,
+                    imdbId: response.imdb_id,
+                    isMovie: titleType === TitleType.MOVIES,
+                },
+                mapper,
+            )
 
             await this.cacheService.set(cacheKey, item, this.CACHE_TTL)
             return item
@@ -168,5 +145,134 @@ export abstract class BaseTitleSyncService<T extends Title> {
             this.logger.error(`Failed to sync ${titleType} ${tmdbId}:`, error)
             throw error
         }
+    }
+
+    private async processTitleDetails(
+        context: TitleSyncContext,
+        mapper: (
+            context: MovieMappingContext | TvShowMappingContext,
+        ) => Promise<T>,
+    ): Promise<T> {
+        const item: T = await mapper({
+            category: context.category,
+            includeRelations: false,
+            movieResponse: context.response,
+            showResponse: context.response,
+        })
+
+        await this.persistTitleToDatabase(item, context.isMovie)
+
+        if (context.imdbId) {
+            item.filmingLocations = await this.syncLocations(
+                context,
+                item.imdbId,
+            )
+        }
+
+        if (item.genres?.length) {
+            item.genres = await this.syncGenres(context, item)
+        }
+
+        item.languages = await this.syncLanguages(context, item.imdbId)
+
+        return item
+    }
+
+    private async persistTitleToDatabase(
+        item: T,
+        isMovie: boolean,
+    ): Promise<void> {
+        if (isMovie) {
+            await this.movieEntityService.createOrUpdate(item as DbMovie)
+        } else {
+            await this.tvShowEntityService.createOrUpdate(item as DbSeries)
+        }
+    }
+
+    private async syncLocations(
+        context: TitleSyncContext,
+        imdbId: string,
+    ): Promise<FilmingLocation[]> {
+        this.logSync('locations', context)
+
+        const locationsCacheKey = this.generateLocationsCacheKey(context)
+        await this.locationsService.syncLocationsForTitle(
+            imdbId,
+            context.isMovie,
+        )
+        const locations = await this.locationsService.getLocationsForTitle(
+            imdbId,
+            context.isMovie,
+        )
+
+        await this.cacheService.set(
+            locationsCacheKey,
+            locations,
+            this.CACHE_TTL,
+        )
+        return locations
+    }
+
+    private async syncGenres(
+        context: TitleSyncContext,
+        item: T,
+    ): Promise<Genre[]> {
+        this.logSync('genres', context)
+
+        await this.genreService.syncGenresForTitle(
+            item.imdbId,
+            item.genres,
+            context.isMovie,
+        )
+        return this.genreService.getGenresForTitle(item.imdbId, context.isMovie)
+    }
+
+    private async syncLanguages(
+        context: TitleSyncContext,
+        imdbId: string,
+    ): Promise<GroupedLanguages> {
+        this.logSync('languages', context)
+
+        if (context.isMovie) {
+            await this.languageService.syncLanguagesForMovie(
+                imdbId,
+                context.response.original_language,
+                context.response.spoken_languages,
+            )
+        } else {
+            await this.languageService.syncLanguagesForSeries(
+                imdbId,
+                context.response.original_language,
+                context.response.spoken_languages,
+                context.response.languages,
+            )
+        }
+
+        return this.languageService.getLanguagesForTitle(
+            imdbId,
+            context.isMovie,
+        )
+    }
+
+    private async getCachedTitle(cacheKey: string): Promise<T | null> {
+        return this.cacheService.get(cacheKey)
+    }
+
+    private generateCacheKey(
+        category: TitleCategory,
+        titleType: TitleType,
+        tmdbId: number,
+    ): string {
+        return `${category}_${titleType}_${tmdbId}`
+    }
+
+    private generateLocationsCacheKey(context: TitleSyncContext): string {
+        return `${context.category}_${context.titleType}_locations_${context.tmdbId}`
+    }
+
+    private logSync(entityType: string, context: TitleSyncContext): void {
+        this.logger.log(
+            `Syncing ${entityType} for ${context.titleType} with imdbId ${context.imdbId}, with category ${context.category}`,
+        )
     }
 }

@@ -31,6 +31,9 @@ export class SpokenLanguage {
 
     @Field(() => String, { nullable: true })
     name?: string
+
+    @Field(() => String, { nullable: true })
+    english_name?: string
 }
 
 @ObjectType()
@@ -64,16 +67,4 @@ export class SimplePerson {
 
     @Field(() => String, { nullable: true })
     profile_path?: string
-}
-
-@ObjectType()
-export class Language {
-    @Field(() => String, { nullable: true })
-    iso_639_1?: string
-
-    @Field(() => String, { nullable: true })
-    english_name?: string
-
-    @Field(() => String, { nullable: true })
-    name?: string
 }

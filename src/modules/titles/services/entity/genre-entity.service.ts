@@ -6,13 +6,14 @@ import { TitleEntityService } from './title-entity.service'
 import { eq, sql } from 'drizzle-orm'
 import {
     DbGenre,
-    genres,
+    DbMovieGenre,
+    DbSeriesGenre,
+    genres as genresTable,
     movieGenres,
     seriesGenres,
 } from '@/modules/drizzle/schema/genres.schema'
 import { DatabaseException } from '../../exceptions/database.exception'
-import { DbTitle } from '../../types/title.type'
-import { bigIntSerializer } from '../utils/json.utils'
+import { TitleType } from '../../enums/title-type.enum'
 
 @Injectable()
 export class GenreEntityService {
@@ -21,6 +22,30 @@ export class GenreEntityService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly titleEntityService: TitleEntityService,
     ) {}
+
+    async createOrUpdate(genre?: Genre) {
+        try {
+            if (!genre) return
+
+            return await this.db
+                .insert(genresTable)
+                .values({
+                    tmdbId: BigInt(genre.tmdbId),
+                    names: genre.names,
+                })
+                .onConflictDoUpdate({
+                    target: genresTable.tmdbId,
+                    set: {
+                        tmdbId: BigInt(genre.tmdbId),
+                        names: genre.names,
+                    },
+                })
+        } catch (error) {
+            throw new DatabaseException(
+                `Failed to create/update genre: ${error.message}`,
+            )
+        }
+    }
 
     async getAll(): Promise<DbGenre[]> {
         try {
@@ -37,7 +62,7 @@ export class GenreEntityService {
     async getByTmdbId(tmdbId: bigint): Promise<DbGenre> {
         try {
             return await this.db.query.genres.findFirst({
-                where: eq(genres.tmdbId, tmdbId),
+                where: eq(genresTable.tmdbId, tmdbId),
             })
         } catch (error) {
             throw new DatabaseException(
@@ -46,27 +71,46 @@ export class GenreEntityService {
         }
     }
 
-    async getForTitle(imdbId: string, isMovie: boolean): Promise<DbGenre[]> {
+    async getMovieGenres(movieId: bigint): Promise<DbMovieGenre[]> {
         try {
-            const entity: DbTitle = isMovie
-                ? await this.titleEntityService.findMovieByImdbId(imdbId)
-                : await this.titleEntityService.findTvShowByImdbId(imdbId)
+            return await this.db.query.movieGenres.findMany({
+                where: eq(movieGenres.movieId, movieId),
+            })
+        } catch (error) {
+            throw new DatabaseException(
+                `Failed to find movie genres: ${error.message}`,
+            )
+        }
+    }
 
-            if (!entity) return []
+    async getTvShowGenres(tvShowId: bigint): Promise<DbSeriesGenre[]> {
+        try {
+            return await this.db.query.seriesGenres.findMany({
+                where: eq(seriesGenres.seriesId, tvShowId),
+            })
+        } catch (error) {
+            throw new DatabaseException(
+                `Failed to find movie genres: ${error.message}`,
+            )
+        }
+    }
 
-            const genreRelationsEntities = isMovie
-                ? await this.db.query.movieGenres.findMany({
-                      where: eq(movieGenres.movieId, entity.id),
-                  })
-                : await this.db.query.seriesGenres.findMany({
-                      where: eq(seriesGenres.seriesId, entity.id),
-                  })
+    async getForTitle(imdbId: string, isMovie?: boolean): Promise<DbGenre[]> {
+        try {
+            const { title, type } = await this.titleEntityService.findByImdbId(
+                imdbId,
+                isMovie,
+            )
+
+            const genreRelationsEntities =
+                type === TitleType.MOVIES
+                    ? await this.getMovieGenres(title.id)
+                    : await this.getTvShowGenres(title.id)
 
             const dbGenres: DbGenre[] = []
-
             for (const genreRelation of genreRelationsEntities) {
                 const genre = await this.db.query.genres.findFirst({
-                    where: eq(genres.id, genreRelation.genreId),
+                    where: eq(genresTable.id, genreRelation.genreId),
                 })
                 if (genre) {
                     dbGenres.push(genre)
@@ -76,7 +120,7 @@ export class GenreEntityService {
             return dbGenres
         } catch (error) {
             this.logger.error(
-                `Error fetching genres for imdbId ${imdbId}:`,
+                `Error fetching genres for title with imdbId ${imdbId}:`,
                 error,
             )
             throw error
@@ -85,24 +129,27 @@ export class GenreEntityService {
 
     async saveGenres(
         genres: Genre[],
-        movieId?: bigint,
-        seriesId?: bigint,
+        titleImdbId: string,
+        isMovie?: boolean,
     ): Promise<void> {
         try {
-            if (!movieId && !seriesId) {
-                return
-            }
+            const { title, type } = await this.titleEntityService.findByImdbId(
+                titleImdbId,
+                isMovie,
+            )
 
             for (const genre of genres) {
                 const genreEntity = await this.getByTmdbId(BigInt(genre.tmdbId))
 
-                this.logger.debug(bigIntSerializer.stringify(genreEntity))
+                if (!genreEntity) {
+                    await this.createOrUpdate(genre)
+                }
 
-                if (movieId) {
+                if (type === TitleType.MOVIES) {
                     await this.db
                         .insert(movieGenres)
                         .values({
-                            movieId,
+                            movieId: title.id,
                             genreId: genreEntity.id,
                         })
                         .onConflictDoNothing()
@@ -110,7 +157,7 @@ export class GenreEntityService {
                     await this.db
                         .insert(seriesGenres)
                         .values({
-                            seriesId,
+                            seriesId: title.id,
                             genreId: genreEntity.id,
                         })
                         .onConflictDoNothing()
@@ -118,7 +165,7 @@ export class GenreEntityService {
             }
         } catch (error) {
             this.logger.error(
-                `Error saving genres for title with imdbId: ${movieId || seriesId} - `,
+                `Error saving genres for title with imdbId ${titleImdbId}:`,
                 error,
             )
             throw error

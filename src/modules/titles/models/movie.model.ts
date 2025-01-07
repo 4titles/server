@@ -1,21 +1,18 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql'
-import {
-    ProductionCompany,
-    ProductionCountry,
-    SpokenLanguage,
-} from './common.model'
+import { ProductionCompany, ProductionCountry } from './common.model'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieStatus } from '../enums/movie-status.enum'
 import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
 import { Genre } from './genre.model'
+import { MovieLanguages } from './language.model'
 
 @ObjectType()
 export class Movie {
     @Field(() => Int)
     tmdbId: number
 
-    @Field()
-    imdbId: string
+    @Field(() => String, { nullable: true })
+    imdbId?: string
 
     @Field()
     title: string
@@ -40,9 +37,6 @@ export class Movie {
 
     @Field({ nullable: true })
     homepage?: string
-
-    @Field()
-    originalLanguage: string
 
     @Field(() => Float)
     popularity: number
@@ -74,9 +68,6 @@ export class Movie {
     @Field(() => [ProductionCountry])
     productionCountries: ProductionCountry[]
 
-    @Field(() => [SpokenLanguage])
-    spokenLanguages: SpokenLanguage[]
-
     @Field(() => [String])
     originCountry: string[]
 
@@ -86,9 +77,13 @@ export class Movie {
     @Field(() => TitleCategory)
     category: TitleCategory
 
+    // Relationships
     @Field(() => [FilmingLocation], { nullable: true })
     filmingLocations?: FilmingLocation[]
 
     @Field(() => [Genre], { nullable: true })
-    genres?: Genre[]
+    genres?: Genre[] | null
+
+    @Field(() => MovieLanguages, { nullable: true })
+    languages?: MovieLanguages
 }

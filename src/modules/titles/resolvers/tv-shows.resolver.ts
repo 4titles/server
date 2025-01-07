@@ -1,23 +1,10 @@
-import {
-    Resolver,
-    Query,
-    Args,
-    Int,
-    ResolveField,
-    Parent,
-} from '@nestjs/graphql'
+import { Resolver, Query, Args, Int } from '@nestjs/graphql'
 import { TvShow } from '../models/tv-show.model'
 import { TvShowService } from '../services/tv-show.service'
 import { TitleCategory } from '../enums/title-category.enum'
-import { LocationsService } from '@/modules/locations/services/locations.service'
-import { FilmingLocation } from '@/modules/locations/models/filming-location.model'
-
 @Resolver(() => TvShow)
 export class TvShowsResolver {
-    constructor(
-        private readonly tvShowService: TvShowService,
-        private readonly locationsService: LocationsService,
-    ) {}
+    constructor(private readonly tvShowService: TvShowService) {}
 
     @Query(() => [TvShow], {
         description:
@@ -27,7 +14,7 @@ export class TvShowsResolver {
         @Args('category', { type: () => TitleCategory, nullable: true })
         category?: TitleCategory,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(limit, category)
     }
 
@@ -36,7 +23,7 @@ export class TvShowsResolver {
     })
     async popularTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.POPULAR,
@@ -48,7 +35,7 @@ export class TvShowsResolver {
     })
     async topRatedTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.TOP_RATED,
@@ -60,7 +47,7 @@ export class TvShowsResolver {
     })
     async trendingTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.TRENDING,
@@ -72,7 +59,7 @@ export class TvShowsResolver {
     })
     async airingTvShows(
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.getTvShowsByCategory(
             limit,
             TitleCategory.AIRING,
@@ -83,7 +70,9 @@ export class TvShowsResolver {
         nullable: true,
         description: 'Get a TV show by TMDB ID',
     })
-    async tvShow(@Args('tmdbId', { type: () => Int }) tmdbId: number) {
+    async tvShow(
+        @Args('tmdbId', { type: () => Int }) tmdbId: number,
+    ): Promise<TvShow> {
         return await this.tvShowService.getTvShowByTmdbId(tmdbId)
     }
 
@@ -93,20 +82,7 @@ export class TvShowsResolver {
     async searchTvShows(
         @Args('query') query: string,
         @Args('limit', { type: () => Int, nullable: true }) limit?: number,
-    ) {
+    ): Promise<TvShow[]> {
         return await this.tvShowService.searchTvShowsOnTMDB(query, limit)
-    }
-
-    @ResolveField('filmingLocations', () => [FilmingLocation], {
-        description: 'Get filming locations for the TV show',
-    })
-    async getFilmingLocations(@Parent() tvShow: TvShow) {
-        if (!tvShow.filmingLocations && tvShow.imdbId) {
-            return this.locationsService.getLocationsForTitle(
-                tvShow.imdbId,
-                false,
-            )
-        }
-        return tvShow.filmingLocations || []
     }
 }
