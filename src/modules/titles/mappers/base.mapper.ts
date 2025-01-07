@@ -13,7 +13,6 @@ import {
     Network as TmdbNetwork,
     SimplePerson as TmdbSimplePerson,
 } from 'moviedb-promise'
-import { bigIntSerializer } from '../services/utils/json.utils'
 import { Genre } from '../models/genre.model'
 
 @Injectable()
