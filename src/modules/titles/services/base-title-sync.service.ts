@@ -3,7 +3,6 @@ import { CacheService } from '@/modules/cache/cache.service'
 import { LocationsService } from '@/modules/locations/services/locations.service'
 import { TitleCategory } from '../enums/title-category.enum'
 import { MovieResult, TvResult } from 'moviedb-promise'
-import { TitleType } from '@/graphql'
 import { DEFAULT_FETCH_LIMIT } from './constants/query.constants'
 import { Title } from '../types/title.type'
 import { MovieEntityService } from './entity/movie-entity.service'
@@ -23,6 +22,7 @@ import {
     TvShowMappingContext,
 } from '../types/mapping.type'
 import { MovieMapper } from '../mappers'
+import { TitleType } from '../enums/title-type.enum'
 
 interface TitleSyncContext {
     tmdbId: number
