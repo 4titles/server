@@ -22,6 +22,6 @@ import * as mappers from './mappers'
         // mappers
         ...Object.values(mappers),
     ],
-    exports: [services.TitlesService],
+    exports: [services.TitlesService, services.TitleSyncManagerService],
 })
 export class TitlesModule {}
