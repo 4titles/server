@@ -11,6 +11,7 @@ import geocodingConfig from '../config/geocoding.config'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import imdbConfig from '../config/imdb/imdb.config'
 import { CliModule } from './cli/cli.module'
+import { CronModule } from './cron/cron.module'
 
 @Module({
     imports: [
@@ -28,6 +29,7 @@ import { CliModule } from './cli/cli.module'
         CacheModule,
         CliModule,
         TitlesModule,
+        CronModule,
     ],
 })
 export class AppModule {}

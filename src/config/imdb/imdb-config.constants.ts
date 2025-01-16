@@ -2,7 +2,7 @@ export const BROWSER_SETTINGS = {
     POOL: {
         MIN_SIZE: 1,
         MAX_SIZE: 8,
-        CONCURRENT_PAGES: 7,
+        CONCURRENT_PAGES: 6,
         RETRIEVE_ATTEMPTS: 5,
     },
     VIEWPORT: {
@@ -24,8 +24,8 @@ export const BROWSER_SETTINGS = {
 export const TIMING_SETTINGS = {
     TIMEOUT: {
         BROWSER: 20_000,
-        PAGE: 10_000,
-        ELEMENT: 8_000,
+        PAGE: 12_000,
+        ELEMENT: 9_000,
         BROWSER_WAIT: 7_000,
         TIMEOUT_ERROR: 'TimeoutError',
     },
