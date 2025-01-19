@@ -6,5 +6,6 @@ import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 @Module({
     imports: [DrizzleModule],
     providers: [AccountResolver, AccountService],
+    exports: [AccountService],
 })
 export class AccountModule {}

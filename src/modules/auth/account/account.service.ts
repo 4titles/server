@@ -24,6 +24,17 @@ export class AccountService {
         }
     }
 
+    async findByLogin(login: string): Promise<User | null> {
+        try {
+            return await this.db.query.users.findFirst({
+                where: (users, { or, eq }) =>
+                    or(eq(users.username, login), eq(users.email, login)),
+            })
+        } catch (error) {
+            throw new DatabaseException(error)
+        }
+    }
+
     async create(input: CreateUserInput): Promise<boolean> {
         try {
             const { email, username, password } = input

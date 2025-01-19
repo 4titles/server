@@ -1,19 +1,19 @@
+import fastifyCookie from '@fastify/cookie'
+import fastifyCors from '@fastify/cors'
+import fastifySession from '@mgcrea/fastify-session'
+import RedisStore from '@mgcrea/fastify-session-redis-store'
+import { ValidationPipe } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import {
     FastifyAdapter,
     NestFastifyApplication,
 } from '@nestjs/platform-fastify'
+import Redis from 'ioredis'
+import { IRedisConfig } from './config/redis.config'
 import { AppModule } from './modules/app.module'
-import { ConfigService } from '@nestjs/config'
-import { ValidationPipe } from '@nestjs/common'
-import fastifyCookie from '@fastify/cookie'
-import fastifySession from '@fastify/session'
-import fastifyCors from '@fastify/cors'
-import fastifyHelmet from '@fastify/helmet'
 import { ms, type StringValue } from './shared/utils/ms.utils'
 import { parseBoolean } from './shared/utils/parse-boolean.utils'
-import { CacheService } from './modules/cache/cache.service'
-import { RedisStore } from 'connect-redis'
 
 async function bootstrap() {
     try {
@@ -23,7 +23,6 @@ async function bootstrap() {
         )
 
         const config = app.get(ConfigService)
-        const redis = app.get(CacheService)
 
         app.useGlobalPipes(
             new ValidationPipe({
@@ -31,19 +30,6 @@ async function bootstrap() {
                 whitelist: true,
             }),
         )
-
-        await app.register(fastifyHelmet, {
-            contentSecurityPolicy: {
-                directives: {
-                    defaultSrc: [`'self'`],
-                    styleSrc: [`'self'`, `'unsafe-inline'`],
-                    scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
-                    imgSrc: [`'self'`, 'data:', 'https:'],
-                    connectSrc: [`'self'`, 'https:'],
-                },
-            },
-            crossOriginEmbedderPolicy: false,
-        })
 
         await app.register(fastifyCors, {
             origin: config.getOrThrow<string>('ALLOWED_ORIGIN'),
@@ -57,7 +43,7 @@ async function bootstrap() {
 
         await app.register(fastifySession, {
             secret: config.getOrThrow<string>('SESSION_SECRET'),
-            cookieName: config.getOrThrow<string>('COOKIE_NAME'),
+            cookieName: config.get<string>('SESSION_NAME') || '4titles.sid',
             saveUninitialized: false,
             cookie: {
                 domain: config.getOrThrow<string>('SESSION_DOMAIN'),
@@ -70,8 +56,9 @@ async function bootstrap() {
                 ),
             },
             store: new RedisStore({
-                client: redis.getClient(),
+                client: new Redis(config.getOrThrow<IRedisConfig>('redis')),
                 prefix: config.getOrThrow<string>('SESSION_FOLDER'),
+                ttl: ms(config.getOrThrow<StringValue>('SESSION_MAX_AGE')),
             }),
         })
 

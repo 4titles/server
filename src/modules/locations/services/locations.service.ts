@@ -1,23 +1,23 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CacheService } from '@/modules/cache/cache.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { ImdbParserService } from './imdb-parser.service'
-import { RawLocation } from '../interfaces/raw-location.interface'
-import { eq, and, isNull } from 'drizzle-orm'
 import {
     filmingLocations,
     locations as locationsSchema,
 } from '@/modules/drizzle/schema/filming-locations.schema'
-import { FilmingLocation } from '../models/filming-location.model'
-import { LocationsSyncResult } from '../models/locations-sync-result.model'
 import { DbMovie } from '@/modules/drizzle/schema/movies.schema'
 import { DbSeries } from '@/modules/drizzle/schema/series.schema'
-import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
-import { GeocodingService } from '@/modules/geocoding/services/geocoding.service'
+import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { GeocodeResult } from '@/modules/geocoding/interfaces/geocode-result.interface'
+import { GeocodingService } from '@/modules/geocoding/services/geocoding.service'
 import { TitleType } from '@/modules/titles/enums/title-type.enum'
 import { TitlesService } from '@/modules/titles/services'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
+import { and, eq, isNull } from 'drizzle-orm'
+import { RawLocation } from '../interfaces/raw-location.interface'
+import { FilmingLocationMapper } from '../mappers/filming-location.mapper'
+import { FilmingLocation } from '../models/filming-location.model'
+import { LocationsSyncResult } from '../models/locations-sync-result.model'
+import { ImdbParserService } from './imdb-parser.service'
 
 @Injectable()
 export class LocationsService {
@@ -28,6 +28,7 @@ export class LocationsService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly cacheService: CacheService,
         private readonly imdbParserService: ImdbParserService,
+        @Inject(forwardRef(() => TitlesService))
         private readonly titleService: TitlesService,
         private readonly geocodingService: GeocodingService,
     ) {}
