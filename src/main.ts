@@ -10,7 +10,7 @@ import {
     NestFastifyApplication,
 } from '@nestjs/platform-fastify'
 import Redis from 'ioredis'
-import { IRedisConfig } from './config/redis.config'
+import { IRedisConfig } from './config/redis/redis-config.interface'
 import { AppModule } from './modules/app.module'
 import { ms, type StringValue } from './shared/utils/ms.utils'
 import { parseBoolean } from './shared/utils/parse-boolean.utils'
@@ -54,11 +54,11 @@ async function bootstrap() {
                 secure: parseBoolean(
                     config.getOrThrow<string>('SESSION_SECURE'),
                 ),
+                sameSite: 'lax',
             },
             store: new RedisStore({
                 client: new Redis(config.getOrThrow<IRedisConfig>('redis')),
                 prefix: config.getOrThrow<string>('SESSION_FOLDER'),
-                ttl: ms(config.getOrThrow<StringValue>('SESSION_MAX_AGE')),
             }),
         })
 

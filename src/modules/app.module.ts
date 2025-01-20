@@ -16,7 +16,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
 import telegrafConfig from '@/config/telegraf.config'
 import geocodingConfig from '../config/geocoding.config'
 import imdbConfig from '../config/imdb/imdb.config'
-import redisConfig from '../config/redis.config'
+import redisConfig from '../config/redis/redis.config'
 import tmdbConfig from '../config/tmdb.config'
 
 @Module({

@@ -1,7 +1,7 @@
+import { IRedisConfig } from '@/config/redis/redis-config.interface'
 import { Global, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Redis } from 'ioredis'
-import { IRedisConfig } from 'src/config/redis.config'
 import { bigIntSerializer } from '../titles/services/utils/json.utils'
 
 @Global()
@@ -24,14 +24,12 @@ export class CacheService implements OnModuleInit {
 
     private async initializeRedis(config: IRedisConfig): Promise<Redis> {
         const redis = new Redis({
-            host: config.host,
-            port: config.port,
+            ...config,
             retryStrategy: (times) => {
                 const delay = Math.min(times * 50, config.retryDelay)
                 this.logger.log(`Retrying Redis connection in ${delay}ms...`)
                 return delay
             },
-            maxRetriesPerRequest: config.maxRetries,
         })
 
         redis.on('error', (err) => {
