@@ -12,12 +12,12 @@ export class SessionResolver {
     async login(
         @Context() { req }: GqlContext,
         @Args('data') input: LoginInput,
-    ) {
+    ): Promise<User> {
         return await this.sessionService.login(req, input)
     }
 
     @Mutation(() => Boolean)
-    async logout(@Context() { req }: GqlContext) {
+    async logout(@Context() { req }: GqlContext): Promise<boolean> {
         return await this.sessionService.logout(req)
     }
 }

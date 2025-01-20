@@ -1,11 +1,9 @@
+import { destroySession, saveSession } from '@/shared/utils/session.utils'
 import {
     Injectable,
-    InternalServerErrorException,
-    Logger,
     NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { verify } from 'argon2'
 import type { FastifyRequest } from 'fastify'
 import { AccountService } from '../account/account.service'
@@ -14,12 +12,7 @@ import { LoginInput } from './inputs/login.input'
 
 @Injectable()
 export class SessionService {
-    private readonly logger: Logger = new Logger(SessionService.name)
-
-    constructor(
-        private readonly accountService: AccountService,
-        private readonly configService: ConfigService,
-    ) {}
+    constructor(private readonly accountService: AccountService) {}
 
     async login(req: FastifyRequest, input: LoginInput): Promise<User> {
         const { login, password } = input
@@ -34,34 +27,10 @@ export class SessionService {
             throw new UnauthorizedException('Password is invalid')
         }
 
-        return new Promise((resolve, reject) => {
-            req.session.set('userId', user.id)
-            req.session.set('createdAt', new Date().toISOString())
-
-            try {
-                req.session.save()
-                resolve(user)
-            } catch {
-                return reject(
-                    new InternalServerErrorException('Failed to save session'),
-                )
-            }
-        })
+        return saveSession(req, user) // TODO: add metadata
     }
 
-    async logout(req: FastifyRequest) {
-        return new Promise((resolve, reject) => {
-            try {
-                req.session.destroy()
-                resolve(true)
-            } catch (err) {
-                this.logger.error(`Error occurred on logout: ${err}`)
-                reject(
-                    new InternalServerErrorException(
-                        'Failed to destroy session',
-                    ),
-                )
-            }
-        })
+    async logout(req: FastifyRequest): Promise<boolean> {
+        return await destroySession(req)
     }
 }
