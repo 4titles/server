@@ -1,3 +1,4 @@
+import { UserAgent } from '@/shared/decorators/user-agent.decorator'
 import { GqlContext } from '@/shared/types/gql-context.types'
 import { Args, Context, Mutation, Resolver } from '@nestjs/graphql'
 import { User } from '../account/models/user.model'
@@ -12,8 +13,9 @@ export class SessionResolver {
     async login(
         @Context() { req }: GqlContext,
         @Args('data') input: LoginInput,
+        @UserAgent() userAgent: string,
     ): Promise<User> {
-        return await this.sessionService.login(req, input)
+        return await this.sessionService.login(req, input, userAgent)
     }
 
     @Mutation(() => Boolean)

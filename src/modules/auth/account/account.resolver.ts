@@ -11,7 +11,7 @@ export class AccountResolver {
 
     @Authorization()
     @Query(() => User)
-    async user(@Authorized('id') id: string): Promise<User> {
+    async me(@Authorized('id') id: string): Promise<User> {
         return await this.accountService.findById(id)
     }
 
