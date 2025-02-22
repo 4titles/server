@@ -22,11 +22,13 @@ export class MailService {
             this.logger.debug(
                 `Trying to send email to ${email} using main SMTP service`,
             )
+
             await this.mailerService.sendMail({
                 to: email,
                 subject,
                 html,
             })
+
             this.logger.debug(
                 `Email was sucessfully sent to ${email} using main SMTP service`,
             )

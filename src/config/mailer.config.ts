@@ -6,16 +6,16 @@ export default async function getMailerConfig(
 ): Promise<MailerOptions> {
     return {
         transport: {
-            host: configService.getOrThrow<string>('MAIL_HOST'),
-            port: configService.getOrThrow<number>('MAIL_PORT'),
-            secure: false,
+            host: configService.getOrThrow<string>('RESEND_MAIL_HOST'),
+            port: configService.getOrThrow<string>('RESEND_MAIL_PORT'),
+            secure: true,
             auth: {
-                user: configService.getOrThrow<string>('MAIL_LOGIN'),
-                pass: configService.getOrThrow<string>('MAIL_PASSWORD'),
+                user: configService.getOrThrow<string>('RESEND_MAIL_USER'),
+                pass: configService.getOrThrow<string>('RESEND_MAIL_PASS'),
             },
         },
         defaults: {
-            from: `"4Titles" <${configService.getOrThrow<string>('MAIL_LOGIN')}>`,
+            from: `"4Titles" <${configService.getOrThrow<string>('RESEND_MAIL_SENDER')}>`,
         },
     }
 }
