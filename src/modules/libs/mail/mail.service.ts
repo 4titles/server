@@ -44,7 +44,7 @@ export class MailService {
         try {
             const courier = new CourierClient({
                 authorizationToken:
-                    this.configService.getOrThrow<string>('COURIER_TOKEN'),
+                    this.configService.getOrThrow<string>('COURIER_AUTH_TOKEN'),
             })
 
             const { requestId } = await courier.send({
@@ -73,12 +73,12 @@ export class MailService {
             })
 
             this.logger.debug(
-                `Письмо успешно отправлено через Courier. requestId: ${requestId}`,
+                `An email was successfully sent via Courier. requestId: ${requestId}`,
             )
             return true
         } catch (fallbackError) {
             this.logger.error(
-                `Ошибка при отправке через Courier: ${fallbackError.message}`,
+                `Failed to send email via Courier: ${fallbackError.message}`,
             )
             return false
         }

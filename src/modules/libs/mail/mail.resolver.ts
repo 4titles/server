@@ -12,7 +12,7 @@ export class MailResolver {
         return await this.mailService.sendMail(
             email,
             'Test email',
-            '<b>12345</b>',
+            '<b style="color: blue; font-size: 4em;">Sup from 4Titles</b>',
             '12345',
         )
     }
