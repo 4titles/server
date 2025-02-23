@@ -5,13 +5,17 @@ import { DatabaseException } from '@/modules/titles/exceptions/database.exceptio
 import { DEFAULT_FETCH_LIMIT } from '@/modules/titles/services/constants/query.constants'
 import { ConflictException, Inject, Injectable } from '@nestjs/common'
 import { hash } from 'argon2'
+import { VerificationService } from '../verification/verification.service'
 import { CreateUserInput } from './inputs/create-user.input'
 import { UserMapper } from './mappers/user.mapper'
 import { User } from './models/user.model'
 
 @Injectable()
 export class AccountService {
-    constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+    constructor(
+        @Inject(DRIZZLE) private readonly db: DrizzleDB,
+        private readonly verificationService: VerificationService,
+    ) {}
 
     async findById(id: string): Promise<User | null> {
         try {
@@ -67,7 +71,12 @@ export class AccountService {
                 displayName: username,
             }
 
-            await this.db.insert(users).values(newUser)
+            const user: User[] = await this.db
+                .insert(users)
+                .values(newUser)
+                .returning()
+
+            await this.verificationService.sendVerificationToken(user[0])
 
             return true
         } catch (error) {
