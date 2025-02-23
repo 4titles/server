@@ -62,6 +62,12 @@ async function bootstrap() {
             }),
         })
 
+        app.getHttpAdapter()
+            .getInstance()
+            .get('/', (_, reply) => {
+                reply.send('The /graphql endpoint is available.')
+            })
+
         const port = config.getOrThrow<number>('APPLICATION_PORT')
 
         await app.listen(port, config.getOrThrow<string>('APPLICATION_HOST'))
