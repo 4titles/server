@@ -80,7 +80,17 @@ export class VerificationService {
 
     async sendVerificationToken(user: User): Promise<boolean> {
         try {
-            await generateToken(this.db, user, TokenType.EMAIL_VERIFY, true)
+            const generatedToken = await generateToken(
+                this.db,
+                user,
+                TokenType.EMAIL_VERIFY,
+                true,
+            )
+
+            await this.mailService.sendVerification(
+                user.email,
+                generatedToken.token,
+            )
 
             return true
         } catch (error) {

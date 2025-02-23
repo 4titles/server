@@ -22,7 +22,9 @@
         "noImplicitAny": false,
         "strictBindCallApply": false,
         "forceConsistentCasingInFileNames": false,
-        "noFallthroughCasesInSwitch": false
+        "noFallthroughCasesInSwitch": false,
+        "jsx": "react",
+        "esModuleInterop": true
     },
     "watchOptions": {
         "watchFile": "dynamicPriorityPolling",

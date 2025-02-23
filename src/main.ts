@@ -31,17 +31,17 @@ async function bootstrap() {
             }),
         )
 
-        await app.register(fastifyCors, {
+        await app.register(fastifyCors as any, {
             origin: config.getOrThrow<string>('ALLOWED_ORIGIN'),
             credentials: true,
             exposedHeaders: ['set-cookie'],
         })
 
-        await app.register(fastifyCookie, {
+        await app.register(fastifyCookie as any, {
             secret: config.getOrThrow<string>('COOKIE_SECRET'),
         })
 
-        await app.register(fastifySession, {
+        await app.register(fastifySession as any, {
             secret: config.getOrThrow<string>('SESSION_SECRET'),
             cookieName: config.get<string>('SESSION_NAME') || '4titles.sid',
             saveUninitialized: false,

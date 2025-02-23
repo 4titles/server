@@ -1,7 +1,9 @@
 import { MailerService } from '@nestjs-modules/mailer'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { render } from '@react-email/components'
 import { CourierClient } from '@trycourier/courier'
+import { VerificationTemplate } from './templates/verification.template'
 
 @Injectable()
 export class MailService {
@@ -12,11 +14,26 @@ export class MailService {
         private readonly configService: ConfigService,
     ) {}
 
+    async sendVerification(email: string, token: string) {
+        try {
+            const domain =
+                this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
+            const html = await render(VerificationTemplate({ domain, token }))
+            // const html = `<b>test, ${domain}</b>`
+            return this.sendMail(email, 'Верификация аккаунта', html, token)
+        } catch (error) {
+            this.logger.error(
+                `Failed to send verification to email ${email}: ${error}`,
+            )
+            return false
+        }
+    }
+
     async sendMail(
         email: string,
         subject: string,
         html: string,
-        body?: string,
+        token: string,
     ): Promise<boolean> {
         try {
             this.logger.debug(
@@ -38,12 +55,18 @@ export class MailService {
                 `Failed to send email via main SMTP service: ${error.message}. Trying via fallback.`,
             )
 
-            return await this.sendMailViaCourier(email, body)
+            return await this.sendMailViaCourier(email, token)
         }
     }
 
-    async sendMailViaCourier(email: string, body: string) {
+    private async sendMailViaCourier(email: string, token: string) {
         try {
+            const domain =
+                this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
+            const verificationLink = this.configService.getOrThrow<string>(
+                'EMAIL_VERIFICATION_LINK',
+            )
+
             const courier = new CourierClient({
                 authorizationToken:
                     this.configService.getOrThrow<string>('COURIER_AUTH_TOKEN'),
@@ -69,7 +92,7 @@ export class MailService {
                         profile: this.configService.getOrThrow<string>(
                             'COURIER_MAIL_PROFILE',
                         ),
-                        body,
+                        verificationLink: `${domain}/${verificationLink}?token=${token}`,
                     },
                 },
             })

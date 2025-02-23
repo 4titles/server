@@ -2,6 +2,7 @@ import { CacheService } from '@/modules/cache/cache.service'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import { destroySession, saveSession } from '@/shared/utils/session.utils'
 import {
+    BadRequestException,
     ConflictException,
     Injectable,
     Logger,
@@ -13,6 +14,7 @@ import { verify } from 'argon2'
 import type { FastifyRequest } from 'fastify'
 import { AccountService } from '../account/account.service'
 import { User } from '../account/models/user.model'
+import { VerificationService } from '../verification/verification.service'
 import { LoginInput } from './inputs/login.input'
 
 @Injectable()
@@ -24,6 +26,7 @@ export class SessionService {
         private readonly accountService: AccountService,
         private readonly cacheService: CacheService,
         private readonly configService: ConfigService,
+        private readonly verificationService: VerificationService,
     ) {
         this.sessionFolder = this.configService
             .getOrThrow<string>('SESSION_FOLDER')
@@ -45,6 +48,14 @@ export class SessionService {
         const isPasswordValid = await verify(user.password, password)
         if (!isPasswordValid) {
             throw new UnauthorizedException('Password is invalid')
+        }
+
+        if (!user.emailVerifiedAt) {
+            await this.verificationService.sendVerificationToken(user)
+
+            throw new BadRequestException(
+                'Account is not verified. Please, check your inbox.',
+            )
         }
 
         const sessionMetadata = getSessionMetadata(req, userAgent)
