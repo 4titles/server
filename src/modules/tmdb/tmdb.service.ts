@@ -1,3 +1,4 @@
+import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -10,15 +11,15 @@ import {
     TrendingResponse,
     TvResultsResponse,
 } from 'moviedb-promise'
-import { TmdbException } from './exceptions/tmdb.exception'
-import { HttpService } from '@nestjs/axios'
 import { firstValueFrom } from 'rxjs'
+import { TmdbException } from './exceptions/tmdb.exception'
 
 @Injectable()
 export class TmdbService {
     private readonly moviedb: MovieDb
     private readonly logger = new Logger(TmdbService.name)
     private readonly defaultLanguage: string
+    private readonly defaultRegion: string
 
     constructor(
         private readonly configService: ConfigService,
@@ -32,6 +33,8 @@ export class TmdbService {
         this.moviedb = new MovieDb(apiKey)
         this.defaultLanguage =
             this.configService.get<string>('tmdb.defaultLanguage') ?? 'ru-RU'
+        this.defaultLanguage =
+            this.configService.get<string>('tmdb.defaultRegion') ?? 'RU'
     }
 
     async getTopRatedMovies(page: number = 1): Promise<MovieResultsResponse> {
@@ -88,7 +91,7 @@ export class TmdbService {
             return await this.moviedb.moviePopular({
                 page,
                 language: this.defaultLanguage,
-                region: 'ru-RU',
+                region: this.defaultRegion,
             })
         } catch (error) {
             this.logger.error(`Failed to fetch popular movies`, error)

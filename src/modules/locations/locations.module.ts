@@ -1,10 +1,10 @@
-import { forwardRef, Module } from '@nestjs/common'
-import { LocationsService } from './services/locations.service'
-import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 import { CacheModule } from '@/modules/cache/cache.module'
-import { ImdbParserService } from './services/imdb-parser.service'
+import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 import { GeocodingModule } from '@/modules/geocoding/geocoding.module'
+import { forwardRef, Module } from '@nestjs/common'
 import { TitlesModule } from '../titles/titles.module'
+import { ImdbParserService } from './services/imdb-parser.service'
+import { LocationsService } from './services/locations.service'
 
 @Module({
     imports: [
