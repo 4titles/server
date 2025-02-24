@@ -19,7 +19,6 @@ export class MailService {
             const domain =
                 this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
             const html = await render(VerificationTemplate({ domain, token }))
-            // const html = `<b>test, ${domain}</b>`
             return this.sendMail(email, 'Верификация аккаунта', html, token)
         } catch (error) {
             this.logger.error(

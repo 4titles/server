@@ -37,15 +37,7 @@ export const VerificationTemplate = ({
 
     return (
         <Html lang="ru">
-            <Head>
-                <title>
-                    Подтверждение адреса электронной почты - {companyName}
-                </title>
-                <meta
-                    name="viewport"
-                    content="width=device-width, initial-scale=1.0"
-                />
-            </Head>
+            <Head />
             <Preview>Подтвердите ваш email-адрес в {companyName}</Preview>
             <Tailwind>
                 <Body className="bg-white">
