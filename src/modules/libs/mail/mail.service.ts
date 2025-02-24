@@ -1,8 +1,10 @@
+import type { SessionMetadata } from '@/shared/types/session-metadata.types'
 import { MailerService } from '@nestjs-modules/mailer'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { render } from '@react-email/components'
 import { CourierClient } from '@trycourier/courier'
+import { RecoveryTemplate } from './templates/recovery.template'
 import { VerificationTemplate } from './templates/verification.template'
 
 @Injectable()
@@ -14,18 +16,20 @@ export class MailService {
         private readonly configService: ConfigService,
     ) {}
 
-    async sendVerification(email: string, token: string) {
-        try {
-            const domain =
-                this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
-            const html = await render(VerificationTemplate({ domain, token }))
-            return this.sendMail(email, 'Верификация аккаунта', html, token)
-        } catch (error) {
-            this.logger.error(
-                `Failed to send verification to email ${email}: ${error}`,
-            )
-            return false
-        }
+    async sendVerification(email: string, token: string): Promise<boolean> {
+        const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
+        const html = await render(VerificationTemplate({ domain, token }))
+        return this.sendMail(email, 'Верификация аккаунта', html, token)
+    }
+
+    async sendPasswordRecovery(
+        email: string,
+        token: string,
+        metadata: SessionMetadata,
+    ): Promise<boolean> {
+        const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
+        const html = await render(RecoveryTemplate({ domain, token, metadata }))
+        return this.sendMail(email, 'Сброс пароля', html, token)
     }
 
     async sendMail(

@@ -12,6 +12,7 @@ import { TitlesModule } from './titles/titles.module'
 
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
+import { RecoveryModule } from './auth/recovery/recovery.module'
 import { VerificationModule } from './auth/verification/verification.module'
 import { MailModule } from './libs/mail/mail.module'
 
@@ -50,6 +51,7 @@ import tmdbConfig from '../config/tmdb.config'
         SessionModule,
         MailModule,
         VerificationModule,
+        RecoveryModule,
     ],
 })
 export class AppModule {}

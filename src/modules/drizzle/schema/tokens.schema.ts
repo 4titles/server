@@ -1,3 +1,4 @@
+import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import {
     index,
     pgEnum,
@@ -8,7 +9,10 @@ import {
 } from 'drizzle-orm/pg-core'
 import { users } from './users.schema'
 
-export const tokenTypeEnum = pgEnum('token_type_enum', ['EMAIL_VERIFY'])
+export const tokenTypeEnum = pgEnum('token_type_enum', [
+    TokenType.EMAIL_VERIFY,
+    TokenType.PASSWORD_RESET,
+] as const)
 
 export const tokens = pgTable(
     'tokens',

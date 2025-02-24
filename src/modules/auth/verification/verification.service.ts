@@ -41,14 +41,14 @@ export class VerificationService {
         })
 
         if (!existingToken) {
-            throw new NotFoundException('Token is not found')
+            throw new NotFoundException('The token was not found')
         }
 
         const hasExpired: boolean =
             new Date(existingToken.expiresAt) < new Date()
 
         if (hasExpired) {
-            throw new BadRequestException('Token is expired')
+            throw new BadRequestException('The token is expired')
         }
 
         const userUpdate: Partial<DbUser> = { emailVerifiedAt: new Date() }
@@ -84,7 +84,6 @@ export class VerificationService {
                 this.db,
                 user,
                 TokenType.EMAIL_VERIFY,
-                true,
             )
 
             await this.mailService.sendVerification(

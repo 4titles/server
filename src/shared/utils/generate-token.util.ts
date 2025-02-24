@@ -10,7 +10,7 @@ export async function generateToken(
     db: DrizzleDB,
     user: User,
     type: TokenType,
-    isUUID: boolean = false,
+    isUUID: boolean = true,
 ): Promise<DbToken> {
     const token: string = isUUID
         ? uuidv4()
