@@ -23,6 +23,12 @@ export class User {
     @Field(() => Boolean)
     isVerified: boolean
 
+    @Field(() => Boolean)
+    isTotpEnabled: boolean
+
+    @Field(() => String, { nullable: true })
+    totpSecret?: string
+
     @Field(() => GraphQLISODateTime)
     emailVerifiedAt: Date
 

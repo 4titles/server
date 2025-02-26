@@ -1,4 +1,5 @@
 import { CacheService } from '@/modules/cache/cache.service'
+import { COMPANY_NAME } from '@/shared/constants/company.constants'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import { destroySession, saveSession } from '@/shared/utils/session.utils'
 import {
@@ -12,8 +13,9 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { verify } from 'argon2'
 import type { FastifyRequest } from 'fastify'
+import { TOTP } from 'otpauth'
 import { AccountService } from '../account/account.service'
-import { User } from '../account/models/user.model'
+import { AuthModel } from '../account/models/auth.model'
 import { VerificationService } from '../verification/verification.service'
 import { LoginInput } from './inputs/login.input'
 
@@ -37,8 +39,8 @@ export class SessionService {
         req: FastifyRequest,
         input: LoginInput,
         userAgent: string,
-    ): Promise<User> {
-        const { login, password } = input
+    ): Promise<AuthModel> {
+        const { login, password, pin } = input
         const user = await this.accountService.findByLogin(login)
 
         if (!user) {
@@ -56,6 +58,28 @@ export class SessionService {
             throw new BadRequestException(
                 'Account is not verified. Please, check your inbox.',
             )
+        }
+
+        if (user.isTotpEnabled) {
+            if (!pin) {
+                return {
+                    message: 'A code is required to complete authorization',
+                }
+            }
+
+            const totp = new TOTP({
+                issuer: COMPANY_NAME,
+                label: user.email,
+                algorithm: 'SHA1',
+                digits: 6,
+                secret: user.totpSecret,
+            })
+
+            const delta = totp.validate({ token: pin })
+
+            if (delta === null) {
+                throw new BadRequestException('Invalid code was provided')
+            }
         }
 
         const sessionMetadata = getSessionMetadata(req, userAgent)
