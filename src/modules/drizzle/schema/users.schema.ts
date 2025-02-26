@@ -17,6 +17,8 @@ export const users = pgTable(
         displayName: text('display_name'),
         avatar: text('avatar'),
         isVerified: boolean('is_verified').default(false),
+        isTotpEnabled: boolean('is_totp_enabled').default(false),
+        totpSecret: text('totp_secret'),
         emailVerifiedAt: timestamp('email_verified_at', {
             withTimezone: true,
         }).default(null),

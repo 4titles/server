@@ -1,3 +1,4 @@
+import { AuthModel } from '@/modules/auth/account/models/auth.model'
 import { User } from '@/modules/auth/account/models/user.model'
 import { InternalServerErrorException } from '@nestjs/common'
 import { FastifyRequest } from 'fastify'
@@ -7,7 +8,7 @@ export async function saveSession(
     req: FastifyRequest,
     user: User,
     metadata?: SessionMetadata,
-): Promise<User> {
+): Promise<AuthModel> {
     return new Promise((resolve, reject) => {
         req.session.set('userId', user.id)
         req.session.set('createdAt', new Date().toISOString())
@@ -15,7 +16,7 @@ export async function saveSession(
 
         try {
             req.session.save()
-            resolve(user)
+            resolve({ user })
         } catch {
             return reject(
                 new InternalServerErrorException('Failed to save session'),

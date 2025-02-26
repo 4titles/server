@@ -5,6 +5,8 @@ import { DatabaseException } from '@/modules/titles/exceptions/database.exceptio
 import { DEFAULT_FETCH_LIMIT } from '@/modules/titles/services/constants/query.constants'
 import { ConflictException, Inject, Injectable } from '@nestjs/common'
 import { hash } from 'argon2'
+import { eq } from 'drizzle-orm'
+import { EnableTotpInput } from '../totp/inputs/enable-totp.input'
 import { VerificationService } from '../verification/verification.service'
 import { CreateUserInput } from './inputs/create-user.input'
 import { UserMapper } from './mappers/user.mapper'
@@ -83,6 +85,44 @@ export class AccountService {
             if (error instanceof ConflictException) {
                 throw error
             }
+            throw new DatabaseException(error)
+        }
+    }
+
+    async enableTotp(user: User, input: EnableTotpInput): Promise<boolean> {
+        const { secret } = input
+
+        try {
+            const userUpdate: Partial<DbUser> = {
+                isTotpEnabled: true,
+                totpSecret: secret,
+            }
+
+            await this.db
+                .update(users)
+                .set(userUpdate)
+                .where(eq(users.id, user.id))
+
+            return true
+        } catch (error) {
+            throw new DatabaseException(error)
+        }
+    }
+
+    async disableTotp(user: User): Promise<boolean> {
+        try {
+            const userUpdate: Partial<DbUser> = {
+                isTotpEnabled: false,
+                totpSecret: null,
+            }
+
+            await this.db
+                .update(users)
+                .set(userUpdate)
+                .where(eq(users.id, user.id))
+
+            return false
+        } catch (error) {
             throw new DatabaseException(error)
         }
     }

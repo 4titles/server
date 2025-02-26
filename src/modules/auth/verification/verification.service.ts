@@ -16,6 +16,7 @@ import type { FastifyRequest } from 'fastify'
 import { DbToken, tokens } from '../../drizzle/schema/tokens.schema'
 import { DbUser, users } from '../../drizzle/schema/users.schema'
 import { TokenType } from '../account/enums/token-type.enum'
+import { AuthModel } from '../account/models/auth.model'
 import { User } from '../account/models/user.model'
 import { VerificationInput } from './inputs/verification.input'
 
@@ -32,7 +33,7 @@ export class VerificationService {
         req: FastifyRequest,
         input: VerificationInput,
         userAgent: string,
-    ): Promise<User> {
+    ): Promise<AuthModel> {
         const { token } = input
 
         const existingToken: DbToken = await this.db.query.tokens.findFirst({
