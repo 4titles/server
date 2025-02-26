@@ -7,7 +7,6 @@ import {
     Button,
     Container,
     Head,
-    Heading,
     Hr,
     Html,
     Preview,
@@ -16,6 +15,7 @@ import {
     Text,
 } from '@react-email/components'
 import * as React from 'react'
+import { HeaderSection } from './components/header-section'
 import { SupportSection } from './components/support-section'
 import { TEMPLATE_COLORS } from './constants/colors.constants'
 
@@ -45,13 +45,7 @@ export const VerificationTemplate = ({
                             className={`bg-[${TEMPLATE_COLORS.primary}] p-8 rounded-lg shadow-lg`}
                         >
                             {/* Header Section */}
-                            <Section className="text-center mb-8">
-                                <Heading
-                                    className={`text-[${TEMPLATE_COLORS.secondary}] text-2xl font-bold m-0`}
-                                >
-                                    Подтверждение email-адреса
-                                </Heading>
-                            </Section>
+                            <HeaderSection title="Подтверждение email-адреса" />
 
                             {/* Main Content */}
                             <Section className="text-center mb-8">

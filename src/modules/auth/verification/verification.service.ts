@@ -52,7 +52,10 @@ export class VerificationService {
             throw new BadRequestException('The token is expired')
         }
 
-        const userUpdate: Partial<DbUser> = { emailVerifiedAt: new Date() }
+        const userUpdate: Partial<DbUser> = {
+            isVerified: true,
+            emailVerifiedAt: new Date(),
+        }
 
         const updatedUsers: User[] = await this.db
             .update(users)
