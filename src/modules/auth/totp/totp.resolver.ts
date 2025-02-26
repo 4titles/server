@@ -20,7 +20,7 @@ export class TotpResolver {
 
     @Authorization()
     @Mutation(() => Boolean, {
-        description: 'Enable TOTP for user',
+        description: 'Enable TOTP for the user',
     })
     async enable(
         @Authorized() user: User,
@@ -31,7 +31,7 @@ export class TotpResolver {
 
     @Authorization()
     @Mutation(() => Boolean, {
-        description: 'Disable TOTP for user',
+        description: 'Disable TOTP for the user',
     })
     async disable(@Authorized() user: User): Promise<boolean> {
         return await this.totpService.disable(user)

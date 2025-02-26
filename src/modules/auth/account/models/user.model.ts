@@ -1,4 +1,4 @@
-import { Field, GraphQLISODateTime, ObjectType } from '@nestjs/graphql'
+import { Field, ObjectType } from '@nestjs/graphql'
 
 @ObjectType()
 export class User {
@@ -29,12 +29,18 @@ export class User {
     @Field(() => String, { nullable: true })
     totpSecret?: string
 
-    @Field(() => GraphQLISODateTime)
-    emailVerifiedAt: Date
+    @Field(() => Boolean)
+    isDeactivated: boolean
 
-    @Field(() => GraphQLISODateTime)
+    @Field(() => Date, { nullable: true })
+    deactivatedAt?: Date
+
+    @Field(() => Date, { nullable: true })
+    emailVerifiedAt?: Date
+
+    @Field(() => Date)
     createdAt: Date
 
-    @Field(() => GraphQLISODateTime)
+    @Field(() => Date)
     updatedAt: Date
 }

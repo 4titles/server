@@ -16,7 +16,7 @@ export async function generateToken(
         ? uuidv4()
         : Math.floor(Math.random() * (1000000 - 100000) + 100000).toString()
 
-    const expiresAt = new Date(new Date().getTime() + 600000) // 10 min
+    const expiresAt = new Date(new Date().getTime() + 300000) // 5 min
 
     const existingToken: DbToken = await db.query.tokens.findFirst({
         where: (t, { and, eq }) => and(eq(t.type, type), eq(t.userId, user.id)),

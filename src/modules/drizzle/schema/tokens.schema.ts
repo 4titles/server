@@ -12,6 +12,7 @@ import { users } from './users.schema'
 export const tokenTypeEnum = pgEnum('token_type_enum', [
     TokenType.EMAIL_VERIFY,
     TokenType.PASSWORD_RESET,
+    TokenType.DEACTIVATE_ACCOUNT,
 ] as const)
 
 export const tokens = pgTable(

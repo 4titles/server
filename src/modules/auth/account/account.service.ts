@@ -121,7 +121,7 @@ export class AccountService {
                 .set(userUpdate)
                 .where(eq(users.id, user.id))
 
-            return false
+            return true
         } catch (error) {
             throw new DatabaseException(error)
         }

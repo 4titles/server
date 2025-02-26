@@ -4,6 +4,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { render } from '@react-email/components'
 import { CourierClient } from '@trycourier/courier'
+import { DeactiveTemplate } from './templates/deactivation.template'
 import { RecoveryTemplate } from './templates/recovery.template'
 import { VerificationTemplate } from './templates/verification.template'
 
@@ -30,6 +31,15 @@ export class MailService {
         const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN')
         const html = await render(RecoveryTemplate({ domain, token, metadata }))
         return this.sendMail(email, 'Сброс пароля', html, token)
+    }
+
+    async sendDeactivationToken(
+        email: string,
+        token: string,
+        metadata: SessionMetadata,
+    ): Promise<boolean> {
+        const html = await render(DeactiveTemplate({ token, metadata }))
+        return this.sendMail(email, 'Деактивация аккаунта', html, token)
     }
 
     async sendMail(
