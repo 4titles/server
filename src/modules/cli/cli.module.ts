@@ -1,13 +1,20 @@
 import { Module } from '@nestjs/common'
-import { TmdbModule } from '../tmdb/tmdb.module'
-import { DrizzleModule } from '../drizzle/drizzle.module'
 import { CommandModule } from 'nestjs-command'
-import * as commands from './commands'
+import { AccountModule } from '../auth/account/account.module'
+import { DrizzleModule } from '../drizzle/drizzle.module'
 import * as seeders from '../drizzle/seeders'
 import { TitlesModule } from '../titles/titles.module'
+import { TmdbModule } from '../tmdb/tmdb.module'
+import * as commands from './commands'
 
 @Module({
-    imports: [CommandModule, TmdbModule, DrizzleModule, TitlesModule],
+    imports: [
+        CommandModule,
+        TmdbModule,
+        DrizzleModule,
+        TitlesModule,
+        AccountModule,
+    ],
     providers: [...Object.values(seeders), ...Object.values(commands)],
 })
 export class CliModule {}
