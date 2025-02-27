@@ -3,11 +3,18 @@ import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
 import { DEFAULT_FETCH_LIMIT } from '@/modules/titles/services/constants/query.constants'
-import { ConflictException, Inject, Injectable } from '@nestjs/common'
-import { hash } from 'argon2'
+import {
+    ConflictException,
+    Inject,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common'
+import { hash, verify } from 'argon2'
 import { eq } from 'drizzle-orm'
 import { EnableTotpInput } from '../totp/inputs/enable-totp.input'
 import { VerificationService } from '../verification/verification.service'
+import { ChangeEmailInput } from './inputs/change-email.input'
+import { ChangePasswordInput } from './inputs/change-password.input'
 import { CreateUserInput } from './inputs/create-user.input'
 import { UserMapper } from './mappers/user.mapper'
 import { User } from './models/user.model'
@@ -119,6 +126,53 @@ export class AccountService {
             await this.db
                 .update(users)
                 .set(userUpdate)
+                .where(eq(users.id, user.id))
+
+            return true
+        } catch (error) {
+            throw new DatabaseException(error)
+        }
+    }
+
+    async changeEmail(user: User, input: ChangeEmailInput): Promise<boolean> {
+        try {
+            const { email } = input
+
+            const userEmailUpdate: Partial<DbUser> = {
+                email,
+            }
+
+            await this.db
+                .update(users)
+                .set(userEmailUpdate)
+                .where(eq(users.id, user.id))
+
+            return true
+        } catch (error) {
+            throw new DatabaseException(error)
+        }
+    }
+
+    async changePassword(
+        user: User,
+        input: ChangePasswordInput,
+    ): Promise<boolean> {
+        try {
+            const { oldPassword, newPassword } = input
+
+            const isOldPasswordValid = await verify(user.password, oldPassword)
+
+            if (!isOldPasswordValid) {
+                throw new UnauthorizedException('The old password is invalid')
+            }
+
+            const userPasswordUpdate: Partial<DbUser> = {
+                password: await hash(newPassword),
+            }
+
+            await this.db
+                .update(users)
+                .set(userPasswordUpdate)
                 .where(eq(users.id, user.id))
 
             return true
