@@ -107,8 +107,6 @@ export class SessionService {
                 if (sessionData) {
                     const session = JSON.parse(sessionData)
                     const sessionId = key.split(`${this.sessionFolder}:`)[1]
-                    console.log(this.sessionFolder)
-                    console.log(sessionId)
 
                     if (session.userId === userId) {
                         userSessions.push({
