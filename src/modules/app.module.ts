@@ -16,6 +16,7 @@ import { DeactivateModule } from './auth/deactivate/deactivate.module'
 import { RecoveryModule } from './auth/recovery/recovery.module'
 import { TotpModule } from './auth/totp/totp.module'
 import { VerificationModule } from './auth/verification/verification.module'
+import { HealthModule } from './health/health.module'
 import { MailModule } from './libs/mail/mail.module'
 
 import telegrafConfig from '@/config/telegraf.config'
@@ -56,6 +57,7 @@ import tmdbConfig from '../config/tmdb.config'
         RecoveryModule,
         TotpModule,
         DeactivateModule,
+        HealthModule,
     ],
 })
 export class AppModule {}

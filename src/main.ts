@@ -2,7 +2,7 @@ import fastifyCookie from '@fastify/cookie'
 import fastifyCors from '@fastify/cors'
 import fastifySession from '@mgcrea/fastify-session'
 import RedisStore from '@mgcrea/fastify-session-redis-store'
-import { ValidationPipe } from '@nestjs/common'
+import { Logger, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import {
@@ -12,14 +12,22 @@ import {
 import Redis from 'ioredis'
 import { IRedisConfig } from './config/redis/redis-config.interface'
 import { AppModule } from './modules/app.module'
+import {
+    COMPANY_DESCRIPTION,
+    COMPANY_NAME,
+} from './shared/constants/company.constants'
 import { ms, type StringValue } from './shared/utils/ms.utils'
 import { parseBoolean } from './shared/utils/parse-boolean.utils'
 
 async function bootstrap() {
+    const logger = new Logger()
+
     try {
         const app = await NestFactory.create<NestFastifyApplication>(
             AppModule,
-            new FastifyAdapter(),
+            new FastifyAdapter({
+                ignoreTrailingSlash: true,
+            }),
         )
 
         const config = app.get(ConfigService)
@@ -62,18 +70,28 @@ async function bootstrap() {
             }),
         })
 
-        app.getHttpAdapter()
-            .getInstance()
-            .get('/', (_, reply) => {
-                reply.send('The /graphql endpoint is available.')
+        const fastify = app.getHttpAdapter().getInstance()
+
+        fastify.get('/', (_, reply) => {
+            reply.send('The /graphql endpoint is available.')
+        })
+
+        fastify.get('/info', (_, reply) => {
+            reply.send({
+                name: `${COMPANY_NAME} - ${COMPANY_DESCRIPTION}`,
+                version: process.env.npm_package_version || '1.0.0',
+                environment: process.env.NODE_ENV || 'development',
+                timestamp: new Date().toISOString(),
             })
+        })
 
         const port = config.getOrThrow<number>('APPLICATION_PORT')
 
         await app.listen(port, config.getOrThrow<string>('APPLICATION_HOST'))
-        console.log(`Server listening at ${await app.getUrl()}`)
+        logger.log(`Server listening at ${await app.getUrl()}`)
+        logger.log(`Health check available at ${await app.getUrl()}/health`)
     } catch (error) {
-        console.error('Failed to start application:', error)
+        logger.error('Failed to start application:', error)
         process.exit(1)
     }
 }
