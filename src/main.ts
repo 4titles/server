@@ -10,6 +10,7 @@ import {
     NestFastifyApplication,
 } from '@nestjs/platform-fastify'
 import Redis from 'ioredis'
+import MercuriusGQLUpload from 'mercurius-upload'
 import { IRedisConfig } from './config/redis/redis-config.interface'
 import { AppModule } from './modules/app.module'
 import {
@@ -48,6 +49,8 @@ async function bootstrap() {
         await app.register(fastifyCookie as any, {
             secret: config.getOrThrow<string>('COOKIE_SECRET'),
         })
+
+        app.register(MercuriusGQLUpload as any, {})
 
         await app.register(fastifySession as any, {
             secret: config.getOrThrow<string>('SESSION_SECRET'),

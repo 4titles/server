@@ -16,6 +16,7 @@ export const users = pgTable(
         username: text('username').notNull(),
         displayName: text('display_name'),
         avatar: text('avatar'),
+        bio: text('bio'),
         isVerified: boolean('is_verified').default(false),
         isTotpEnabled: boolean('is_totp_enabled').default(false),
         totpSecret: text('totp_secret'),

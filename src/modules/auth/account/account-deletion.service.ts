@@ -2,6 +2,7 @@ import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { MailService } from '@/modules/libs/mail/mail.service'
+import { S3Service } from '@/modules/libs/s3/s3.service'
 import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, lte } from 'drizzle-orm'
@@ -15,6 +16,7 @@ export class AccountDeletionService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly mailService: MailService,
+        private readonly s3Service: S3Service,
     ) {}
 
     async findDeactivatedAccounts(
@@ -89,6 +91,21 @@ export class AccountDeletionService {
         }
     }
 
+    async deleteAccountDataFromStorage(user: User): Promise<void> {
+        if (user.avatar) {
+            try {
+                await this.s3Service.remove(user.avatar)
+                this.logger.log(
+                    `Deleted storage data (avatar) for user ${user.id}`,
+                )
+            } catch (error) {
+                this.logger.warn(
+                    `Failed to delete storage data for user ${user.id}: ${error.message}`,
+                )
+            }
+        }
+    }
+
     async processAccountDeletion(
         daysThreshold: number = this.DAYS_THRESHOLD,
     ): Promise<{
@@ -105,6 +122,12 @@ export class AccountDeletionService {
             }
 
             await this.notifyUsersAboutDeletion(deactivatedAccounts)
+
+            await Promise.all(
+                deactivatedAccounts.map((user) =>
+                    this.deleteAccountDataFromStorage(user),
+                ),
+            )
 
             const deletedCount = await this.deleteAccounts(daysThreshold)
 

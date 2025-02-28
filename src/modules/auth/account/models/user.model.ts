@@ -20,6 +20,9 @@ export class User {
     @Field(() => String, { nullable: true })
     avatar?: string
 
+    @Field(() => String, { nullable: true })
+    bio?: string
+
     @Field(() => Boolean)
     isVerified: boolean
 
