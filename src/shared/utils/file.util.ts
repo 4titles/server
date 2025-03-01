@@ -1,4 +1,5 @@
 import { ReadStream } from 'fs'
+import { Readable } from 'stream'
 
 export function validateFileFormat(
     filename: string,
@@ -28,4 +29,23 @@ export async function validateFileSize(
                 reject(error)
             })
     })
+}
+
+export async function readStreamWithSizeValidation(
+    stream: Readable,
+    maxSizeinMB: number,
+): Promise<Buffer> {
+    const chunks: Buffer[] = []
+    let fileSize = 0
+
+    for await (const chunk of stream) {
+        fileSize += chunk.length
+        if (fileSize > maxSizeinMB) {
+            throw new Error(
+                `The file size exceeds ${maxSizeinMB / (1024 * 1024)} MB`,
+            )
+        }
+        chunks.push(chunk)
+    }
+    return Buffer.concat(chunks)
 }

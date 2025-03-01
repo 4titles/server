@@ -2,12 +2,7 @@ import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { S3Service } from '@/modules/libs/s3/s3.service'
-import {
-    BadRequestException,
-    ConflictException,
-    Inject,
-    Injectable,
-} from '@nestjs/common'
+import { ConflictException, Inject, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import * as Upload from 'graphql-upload/Upload.js'
 import { User } from '../account/models/user.model'
@@ -28,20 +23,7 @@ export class ProfileService {
             await this.s3Service.remove(user.avatar)
         }
 
-        const chunks: Buffer[] = []
-        let fileSize = 0
-
-        for await (const chunk of file.createReadStream()) {
-            chunks.push(chunk)
-            fileSize += chunk.length
-        }
-
-        const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
-        if (fileSize > MAX_FILE_SIZE) {
-            throw new BadRequestException('The file size exceeds 10 MB')
-        }
-
-        const buffer = Buffer.concat(chunks)
+        const buffer = file.buffer
 
         const fileName = `/avatars/${user.username}.webp`
 
