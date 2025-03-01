@@ -52,11 +52,13 @@ export class ImageModerationService implements OnModuleInit {
 
     private async loadModel(): Promise<nsfw.NSFWJS> {
         const modelUrl = this.configService.getOrThrow<string>('NSFW_MODEL_URL')
+
         try {
             try {
                 this.logger.log(`Loading NSFW model from: ${modelUrl}`)
                 return await nsfw.load(modelUrl)
-            } catch {
+            } catch (error) {
+                this.logger.error('Error loading model via URL:', error)
                 this.logger.log('Loading default NSFW model (MobileNetV2)')
                 return await nsfw.load()
             }
