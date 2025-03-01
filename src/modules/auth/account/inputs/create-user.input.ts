@@ -1,3 +1,4 @@
+import { IsCustomStrongPassword } from '@/shared/decorators/is-custom-strong-password.decorator'
 import { Field, InputType } from '@nestjs/graphql'
 import {
     IsEmail,
@@ -24,7 +25,6 @@ export class CreateUserInput {
 
     @Field(() => String)
     @IsString()
-    @IsNotEmpty()
-    @MinLength(8)
+    @IsCustomStrongPassword()
     password: string
 }
