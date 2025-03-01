@@ -1,3 +1,4 @@
+import { ContentModerationService } from '@/content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
@@ -16,6 +17,7 @@ export class ProfileService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly s3Service: S3Service,
+        private readonly contentModerationService: ContentModerationService,
     ) {}
 
     async changeAvatar(user: User, file: Upload) {
@@ -77,6 +79,27 @@ export class ProfileService {
     async changeInfo(user: User, input: ChangeProfileInfoInput) {
         const { username, displayName, bio } = input
 
+        const isUsernameSafe =
+            await this.contentModerationService.validateContent({
+                text: username,
+            })
+        const isDisplayNameSafe =
+            await this.contentModerationService.validateContent({
+                text: displayName,
+            })
+
+        if (!isUsernameSafe) {
+            throw new ConflictException(
+                'Username contains inappropriate content',
+            )
+        }
+
+        if (!isDisplayNameSafe) {
+            throw new ConflictException(
+                'Display name contains inappropriate content',
+            )
+        }
+
         const existingUser: DbUser = await this.db.query.users.findFirst({
             where: (users, { eq }) => eq(users.username, username),
         })
@@ -85,10 +108,14 @@ export class ProfileService {
             throw new ConflictException('The username is already taken')
         }
 
+        const cleanedBio = bio
+            ? await this.contentModerationService.moderateTextField(bio)
+            : bio
+
         const userUpdate: Partial<DbUser> = {
             username,
             displayName,
-            bio,
+            bio: cleanedBio,
         }
 
         await this.db.update(users).set(userUpdate).where(eq(users.id, user.id))

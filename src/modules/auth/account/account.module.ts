@@ -1,3 +1,4 @@
+import { ContentModerationModule } from '@/content-moderation/content-moderation.module'
 import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 import { Module } from '@nestjs/common'
 import { VerificationService } from '../verification/verification.service'
@@ -6,7 +7,7 @@ import { AccountResolver } from './account.resolver'
 import { AccountService } from './account.service'
 
 @Module({
-    imports: [DrizzleModule],
+    imports: [DrizzleModule, ContentModerationModule],
     providers: [
         AccountResolver,
         AccountService,

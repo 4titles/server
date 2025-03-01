@@ -1,3 +1,4 @@
+import { ContentModerationService } from '@/content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
@@ -24,6 +25,7 @@ export class AccountService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly verificationService: VerificationService,
+        private readonly contentModerationService: ContentModerationService,
     ) {}
 
     async findById(id: string): Promise<User | null> {
@@ -71,6 +73,17 @@ export class AccountService {
 
             if (isUsernameExists) {
                 throw new ConflictException('Username already exists')
+            }
+
+            const isUsernameSafe =
+                await this.contentModerationService.validateContent({
+                    text: username,
+                })
+
+            if (!isUsernameSafe) {
+                throw new ConflictException(
+                    'Username contains inappropriate content',
+                )
             }
 
             const newUser = {

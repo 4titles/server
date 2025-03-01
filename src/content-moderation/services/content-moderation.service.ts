@@ -16,16 +16,17 @@ export class ContentModerationService {
         const { image, text } = options
 
         if (image) {
-            const isImageSafe =
-                await this.imageModerationService.isImageSafe(image)
-            if (!isImageSafe) return false
+            return await this.imageModerationService.isImageSafe(image)
         }
 
         if (text) {
-            const isTextSafe = await this.textModerationService.isTextSafe(text)
-            if (!isTextSafe) return false
+            return await this.textModerationService.isTextSafe(text)
         }
 
         return true
+    }
+
+    async moderateTextField(text: string): Promise<string> {
+        return this.textModerationService.moderateText(text)
     }
 }
