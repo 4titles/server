@@ -1,4 +1,4 @@
-import { ContentModerationService } from '@/content-moderation/services/content-moderation.service'
+import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
 import {
     BadRequestException,
     Injectable,

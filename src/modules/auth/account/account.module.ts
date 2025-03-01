@@ -1,4 +1,4 @@
-import { ContentModerationModule } from '@/content-moderation/content-moderation.module'
+import { ContentModerationModule } from '@/modules/content-moderation/content-moderation.module'
 import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 import { Module } from '@nestjs/common'
 import { VerificationService } from '../verification/verification.service'

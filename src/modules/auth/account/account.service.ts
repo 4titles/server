@@ -1,4 +1,4 @@
-import { ContentModerationService } from '@/content-moderation/services/content-moderation.service'
+import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'

@@ -1,4 +1,4 @@
-import { ContentModerationModule } from '@/content-moderation/content-moderation.module'
+import { ContentModerationModule } from '@/modules/content-moderation/content-moderation.module'
 import { Module } from '@nestjs/common'
 import { AccountModule } from '../account/account.module'
 import { ProfileResolver } from './profile.resolver'
