@@ -6,6 +6,7 @@ import { S3Service } from '@/modules/libs/s3/s3.service'
 import { ConflictException, Inject, Injectable } from '@nestjs/common'
 import { asc, desc, eq } from 'drizzle-orm'
 import * as Upload from 'graphql-upload/Upload.js'
+import sharp from 'sharp'
 import {
     DbSocialLink,
     socialLinks,
@@ -17,9 +18,6 @@ import {
     SocialLinkOrderInput,
 } from './inputs/social-link.input'
 import { SocialLink } from './models/social-link.model'
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-import sharp = require('sharp')
 
 @Injectable()
 export class ProfileService {

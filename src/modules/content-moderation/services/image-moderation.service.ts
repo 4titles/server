@@ -2,14 +2,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as tf from '@tensorflow/tfjs-node'
 import * as nsfw from 'nsfwjs'
+import sharp from 'sharp'
 import { ModerationCategory } from '../enums/moderation-category.enum'
 import {
     ModerationResult,
     ModerationThresholds,
 } from '../interfaces/moderation.interfaces'
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const sharp = require('sharp')
 
 @Injectable()
 export class ImageModerationService implements OnModuleInit {
