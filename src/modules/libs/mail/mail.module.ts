@@ -3,7 +3,6 @@ import { AccountModule } from '@/modules/auth/account/account.module'
 import { MailerModule } from '@nestjs-modules/mailer'
 import { Global, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { MailResolver } from './mail.resolver'
 import { MailService } from './mail.service'
 
 @Global()
@@ -15,7 +14,7 @@ import { MailService } from './mail.service'
         }),
         AccountModule,
     ],
-    providers: [MailResolver, MailService],
+    providers: [MailService],
     exports: [MailService],
 })
 export class MailModule {}
