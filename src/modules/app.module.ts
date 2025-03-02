@@ -13,11 +13,13 @@ import { TitlesModule } from './titles/titles.module'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
 import { DeactivateModule } from './auth/deactivate/deactivate.module'
+import { ProfileModule } from './auth/profile/profile.module'
 import { RecoveryModule } from './auth/recovery/recovery.module'
 import { TotpModule } from './auth/totp/totp.module'
 import { VerificationModule } from './auth/verification/verification.module'
 import { HealthModule } from './health/health.module'
 import { MailModule } from './libs/mail/mail.module'
+import { S3Module } from './libs/s3/s3.module'
 
 import telegrafConfig from '@/config/telegraf.config'
 import geocodingConfig from '../config/geocoding.config'
@@ -25,6 +27,8 @@ import imdbConfig from '../config/imdb/imdb.config'
 import redisConfig from '../config/redis/redis.config'
 import tmdbConfig from '../config/tmdb.config'
 
+import { GraphQLUploadScalar } from '@/shared/scalars/gql-upload.scalar'
+import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -43,6 +47,11 @@ import tmdbConfig from '../config/tmdb.config'
             plugins: [ApolloServerPluginLandingPageLocalDefault()],
             playground: false,
             context: ({ req }) => ({ req }),
+            buildSchemaOptions: {
+                scalarsMap: [
+                    { type: GraphQLUpload, scalar: GraphQLUploadScalar },
+                ],
+            },
         }),
         DrizzleModule,
         CacheModule,
@@ -58,6 +67,8 @@ import tmdbConfig from '../config/tmdb.config'
         TotpModule,
         DeactivateModule,
         HealthModule,
+        S3Module,
+        ProfileModule,
     ],
 })
 export class AppModule {}

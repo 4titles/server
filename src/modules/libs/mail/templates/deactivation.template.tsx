@@ -52,7 +52,7 @@ export const DeactiveTemplate = ({
                                 <Text
                                     className={`text-[${TEMPLATE_COLORS.secondary}] text-base mt-2`}
                                 >
-                                    Вы запроси деактивацию своего аккаунта на
+                                    Вы запросили деактивацию своего аккаунта на
                                     платформе <b>{companyName}</b>.
                                 </Text>
                             </Section>

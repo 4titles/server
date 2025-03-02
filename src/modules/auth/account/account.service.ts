@@ -1,8 +1,8 @@
+import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
-import { DEFAULT_FETCH_LIMIT } from '@/modules/titles/services/constants/query.constants'
 import {
     ConflictException,
     Inject,
@@ -10,7 +10,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common'
 import { hash, verify } from 'argon2'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { EnableTotpInput } from '../totp/inputs/enable-totp.input'
 import { VerificationService } from '../verification/verification.service'
 import { ChangeEmailInput } from './inputs/change-email.input'
@@ -24,12 +24,14 @@ export class AccountService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly verificationService: VerificationService,
+        private readonly contentModerationService: ContentModerationService,
     ) {}
 
     async findById(id: string): Promise<User | null> {
         try {
             return await this.db.query.users.findFirst({
                 where: (users, { eq }) => eq(users.id, id),
+                with: { socialLinks: true },
             })
         } catch (error) {
             throw new DatabaseException(error)
@@ -41,6 +43,7 @@ export class AccountService {
             return await this.db.query.users.findFirst({
                 where: (users, { or, eq }) =>
                     or(eq(users.username, login), eq(users.email, login)),
+                with: { socialLinks: true },
             })
         } catch (error) {
             throw new DatabaseException(error)
@@ -50,7 +53,7 @@ export class AccountService {
     async findAll(): Promise<User[]> {
         try {
             const dbUsers: DbUser[] = await this.db.query.users.findMany({
-                limit: DEFAULT_FETCH_LIMIT,
+                orderBy: [asc(users.createdAt)],
             })
             return UserMapper.toGraphQLList(dbUsers)
         } catch (error) {
@@ -71,6 +74,17 @@ export class AccountService {
 
             if (isUsernameExists) {
                 throw new ConflictException('Username already exists')
+            }
+
+            const isUsernameSafe =
+                await this.contentModerationService.validateContent({
+                    text: username,
+                })
+
+            if (!isUsernameSafe) {
+                throw new ConflictException(
+                    'Username contains inappropriate content',
+                )
             }
 
             const newUser = {

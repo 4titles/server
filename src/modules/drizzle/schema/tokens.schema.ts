@@ -1,4 +1,5 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
+import { relations } from 'drizzle-orm'
 import {
     index,
     pgEnum,
@@ -41,5 +42,12 @@ export const tokens = pgTable(
         }
     },
 )
+
+export const tokensRelations = relations(tokens, ({ one }) => ({
+    user: one(users, {
+        fields: [tokens.userId],
+        references: [users.id],
+    }),
+}))
 
 export type DbToken = typeof tokens.$inferSelect

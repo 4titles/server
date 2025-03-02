@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import {
     boolean,
     index,
@@ -6,6 +7,8 @@ import {
     timestamp,
     uuid,
 } from 'drizzle-orm/pg-core'
+import { socialLinks } from './social-links.schema'
+import { tokens } from './tokens.schema'
 
 export const users = pgTable(
     'users',
@@ -16,6 +19,7 @@ export const users = pgTable(
         username: text('username').notNull(),
         displayName: text('display_name'),
         avatar: text('avatar'),
+        bio: text('bio'),
         isVerified: boolean('is_verified').default(false),
         isTotpEnabled: boolean('is_totp_enabled').default(false),
         totpSecret: text('totp_secret'),
@@ -43,5 +47,10 @@ export const users = pgTable(
         }
     },
 )
+
+export const usersRelations = relations(users, ({ many }) => ({
+    tokens: many(tokens),
+    socialLinks: many(socialLinks),
+}))
 
 export type DbUser = typeof users.$inferSelect

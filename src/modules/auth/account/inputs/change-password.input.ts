@@ -1,3 +1,4 @@
+import { IsCustomStrongPassword } from '@/shared/decorators/is-custom-strong-password.decorator'
 import { Field, InputType } from '@nestjs/graphql'
 import { IsNotEmpty, IsString, MinLength } from 'class-validator'
 
@@ -13,5 +14,6 @@ export class ChangePasswordInput {
     @IsString()
     @IsNotEmpty()
     @MinLength(8)
+    @IsCustomStrongPassword()
     newPassword: string
 }

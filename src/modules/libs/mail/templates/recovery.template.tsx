@@ -56,7 +56,7 @@ export const RecoveryTemplate = ({
                                 <Text
                                     className={`text-[${TEMPLATE_COLORS.secondary}] text-base mt-2`}
                                 >
-                                    Вы запроси сброс пароля для вашей учётной
+                                    Вы запросили сброс пароля для вашей учётной
                                     записи на платформе <b>{companyName}</b>.
                                 </Text>
 

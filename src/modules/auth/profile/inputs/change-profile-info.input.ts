@@ -1,30 +1,31 @@
-import { IsCustomStrongPassword } from '@/shared/decorators/is-custom-strong-password.decorator'
 import { Field, InputType } from '@nestjs/graphql'
 import {
-    IsEmail,
     IsNotEmpty,
+    IsOptional,
     IsString,
     Matches,
+    MaxLength,
     MinLength,
 } from 'class-validator'
 
 @InputType()
-export class CreateUserInput {
+export class ChangeProfileInfoInput {
     @Field(() => String)
     @IsString()
     @IsNotEmpty()
-    @MinLength(5)
+    @MinLength(4)
     @Matches(/^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/)
     username: string
 
     @Field(() => String)
     @IsString()
     @IsNotEmpty()
-    @IsEmail()
-    email: string
+    @MinLength(4)
+    displayName: string
 
-    @Field(() => String)
+    @Field(() => String, { nullable: true })
     @IsString()
-    @IsCustomStrongPassword()
-    password: string
+    @IsOptional()
+    @MaxLength(300)
+    bio?: string
 }
