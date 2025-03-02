@@ -1,4 +1,5 @@
 import { Field, ObjectType } from '@nestjs/graphql'
+import { SocialLink } from '../../profile/models/social-link.model'
 
 @ObjectType()
 export class User {
@@ -46,4 +47,7 @@ export class User {
 
     @Field(() => Date)
     updatedAt: Date
+
+    @Field(() => [SocialLink])
+    socialLinks?: SocialLink[]
 }

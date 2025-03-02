@@ -4,10 +4,19 @@ import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { S3Service } from '@/modules/libs/s3/s3.service'
 import { ConflictException, Inject, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { asc, desc, eq } from 'drizzle-orm'
 import * as Upload from 'graphql-upload/Upload.js'
+import {
+    DbSocialLink,
+    socialLinks,
+} from '../../drizzle/schema/social-links.schema'
 import { User } from '../account/models/user.model'
 import { ChangeProfileInfoInput } from './inputs/change-profile-info.input'
+import {
+    SocialLinkInput,
+    SocialLinkOrderInput,
+} from './inputs/social-link.input'
+import { SocialLink } from './models/social-link.model'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import sharp = require('sharp')
@@ -20,7 +29,7 @@ export class ProfileService {
         private readonly contentModerationService: ContentModerationService,
     ) {}
 
-    async changeAvatar(user: User, file: Upload) {
+    async changeAvatar(user: User, file: Upload): Promise<boolean> {
         if (user.avatar) {
             await this.s3Service.remove(user.avatar)
         }
@@ -76,7 +85,10 @@ export class ProfileService {
         return true
     }
 
-    async changeInfo(user: User, input: ChangeProfileInfoInput) {
+    async changeInfo(
+        user: User,
+        input: ChangeProfileInfoInput,
+    ): Promise<boolean> {
         const { username, displayName, bio } = input
 
         const isUsernameSafe =
@@ -120,6 +132,79 @@ export class ProfileService {
 
         await this.db.update(users).set(userUpdate).where(eq(users.id, user.id))
 
+        return true
+    }
+
+    async findSocialLinks(user: User): Promise<SocialLink[]> {
+        return await this.db.query.socialLinks.findMany({
+            where: eq(socialLinks.userId, user.id),
+            orderBy: asc(socialLinks.position),
+        })
+    }
+
+    async createSocialLink(
+        user: User,
+        input: SocialLinkInput,
+    ): Promise<boolean> {
+        const { title, url } = input
+
+        const lastSocialLink = await this.db.query.socialLinks.findFirst({
+            where: eq(socialLinks.userId, user.id),
+            orderBy: desc(socialLinks.createdAt),
+        })
+
+        const newSocialLinkPosition = lastSocialLink
+            ? lastSocialLink.position + 1
+            : 1
+
+        const socialLinkCreate = {
+            title,
+            url,
+            position: newSocialLinkPosition,
+            userId: user.id,
+        }
+
+        await this.db.insert(socialLinks).values(socialLinkCreate)
+
+        return true
+    }
+
+    async reorderSocialLinks(list: SocialLinkOrderInput[]): Promise<boolean> {
+        if (!list.length) return
+
+        const socialLinksUpdatePromises = list.map((socialLink) => {
+            return this.db
+                .update(socialLinks)
+                .set({ position: socialLink.position } as Partial<DbSocialLink>)
+                .where(eq(socialLinks.id, socialLink.id))
+        })
+
+        await Promise.all(socialLinksUpdatePromises)
+
+        return true
+    }
+
+    async updateSocialLink(
+        id: string,
+        input: SocialLinkInput,
+    ): Promise<boolean> {
+        const { title, url } = input
+
+        const socialLinkUpdate: Partial<DbSocialLink> = {
+            title,
+            url,
+        }
+
+        await this.db
+            .update(socialLinks)
+            .set(socialLinkUpdate)
+            .where(eq(socialLinks.id, id))
+
+        return true
+    }
+
+    async removeSocialLink(id: string): Promise<boolean> {
+        await this.db.delete(socialLinks).where(eq(socialLinks.id, id))
         return true
     }
 }
