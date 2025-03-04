@@ -17,6 +17,7 @@ import { ProfileModule } from './auth/profile/profile.module'
 import { RecoveryModule } from './auth/recovery/recovery.module'
 import { TotpModule } from './auth/totp/totp.module'
 import { VerificationModule } from './auth/verification/verification.module'
+import { FollowModule } from './follow/follow.module'
 import { HealthModule } from './health/health.module'
 import { MailModule } from './libs/mail/mail.module'
 import { S3Module } from './libs/s3/s3.module'
@@ -29,6 +30,7 @@ import tmdbConfig from '../config/tmdb.config'
 
 import { GraphQLUploadScalar } from '@/shared/scalars/gql-upload.scalar'
 import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
+
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -69,6 +71,7 @@ import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
         HealthModule,
         S3Module,
         ProfileModule,
+        FollowModule,
     ],
 })
 export class AppModule {}

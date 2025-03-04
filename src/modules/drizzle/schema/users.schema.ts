@@ -7,6 +7,7 @@ import {
     timestamp,
     uuid,
 } from 'drizzle-orm/pg-core'
+import { follows } from './follows.schema'
 import { socialLinks } from './social-links.schema'
 import { tokens } from './tokens.schema'
 
@@ -51,6 +52,8 @@ export const users = pgTable(
 export const usersRelations = relations(users, ({ many }) => ({
     tokens: many(tokens),
     socialLinks: many(socialLinks),
+    following: many(follows, { relationName: 'follower' }),
+    followers: many(follows, { relationName: 'following' }),
 }))
 
 export type DbUser = typeof users.$inferSelect
