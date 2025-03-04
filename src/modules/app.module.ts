@@ -20,6 +20,7 @@ import { VerificationModule } from './auth/verification/verification.module'
 import { HealthModule } from './health/health.module'
 import { MailModule } from './libs/mail/mail.module'
 import { S3Module } from './libs/s3/s3.module'
+import { NotificationModule } from './notification/notification.module'
 
 import telegrafConfig from '@/config/telegraf.config'
 import geocodingConfig from '../config/geocoding.config'
@@ -29,6 +30,7 @@ import tmdbConfig from '../config/tmdb.config'
 
 import { GraphQLUploadScalar } from '@/shared/scalars/gql-upload.scalar'
 import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
+
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -69,6 +71,7 @@ import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
         HealthModule,
         S3Module,
         ProfileModule,
+        NotificationModule,
     ],
 })
 export class AppModule {}
