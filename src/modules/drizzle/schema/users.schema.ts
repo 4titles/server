@@ -7,6 +7,7 @@ import {
     timestamp,
     uuid,
 } from 'drizzle-orm/pg-core'
+import { follows } from './follows.schema'
 import { notifications, notificationSettings } from './notifications.schema'
 import { socialLinks } from './social-links.schema'
 import { tokens } from './tokens.schema'
@@ -58,6 +59,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
         fields: [users.id],
         references: [notificationSettings.userId],
     }),
+    following: many(follows, { relationName: 'follower' }),
+    followers: many(follows, { relationName: 'following' }),
 }))
 
 export type DbUser = typeof users.$inferSelect

@@ -1,3 +1,4 @@
+import { Follow } from '@/modules/follow/models/follow.model'
 import { NotificationSettings } from '@/modules/notification/models/notification-settings.model'
 import { Notification } from '@/modules/notification/models/notification.model'
 import { Field, ObjectType } from '@nestjs/graphql'
@@ -61,4 +62,10 @@ export class User {
 
     @Field(() => NotificationSettings)
     notificationSettings?: NotificationSettings
+
+    @Field(() => [Follow])
+    followers?: Follow[]
+
+    @Field(() => [Follow])
+    followings?: Follow[]
 }
