@@ -11,6 +11,7 @@ import {
 } from '../drizzle/schema/notifications.schema'
 import { DbUser, users } from '../drizzle/schema/users.schema'
 import { DrizzleDB } from '../drizzle/types/drizzle'
+import { NotificationType } from './enums/notification-type.enum'
 import { ChangeNotificationSettingsInput } from './inputs/change-notification-settings.input'
 
 @Injectable()
@@ -41,6 +42,22 @@ export class NotificationService {
             where: eq(notifications.userId, user.id),
             orderBy: desc(notifications.createdAt),
         })
+    }
+
+    async createNewFollowingUserNotification(userId: string, follower: User) {
+        const newNotification = {
+            message: `<b className='font-bold'>Пользователь <a href='${follower.username}
+            className='font-semibold'>${follower.displayName}</a> подписался на Ваши обновления.</b>`,
+            type: NotificationType.NEW_FOLLOWER,
+            userId,
+        }
+
+        const [createdNotification] = await this.db
+            .insert(notifications)
+            .values(newNotification)
+            .returning()
+
+        return createdNotification
     }
 
     async changeSettings(user: User, input: ChangeNotificationSettingsInput) {
