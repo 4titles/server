@@ -1,3 +1,4 @@
+import { Follow } from '@/modules/follow/models/follow.model'
 import { Field, ObjectType } from '@nestjs/graphql'
 import { SocialLink } from '../../profile/models/social-link.model'
 
@@ -50,4 +51,10 @@ export class User {
 
     @Field(() => [SocialLink])
     socialLinks?: SocialLink[]
+
+    @Field(() => [Follow])
+    followers?: Follow[]
+
+    @Field(() => [Follow])
+    followings?: Follow[]
 }
