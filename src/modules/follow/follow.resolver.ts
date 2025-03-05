@@ -11,7 +11,7 @@ export class FollowResolver {
 
     @Authorization()
     @Query(() => [Follow])
-    async findUserFolloweres(@Authorized() user: User) {
+    async findUserFollowers(@Authorized() user: User) {
         return await this.followService.findUserFollowers(user)
     }
 
@@ -37,5 +37,17 @@ export class FollowResolver {
         @Args('followingId') followingId: string,
     ) {
         return await this.followService.unfollow(user, followingId)
+    }
+
+    @Authorization()
+    @Query(() => [User])
+    async findRecommendedUsers() {
+        return await this.followService.findRecommendedUsers()
+    }
+
+    @Authorization()
+    @Query(() => Number)
+    async findFollowersCountByUser(@Args('userId') userId: string) {
+        return await this.followService.findFollowersCountByUser(userId)
     }
 }

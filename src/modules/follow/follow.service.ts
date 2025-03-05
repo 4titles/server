@@ -4,7 +4,7 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, sql } from 'drizzle-orm'
 import { User } from '../auth/account/models/user.model'
 import { DRIZZLE } from '../drizzle/drizzle.module'
 import { follows } from '../drizzle/schema/follows.schema'
@@ -102,5 +102,34 @@ export class FollowService {
             )
 
         return true
+    }
+
+    async findRecommendedUsers() {
+        return await this.db.query.users.findMany({
+            where: eq(users.isDeactivated, false),
+            with: {
+                followers: {
+                    limit: 1,
+                },
+            },
+            extras: {
+                followersCount: sql<number>`(
+                    SELECT COUNT(*)
+                    FROM follows
+                    WHERE follows.following_id = users.id
+                )`.as('followers_count'),
+            },
+            orderBy: (_, { desc }) => desc(sql`followers_count`),
+            limit: 7,
+        })
+    }
+
+    async findFollowersCountByUser(userId: string): Promise<number> {
+        const followers = await this.db
+            .select({ count: count() })
+            .from(follows)
+            .where(eq(follows.followingId, userId))
+
+        return followers[0]?.count ?? 0
     }
 }
