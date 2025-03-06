@@ -1,7 +1,9 @@
+import { AccountModule } from '@/modules/auth/account/account.module'
+import { FollowModule } from '@/modules/follow/follow.module'
 import { Module } from '@nestjs/common'
-import { TelegramService } from './telegram.service'
-import { TelegrafModule } from 'nestjs-telegraf'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+import { TelegrafModule } from 'nestjs-telegraf'
+import { TelegramService } from './telegram.service'
 
 @Module({
     imports: [
@@ -11,6 +13,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
                 configService.getOrThrow('telegraf'),
             inject: [ConfigService],
         }),
+        AccountModule,
+        FollowModule,
     ],
     providers: [TelegramService],
 })

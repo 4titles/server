@@ -7,5 +7,6 @@ import { FollowService } from './follow.service'
 @Module({
     imports: [AccountModule],
     providers: [FollowResolver, FollowService, NotificationService],
+    exports: [FollowService],
 })
 export class FollowModule {}
