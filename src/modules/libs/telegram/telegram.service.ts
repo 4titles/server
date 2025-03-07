@@ -6,7 +6,7 @@ import { FollowService } from '@/modules/follow/follow.service'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq } from 'drizzle-orm'
-import { Command, Ctx, Start, Update } from 'nestjs-telegraf'
+import { Action, Command, Ctx, Start, Update } from 'nestjs-telegraf'
 import { Context, Telegraf } from 'telegraf'
 import { AccountService } from '../../auth/account/account.service'
 import { BOT_BUTTONS } from './constants/bot-buttons.constant'
@@ -16,7 +16,6 @@ import { BOT_MESSAGES } from './constants/bot-messages.constant'
 @Injectable()
 export class TelegramService extends Telegraf {
     private readonly logger: Logger = new Logger(TelegramService.name)
-    private readonly _token: string
 
     constructor(
         private readonly configService: ConfigService,
@@ -25,62 +24,115 @@ export class TelegramService extends Telegraf {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {
         super(configService.getOrThrow<string>('telegraf.token'))
-        this._token = configService.getOrThrow<string>('telegraf.token')
     }
 
     @Start()
-    async onStart(@Ctx() ctx: any) {
-        const chatId = ctx.chat.id.toString()
-        const token = ctx.message.text.split(' ')[1]
+    async onStart(@Ctx() ctx: Context): Promise<void> {
+        try {
+            const chatId = ctx.chat.id.toString()
+            const message = ctx.message as any
+            const token = message?.text?.split(' ')[1]
 
-        if (!token) {
-            const user = await this.accountService.findByTelegramId(chatId)
-
-            if (user) {
-                return await this.onMe(ctx)
+            if (token) {
+                await this.handleTokenAuthentication(ctx, token, chatId)
+            } else {
+                await this.handleInitialGreeting(ctx, chatId)
             }
-
-            return await ctx.replyWithHTML(
-                BOT_MESSAGES.welcome,
-                BOT_BUTTONS.profile,
-            )
+        } catch (error) {
+            this.logger.error(`Error in onStart: ${error.message}`, error.stack)
+            await ctx.reply(BOT_MESSAGES.errorOccurred)
         }
+    }
 
+    private async handleTokenAuthentication(
+        ctx: Context,
+        token: string,
+        chatId: string,
+    ): Promise<void> {
         const authToken = await this.db.query.tokens.findFirst({
             where: (t, { and, eq }) =>
                 and(eq(t.token, token), eq(t.type, TokenType.TELEGRAM_AUTH)),
         })
 
-        if (!authToken) {
-            return ctx.reply(BOT_MESSAGES.invalidToken)
-        }
-
-        const hasExpired: boolean = new Date(authToken.expiresAt) < new Date()
-
-        if (hasExpired) {
-            return ctx.reply(BOT_MESSAGES.invalidToken)
+        if (!authToken || new Date(authToken.expiresAt) < new Date()) {
+            await ctx.reply(BOT_MESSAGES.invalidToken)
+            return
         }
 
         await this.accountService.connectTelegram(authToken.userId, chatId)
-
         await this.db.delete(tokens).where(eq(tokens.id, authToken.id))
-
         await ctx.replyWithHTML(
             BOT_MESSAGES.authSuccess,
             BOT_BUTTONS.authSuccess,
         )
     }
 
-    @Command('me')
-    async onMe(@Ctx() ctx: Context) {
-        const chatId = ctx.chat.id.toString()
+    private async handleInitialGreeting(
+        ctx: Context,
+        chatId: string,
+    ): Promise<void> {
         const user = await this.accountService.findByTelegramId(chatId)
-        const followersCount =
-            await this.followService.findFollowersCountByUser(user.id)
 
-        await ctx.replyWithHTML(
-            BOT_MESSAGES.profile(user, followersCount),
-            BOT_BUTTONS.profile,
-        )
+        if (user) {
+            await this.onMe(ctx)
+        } else {
+            await ctx.replyWithHTML(BOT_MESSAGES.welcome, BOT_BUTTONS.profile)
+        }
+    }
+
+    @Command('me')
+    @Action('me')
+    async onMe(@Ctx() ctx: Context): Promise<void> {
+        try {
+            const chatId = ctx.chat.id.toString()
+            const user = await this.accountService.findByTelegramId(chatId)
+
+            if (!user) {
+                await ctx.replyWithHTML(
+                    BOT_MESSAGES.userNotFound,
+                    BOT_BUTTONS.profile,
+                )
+                return
+            }
+
+            const followersCount =
+                await this.followService.findFollowersCountByUser(user.id)
+
+            await ctx.replyWithHTML(
+                BOT_MESSAGES.profile(user, followersCount),
+                BOT_BUTTONS.profile,
+            )
+        } catch (error) {
+            this.logger.error(`Error in onMe: ${error.message}`, error.stack)
+            await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
+        }
+    }
+
+    @Command('follows')
+    @Action('follows')
+    async onFollows(@Ctx() ctx: Context) {
+        try {
+            const chatId = ctx.chat.id.toString()
+            const user = await this.accountService.findByTelegramId(chatId)
+            const userFollowings =
+                await this.followService.findUserFollowings(user)
+
+            if (userFollowings.length) {
+                const userFollowingsList = userFollowings
+                    .map((f) => BOT_MESSAGES.follows(f.following))
+                    .join('\n')
+
+                await ctx.replyWithHTML(
+                    BOT_MESSAGES.followingsList(userFollowingsList),
+                )
+            } else {
+                await ctx.replyWithHTML('<b>❌ Подписки отсутствуют.</b>')
+            }
+        } catch (error) {
+            this.logger.error(
+                `Error in onFollows: ${error.message}`,
+                error.stack,
+            )
+        }
     }
 }
