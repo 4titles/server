@@ -3,10 +3,10 @@ import { users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { MailService } from '@/modules/libs/mail/mail.service'
 import { S3Service } from '@/modules/libs/s3/s3.service'
+import { TelegramService } from '@/modules/libs/telegram/telegram.service'
 import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, lte } from 'drizzle-orm'
-import { User } from './models/user.model'
 
 @Injectable()
 export class AccountDeletionService {
@@ -16,12 +16,11 @@ export class AccountDeletionService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly mailService: MailService,
+        private readonly telegramService: TelegramService,
         private readonly s3Service: S3Service,
     ) {}
 
-    async findDeactivatedAccounts(
-        daysThreshold: number = this.DAYS_THRESHOLD,
-    ): Promise<User[]> {
+    async findDeactivatedAccounts(daysThreshold: number = this.DAYS_THRESHOLD) {
         try {
             const thresholdDate = this.calculateThresholdDate(daysThreshold)
 
@@ -31,6 +30,7 @@ export class AccountDeletionService {
                         eq(users.isDeactivated, true),
                         lte(users.deactivatedAt, thresholdDate),
                     ),
+                with: { notificationSettings: true },
             })
         } catch (error) {
             this.logger.error(
@@ -41,21 +41,42 @@ export class AccountDeletionService {
         }
     }
 
-    //TODO: tg notification
-    async notifyUsersAboutDeletion(deactivatedAccounts: User[]): Promise<void> {
+    async notifyUsersAboutDeletion(deactivatedAccounts: any[]): Promise<void> {
         try {
-            const emailPromises = deactivatedAccounts.map((user) =>
-                this.mailService
-                    .sendAccountDeletion(user.email)
-                    .catch((error) => {
-                        this.logger.warn(
-                            `Failed to send deletion email to ${user.email}: ${error.message}`,
-                        )
-                        return null
-                    }),
-            )
+            const notificationPromises = deactivatedAccounts.map((user) => {
+                const promises = []
 
-            await Promise.all(emailPromises)
+                promises.push(
+                    this.mailService
+                        .sendAccountDeletion(user.email)
+                        .catch((error) => {
+                            this.logger.warn(
+                                `Failed to send deletion email to ${user.email}: ${error.message}`,
+                            )
+                            return null
+                        }),
+                )
+
+                if (
+                    user.notificationSettings.isTelegramNotificationsEnabled &&
+                    user.telegramId
+                ) {
+                    promises.push(
+                        this.telegramService
+                            .sendAccountDeletion(user.telegramId)
+                            .catch((error) => {
+                                this.logger.warn(
+                                    `Failed to send Telegram deletion notification to user ${user.id}: ${error.message}`,
+                                )
+                                return null
+                            }),
+                    )
+                }
+
+                return Promise.all(promises)
+            })
+
+            await Promise.all(notificationPromises)
         } catch (error) {
             this.logger.error(
                 `Failed to notify users about deletion: ${error.message}`,
@@ -91,7 +112,7 @@ export class AccountDeletionService {
         }
     }
 
-    async deleteAccountDataFromStorage(user: User): Promise<void> {
+    async deleteAccountDataFromStorage(user: any): Promise<void> {
         if (user.avatar) {
             try {
                 await this.s3Service.remove(user.avatar)

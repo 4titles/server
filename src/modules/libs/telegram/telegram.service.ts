@@ -3,6 +3,7 @@ import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { FollowService } from '@/modules/follow/follow.service'
+import { SessionMetadata } from '@/shared/types/session-metadata.types'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq } from 'drizzle-orm'
@@ -134,5 +135,35 @@ export class TelegramService extends Telegraf {
                 error.stack,
             )
         }
+    }
+
+    async sendPasswordResetToken(
+        chatId: string,
+        token: string,
+        metadata: SessionMetadata,
+    ) {
+        await this.telegram.sendMessage(
+            chatId,
+            BOT_MESSAGES.resetPassword(token, metadata),
+            { parse_mode: 'HTML' },
+        )
+    }
+
+    async sendDeactivationToken(
+        chatId: string,
+        token: string,
+        metadata: SessionMetadata,
+    ) {
+        await this.telegram.sendMessage(
+            chatId,
+            BOT_MESSAGES.accountDeactivation(token, metadata),
+            { parse_mode: 'HTML' },
+        )
+    }
+
+    async sendAccountDeletion(chatId: string) {
+        await this.telegram.sendMessage(chatId, BOT_MESSAGES.accountDeleted, {
+            parse_mode: 'HTML',
+        })
     }
 }

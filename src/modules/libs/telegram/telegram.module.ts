@@ -1,10 +1,11 @@
 import { AccountModule } from '@/modules/auth/account/account.module'
 import { FollowModule } from '@/modules/follow/follow.module'
-import { Module } from '@nestjs/common'
+import { Global, Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TelegrafModule } from 'nestjs-telegraf'
 import { TelegramService } from './telegram.service'
 
+@Global()
 @Module({
     imports: [
         TelegrafModule.forRootAsync({
@@ -17,5 +18,6 @@ import { TelegramService } from './telegram.service'
         FollowModule,
     ],
     providers: [TelegramService],
+    exports: [TelegramService],
 })
 export class TelegramModule {}

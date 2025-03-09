@@ -2,6 +2,7 @@ import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { DbToken, tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { MailService } from '@/modules/libs/mail/mail.service'
+import { TelegramService } from '@/modules/libs/telegram/telegram.service'
 import { generateToken } from '@/shared/utils/generate-token.util'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import {
@@ -15,6 +16,7 @@ import { and, eq } from 'drizzle-orm'
 import { FastifyRequest } from 'fastify'
 import { DbUser, users } from '../../drizzle/schema/users.schema'
 import { TokenType } from '../account/enums/token-type.enum'
+import { User } from '../account/models/user.model'
 import { NewPasswordInput } from './input/new-password.input'
 import { ResetPasswordInput } from './input/reset-password.input'
 
@@ -22,6 +24,7 @@ import { ResetPasswordInput } from './input/reset-password.input'
 export class RecoveryService {
     constructor(
         private readonly mailService: MailService,
+        private readonly telegramService: TelegramService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {}
 
@@ -34,6 +37,7 @@ export class RecoveryService {
 
         const user = await this.db.query.users.findFirst({
             where: eq(users.email, email),
+            with: { notificationSettings: true },
         })
 
         if (!user) {
@@ -42,15 +46,28 @@ export class RecoveryService {
 
         const resetToken = await generateToken(
             this.db,
-            user,
+            user as User,
             TokenType.PASSWORD_RESET,
         )
+
+        const metadata = getSessionMetadata(req, userAgent)
 
         await this.mailService.sendPasswordRecovery(
             user.email,
             resetToken.token,
-            getSessionMetadata(req, userAgent),
+            metadata,
         )
+
+        if (
+            user.notificationSettings.isTelegramNotificationsEnabled &&
+            user.telegramId
+        ) {
+            await this.telegramService.sendPasswordResetToken(
+                user.telegramId,
+                resetToken.token,
+                metadata,
+            )
+        }
 
         return true
     }
