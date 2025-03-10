@@ -1,5 +1,5 @@
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { users } from '@/modules/drizzle/schema/users.schema'
+import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { MailService } from '@/modules/libs/mail/mail.service'
 import { S3Service } from '@/modules/libs/s3/s3.service'
@@ -7,6 +7,7 @@ import { TelegramService } from '@/modules/libs/telegram/telegram.service'
 import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, lte } from 'drizzle-orm'
+import { User } from './models/user.model'
 
 @Injectable()
 export class AccountDeletionService {
@@ -20,7 +21,9 @@ export class AccountDeletionService {
         private readonly s3Service: S3Service,
     ) {}
 
-    async findDeactivatedAccounts(daysThreshold: number = this.DAYS_THRESHOLD) {
+    async findDeactivatedAccounts(
+        daysThreshold: number = this.DAYS_THRESHOLD,
+    ): Promise<DbUser[]> {
         try {
             const thresholdDate = this.calculateThresholdDate(daysThreshold)
 
@@ -41,7 +44,7 @@ export class AccountDeletionService {
         }
     }
 
-    async notifyUsersAboutDeletion(deactivatedAccounts: any[]): Promise<void> {
+    async notifyUsersAboutDeletion(deactivatedAccounts: User[]): Promise<void> {
         try {
             const notificationPromises = deactivatedAccounts.map((user) => {
                 const promises = []
@@ -112,7 +115,7 @@ export class AccountDeletionService {
         }
     }
 
-    async deleteAccountDataFromStorage(user: any): Promise<void> {
+    async deleteAccountDataFromStorage(user: User): Promise<void> {
         if (user.avatar) {
             try {
                 await this.s3Service.remove(user.avatar)
