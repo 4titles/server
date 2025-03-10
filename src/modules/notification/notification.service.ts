@@ -1,5 +1,5 @@
 import { generateToken } from '@/shared/utils/generate-token.util'
-import { Inject, Injectable } from '@nestjs/common'
+import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { and, count, desc, eq } from 'drizzle-orm'
 import { TokenType } from '../auth/account/enums/token-type.enum'
 import { User } from '../auth/account/models/user.model'
@@ -11,20 +11,38 @@ import {
 } from '../drizzle/schema/notifications.schema'
 import { DbUser, users } from '../drizzle/schema/users.schema'
 import { DrizzleDB } from '../drizzle/types/drizzle'
+import { TelegramService } from '../libs/telegram/telegram.service'
 import { NotificationType } from './enums/notification-type.enum'
 import { ChangeNotificationSettingsInput } from './inputs/change-notification-settings.input'
 
 @Injectable()
 export class NotificationService {
-    constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+    constructor(
+        @Inject(DRIZZLE) private readonly db: DrizzleDB,
+        @Inject(forwardRef(() => TelegramService))
+        private readonly telegramService: TelegramService,
+    ) {}
 
     async findUnreadCount(user: User): Promise<number> {
-        const result = await this.db
+        const unreadUserNotificationsCount = await this.db
             .select({ count: count() })
             .from(notifications)
             .where(eq(notifications.userId, user.id))
 
-        return result[0]?.count || 0
+        const unreadGlobalNotificationsCount = await this.db
+            .select({ count: count() })
+            .from(notifications)
+            .where(
+                and(
+                    eq(notifications.isGlobal, true),
+                    eq(notifications.isRead, false),
+                ),
+            )
+
+        return (
+            (unreadUserNotificationsCount[0]?.count || 0) +
+            (unreadGlobalNotificationsCount[0]?.count || 0)
+        )
     }
 
     async findByUser(user: User): Promise<DbNotification[]> {
@@ -38,10 +56,21 @@ export class NotificationService {
                 ),
             )
 
-        return await this.db.query.notifications.findMany({
+        const userNotifications = await this.db.query.notifications.findMany({
             where: eq(notifications.userId, user.id),
             orderBy: desc(notifications.createdAt),
         })
+
+        const globalNotifications = await this.db.query.notifications.findMany({
+            where: eq(notifications.isGlobal, true),
+            orderBy: desc(notifications.createdAt),
+        })
+
+        return [...userNotifications, ...globalNotifications].sort(
+            (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+        )
     }
 
     async createNewFollowingUserNotification(userId: string, follower: User) {
@@ -56,6 +85,51 @@ export class NotificationService {
             .insert(notifications)
             .values(newNotification)
             .returning()
+
+        return createdNotification
+    }
+
+    async createGlobalNotification(message: string) {
+        const newNotification = {
+            message,
+            type: NotificationType.INFO,
+            isGlobal: true,
+            userId: null,
+        }
+
+        const [createdNotification] = await this.db
+            .insert(notifications)
+            .values(newNotification)
+            .returning()
+
+        const usersWithTelegram =
+            await this.db.query.notificationSettings.findMany({
+                where: eq(
+                    notificationSettings.isTelegramNotificationsEnabled,
+                    true,
+                ),
+                with: { user: true },
+            })
+
+        const eligibleUsers = usersWithTelegram.filter(
+            (setting) =>
+                setting.user.telegramId !== null &&
+                setting.user.telegramId !== undefined,
+        )
+
+        for (const userSetting of eligibleUsers) {
+            try {
+                await this.telegramService.sendInfoNotification(
+                    userSetting.user.telegramId,
+                    message,
+                )
+            } catch (error) {
+                console.error(
+                    `Failed to send Telegram notification to user ${userSetting.userId}:`,
+                    error,
+                )
+            }
+        }
 
         return createdNotification
     }

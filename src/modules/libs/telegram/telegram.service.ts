@@ -179,4 +179,17 @@ export class TelegramService extends Telegraf {
             },
         )
     }
+
+    async sendInfoNotification(chatId: string, message: string): Promise<void> {
+        try {
+            await this.telegram.sendMessage(chatId, message, {
+                parse_mode: 'HTML',
+            })
+        } catch (error) {
+            this.logger.error(
+                `Failed to send info notification to ${chatId}: ${error.message}`,
+                error.stack,
+            )
+        }
+    }
 }

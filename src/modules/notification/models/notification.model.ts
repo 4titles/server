@@ -26,8 +26,8 @@ export class Notification {
     @Field(() => User, { nullable: true })
     user?: User
 
-    @Field(() => String)
-    userId: string
+    @Field(() => String, { nullable: true })
+    userId?: string
 
     @Field(() => Date)
     createdAt: Date

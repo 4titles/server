@@ -3,6 +3,7 @@ import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { User } from '../auth/account/models/user.model'
 import { ChangeNotificationSettingsInput } from './inputs/change-notification-settings.input'
+import { CreateGlobalNotificationInput } from './inputs/create-global-notification.input'
 import { ChangeNotificationSettingsResponse } from './models/notification-settings.model'
 import { Notification } from './models/notification.model'
 import { NotificationService } from './notification.service'
@@ -32,5 +33,19 @@ export class NotificationResolver {
         @Args('data') input: ChangeNotificationSettingsInput,
     ) {
         return await this.notificationService.changeSettings(user, input)
+    }
+
+    @Authorization()
+    // @Roles(UserRole.ADMIN)
+    @Mutation(() => Notification, {
+        description: 'Create a global notification for all users',
+    })
+    async createGlobalNotification(
+        @Authorized() user: User,
+        @Args('data') input: CreateGlobalNotificationInput,
+    ): Promise<Notification> {
+        return await this.notificationService.createGlobalNotification(
+            input.message,
+        )
     }
 }
