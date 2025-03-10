@@ -28,6 +28,7 @@
         "@2toad/profanity": "^3.1.1",
         "@apollo/server": "^4.11.2",
         "@as-integrations/fastify": "^2.1.1",
+        "@faker-js/faker": "^9.6.0",
         "@fastify/cookie": "^8.3.0",
         "@fastify/cors": "^8.4.1",
         "@fastify/helmet": "^11.1.1",
