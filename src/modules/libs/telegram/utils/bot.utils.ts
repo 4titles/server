@@ -62,6 +62,6 @@ export function getFollowerMilestoneMessage(count: number): string {
     )
     return (
         milestone?.message ||
-        'Ваши кинолакации привлекают внимание! Продолжайте исследовать!'
+        'Ваши кинолокации привлекают внимание! Продолжайте исследовать!'
     )
 }

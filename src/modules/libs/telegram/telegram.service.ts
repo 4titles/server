@@ -1,4 +1,5 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
+import { User } from '@/modules/auth/account/models/user.model'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
@@ -141,7 +142,7 @@ export class TelegramService extends Telegraf {
         chatId: string,
         token: string,
         metadata: SessionMetadata,
-    ) {
+    ): Promise<void> {
         await this.telegram.sendMessage(
             chatId,
             BOT_MESSAGES.resetPassword(token, metadata),
@@ -153,7 +154,7 @@ export class TelegramService extends Telegraf {
         chatId: string,
         token: string,
         metadata: SessionMetadata,
-    ) {
+    ): Promise<void> {
         await this.telegram.sendMessage(
             chatId,
             BOT_MESSAGES.accountDeactivation(token, metadata),
@@ -161,9 +162,21 @@ export class TelegramService extends Telegraf {
         )
     }
 
-    async sendAccountDeletion(chatId: string) {
+    async sendAccountDeletion(chatId: string): Promise<void> {
         await this.telegram.sendMessage(chatId, BOT_MESSAGES.accountDeleted, {
             parse_mode: 'HTML',
         })
+    }
+
+    async sendNewFollowing(chatId: string, follower: User): Promise<void> {
+        const user = await this.accountService.findByTelegramId(chatId)
+
+        await this.telegram.sendMessage(
+            chatId,
+            BOT_MESSAGES.newFollowing(follower, user.followers.length),
+            {
+                parse_mode: 'HTML',
+            },
+        )
     }
 }

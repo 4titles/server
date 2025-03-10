@@ -1,9 +1,6 @@
 import { User } from '@/modules/auth/account/models/user.model'
 import { SessionMetadata } from '@/shared/types/session-metadata.types'
-import {
-    getFollowerMilestoneMessage,
-    getFollowersEmoji,
-} from '../utils/bot.utils'
+import { getFollowersEmoji } from '../utils/bot.utils'
 
 export interface BotMessages {
     welcome: string
@@ -95,8 +92,7 @@ export const BOT_MESSAGES: BotMessages = {
 
     newFollowing: (follower: User, followersCount: number) =>
         `<b>🌟 Новый подписчик!</b>\n\n` +
-        `<a href="https://4titles.ru/${follower.username}">${follower.displayName}</a> будет получать уведомления о ваших новых локациях.\n\n` +
-        `${getFollowerMilestoneMessage(followersCount)}\n` +
+        `<a href="https://4titles.ru/${follower.username}">${follower.displayName}</a> подписался на Ваши обновления.\n\n` +
         `Всего подписчиков: ${followersCount} ${getFollowersEmoji(followersCount)}`,
 
     followingsList: (followingsList: string) =>
