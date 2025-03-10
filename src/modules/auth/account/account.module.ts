@@ -1,5 +1,4 @@
 import { ContentModerationModule } from '@/modules/content-moderation/content-moderation.module'
-import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 import { Global, Module } from '@nestjs/common'
 import { VerificationService } from '../verification/verification.service'
 import { AccountDeletionService } from './account-deletion.service'
@@ -8,7 +7,7 @@ import { AccountService } from './account.service'
 
 @Global()
 @Module({
-    imports: [DrizzleModule, ContentModerationModule],
+    imports: [ContentModerationModule],
     providers: [
         AccountResolver,
         AccountService,
