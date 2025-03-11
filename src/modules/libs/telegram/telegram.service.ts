@@ -1,3 +1,4 @@
+import { AccountContextService } from '@/modules/auth/account/account-context.service'
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { User } from '@/modules/auth/account/models/user.model'
 import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
@@ -5,6 +6,7 @@ import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { FeedbackType } from '@/modules/feedback/enums/feedback-type.enum'
+import { FeedbacksLimitExceededException } from '@/modules/feedback/exceptions/feedbacks-limit-exceeded.exception'
 import { FeedbackService } from '@/modules/feedback/feedback.service'
 import { FollowService } from '@/modules/follow/follow.service'
 import { SessionMetadata } from '@/shared/types/session-metadata.types'
@@ -17,20 +19,19 @@ import { AccountService } from '../../auth/account/account.service'
 import { BOT_BUTTONS } from './constants/bot-buttons.constant'
 import { BOT_MESSAGES } from './constants/bot-messages.constant'
 
+interface FeedbackState {
+    type: FeedbackType
+    userId: string
+    step: 'message' | 'rating'
+    message?: string
+    attempts: number
+}
+
 @Update()
 @Injectable()
 export class TelegramService extends Telegraf {
     private readonly logger: Logger = new Logger(TelegramService.name)
-
-    private readonly feedbackStates: Map<
-        string,
-        {
-            type: FeedbackType
-            step: 'message' | 'rating'
-            message?: string
-            attempts: number
-        }
-    > = new Map()
+    private readonly feedbackStates: Map<string, FeedbackState> = new Map()
 
     constructor(
         private readonly configService: ConfigService,
@@ -38,6 +39,7 @@ export class TelegramService extends Telegraf {
         private readonly followService: FollowService,
         private readonly feedbackService: FeedbackService,
         private readonly contentModerationService: ContentModerationService,
+        private readonly accountContextService: AccountContextService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {
         super(configService.getOrThrow<string>('telegraf.token'))
@@ -57,7 +59,7 @@ export class TelegramService extends Telegraf {
             }
         } catch (error) {
             this.logger.error(`Error in onStart: ${error.message}`, error.stack)
-            await ctx.reply(BOT_MESSAGES.errorOccurred)
+            await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
         }
     }
 
@@ -88,7 +90,7 @@ export class TelegramService extends Telegraf {
         ctx: Context,
         chatId: string,
     ): Promise<void> {
-        const user = await this.accountService.findByTelegramId(chatId)
+        const user = await this.accountContextService.getUserByChatId(chatId)
 
         if (user) {
             await this.onMe(ctx)
@@ -102,7 +104,8 @@ export class TelegramService extends Telegraf {
     async onMe(@Ctx() ctx: Context): Promise<void> {
         try {
             const chatId = ctx.chat.id.toString()
-            const user = await this.accountService.findByTelegramId(chatId)
+            const user =
+                await this.accountContextService.getUserByChatId(chatId)
 
             if (!user) {
                 await ctx.replyWithHTML(
@@ -130,7 +133,8 @@ export class TelegramService extends Telegraf {
     async onFollows(@Ctx() ctx: Context) {
         try {
             const chatId = ctx.chat.id.toString()
-            const user = await this.accountService.findByTelegramId(chatId)
+            const user =
+                await this.accountContextService.getUserByChatId(chatId)
 
             if (!user) {
                 await ctx.replyWithHTML(
@@ -172,6 +176,26 @@ export class TelegramService extends Telegraf {
     @Action('feedback')
     async onFeedback(@Ctx() ctx: Context): Promise<void> {
         try {
+            const chatId = ctx.chat.id.toString()
+            const user =
+                await this.accountContextService.getUserByChatId(chatId)
+
+            if (!user) {
+                await ctx.replyWithHTML(
+                    BOT_MESSAGES.userNotFound,
+                    BOT_BUTTONS.profile,
+                )
+                return
+            }
+
+            const wouldExceedLimit =
+                await this.feedbackService.wouldExceedFeedbackLimit(user.id)
+
+            if (wouldExceedLimit) {
+                await ctx.replyWithHTML(BOT_MESSAGES.feedbackRateLimitExceeded)
+                return
+            }
+
             await ctx.replyWithHTML(
                 BOT_MESSAGES.feedbackIntro,
                 BOT_BUTTONS.feedback,
@@ -181,7 +205,7 @@ export class TelegramService extends Telegraf {
                 `Error in feedback command: ${error.message}`,
                 error.stack,
             )
-            await ctx.reply(BOT_MESSAGES.errorOccurred)
+            await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
         } finally {
             if (ctx.callbackQuery) {
                 await ctx.answerCbQuery()
@@ -197,14 +221,25 @@ export class TelegramService extends Telegraf {
 
             if (match === 'cancel') {
                 await ctx.answerCbQuery('Отменено')
-                try {
-                    await ctx.deleteMessage()
-                } catch (error) {
-                    this.logger.error(
-                        `Failed to delete message: ${error.message}`,
-                    )
-                }
+                await this.safeDeleteMessage(ctx)
                 this.feedbackStates.delete(chatId)
+                return
+            }
+
+            const user =
+                await this.accountContextService.getUserByChatId(chatId)
+            if (!user) {
+                await ctx.answerCbQuery('Пользователь не найден')
+                return
+            }
+
+            const wouldExceedLimit =
+                await this.feedbackService.wouldExceedFeedbackLimit(user.id)
+
+            if (wouldExceedLimit) {
+                await ctx.answerCbQuery('Лимит отзывов превышен')
+                await this.safeDeleteMessage(ctx)
+                await ctx.replyWithHTML(BOT_MESSAGES.feedbackRateLimitExceeded)
                 return
             }
 
@@ -227,13 +262,11 @@ export class TelegramService extends Telegraf {
             }
 
             await ctx.answerCbQuery()
-
-            try {
-                await ctx.deleteMessage()
-            } catch {}
+            await this.safeDeleteMessage(ctx)
 
             this.feedbackStates.set(chatId, {
                 type,
+                userId: user.id,
                 step: 'message',
                 attempts: 0,
             })
@@ -258,43 +291,7 @@ export class TelegramService extends Telegraf {
             }
 
             if (feedbackState.step === 'message') {
-                const message = ctx.message.text
-
-                if (message.trim().length < 5) {
-                    await ctx.replyWithHTML(BOT_MESSAGES.shortFeedbackReply)
-                    return
-                }
-
-                const isMessageValid =
-                    await this.contentModerationService.validateContent({
-                        text: message,
-                    })
-
-                if (!isMessageValid) {
-                    feedbackState.attempts++
-                    if (feedbackState.attempts >= 3) {
-                        await ctx.replyWithHTML(
-                            'Вы превысили максимально допустимое количество попыток ввода корректного сообщения. Попробуйте позже.',
-                            BOT_BUTTONS.profile,
-                        )
-                        this.feedbackStates.delete(chatId)
-                        return
-                    }
-                    await ctx.replyWithHTML(BOT_MESSAGES.invalidContent)
-                    return
-                }
-
-                this.feedbackStates.set(chatId, {
-                    type: feedbackState.type,
-                    step: 'rating',
-                    message,
-                    attempts: feedbackState.attempts,
-                })
-
-                await ctx.replyWithHTML(
-                    BOT_MESSAGES.feedbackSentReply,
-                    BOT_BUTTONS.rating,
-                )
+                await this.handleFeedbackMessage(ctx, chatId, feedbackState)
             }
         } catch (error) {
             this.logger.error(
@@ -303,6 +300,60 @@ export class TelegramService extends Telegraf {
             )
             await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
         }
+    }
+
+    private async handleFeedbackMessage(
+        ctx: any,
+        chatId: string,
+        feedbackState: FeedbackState,
+    ): Promise<void> {
+        const message = ctx.message.text
+
+        if (message.trim().length < 5) {
+            await ctx.replyWithHTML(BOT_MESSAGES.shortFeedbackReply)
+            return
+        }
+
+        const wouldExceedLimit =
+            await this.feedbackService.wouldExceedFeedbackLimit(
+                feedbackState.userId,
+            )
+
+        if (wouldExceedLimit) {
+            await ctx.replyWithHTML(BOT_MESSAGES.feedbackRateLimitExceeded)
+            this.feedbackStates.delete(chatId)
+            return
+        }
+
+        const isMessageValid =
+            await this.contentModerationService.validateContent({
+                text: message,
+            })
+
+        if (!isMessageValid) {
+            feedbackState.attempts++
+            if (feedbackState.attempts >= 3) {
+                await ctx.replyWithHTML(
+                    'Вы превысили максимально допустимое количество попыток ввода корректного сообщения. Попробуйте позже.',
+                    BOT_BUTTONS.profile,
+                )
+                this.feedbackStates.delete(chatId)
+                return
+            }
+            await ctx.replyWithHTML(BOT_MESSAGES.invalidContent)
+            return
+        }
+
+        this.feedbackStates.set(chatId, {
+            ...feedbackState,
+            step: 'rating',
+            message,
+        })
+
+        await ctx.replyWithHTML(
+            BOT_MESSAGES.feedbackSentReply,
+            BOT_BUTTONS.rating,
+        )
     }
 
     @Action(/rating_([1-5]|skip)/)
@@ -323,42 +374,50 @@ export class TelegramService extends Telegraf {
                 rating = parseInt(match, 10)
             }
 
-            const message = feedbackState.message
-
-            this.feedbackStates.delete(chatId)
-
-            await ctx.answerCbQuery(
-                rating ? `Ваша оценка: ${rating}` : 'Оценка пропущена',
-            )
-
             try {
-                const user = await this.accountService.findByTelegramId(chatId)
+                const user = await this.accountContextService.getUserById(
+                    feedbackState.userId,
+                )
+
+                if (!user) {
+                    await ctx.answerCbQuery('Пользователь не найден')
+                    return
+                }
 
                 await this.feedbackService.createFromTelegram(
                     user,
-                    message,
+                    feedbackState.message,
                     feedbackState.type,
                     rating,
                 )
 
-                try {
-                    await ctx.deleteMessage()
-                } catch {}
+                await ctx.answerCbQuery(
+                    rating ? `Ваша оценка: ${rating}` : 'Оценка пропущена',
+                )
+
+                await this.safeDeleteMessage(ctx)
 
                 await ctx.replyWithHTML(
                     BOT_MESSAGES.feedbackAndRatingSentReply(rating),
                     BOT_BUTTONS.profile,
                 )
             } catch (error) {
-                this.logger.error(
-                    `Error creating feedback from telegram: ${error.message}`,
-                    error.stack,
-                )
-
-                await ctx.replyWithHTML(
-                    BOT_MESSAGES.feedbackSaveFailed,
-                    BOT_BUTTONS.profile,
-                )
+                if (error instanceof FeedbacksLimitExceededException) {
+                    await ctx.replyWithHTML(
+                        BOT_MESSAGES.feedbackRateLimitExceeded,
+                    )
+                } else {
+                    this.logger.error(
+                        `Error creating feedback from telegram: ${error.message}`,
+                        error.stack,
+                    )
+                    await ctx.replyWithHTML(
+                        BOT_MESSAGES.feedbackSaveFailed,
+                        BOT_BUTTONS.profile,
+                    )
+                }
+            } finally {
+                this.feedbackStates.delete(chatId)
             }
         } catch (error) {
             this.logger.error(
@@ -366,6 +425,14 @@ export class TelegramService extends Telegraf {
                 error.stack,
             )
             await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
+        }
+    }
+
+    private async safeDeleteMessage(ctx: any): Promise<void> {
+        try {
+            await ctx.deleteMessage()
+        } catch (error) {
+            this.logger.debug(`Failed to delete message: ${error.message}`)
         }
     }
 
@@ -426,7 +493,8 @@ export class TelegramService extends Telegraf {
 
     async sendNewFollowing(chatId: string, follower: User): Promise<void> {
         try {
-            const user = await this.accountService.findByTelegramId(chatId)
+            const user =
+                await this.accountContextService.getUserByChatId(chatId)
 
             if (!user) {
                 this.logger.warn(`User not found for Telegram ID: ${chatId}`)

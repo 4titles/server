@@ -1,3 +1,4 @@
+import { InlineKeyboardButton, InlineKeyboardMarkup } from '@telegraf/types'
 import { Markup } from 'telegraf'
 
 export enum BotButtonKeys {
@@ -5,44 +6,74 @@ export enum BotButtonKeys {
     PROFILE = 'profile',
     FEEDBACK = 'feedback',
     RATING = 'rating',
+    DEFAULT = 'default',
 }
+
+type ButtonRow = InlineKeyboardButton[]
 export interface BotButtons {
-    [BotButtonKeys.AUTH_SUCCESS]: ReturnType<typeof Markup.inlineKeyboard>
-    [BotButtonKeys.PROFILE]: ReturnType<typeof Markup.inlineKeyboard>
-    [BotButtonKeys.FEEDBACK]: ReturnType<typeof Markup.inlineKeyboard>
-    [BotButtonKeys.RATING]: ReturnType<typeof Markup.inlineKeyboard> // New property
+    [BotButtonKeys.AUTH_SUCCESS]: Markup.Markup<InlineKeyboardMarkup>
+    [BotButtonKeys.PROFILE]: Markup.Markup<InlineKeyboardMarkup>
+    [BotButtonKeys.FEEDBACK]: Markup.Markup<InlineKeyboardMarkup>
+    [BotButtonKeys.RATING]: Markup.Markup<InlineKeyboardMarkup>
+    [BotButtonKeys.DEFAULT]: Markup.Markup<InlineKeyboardMarkup>
 }
+
+const createButtonRow = (...buttons: InlineKeyboardButton[]): ButtonRow =>
+    buttons
+
+const ON_SITE_BUTTON = createButtonRow(
+    Markup.button.url('🌐 На сайт', 'https://4titles.ru'),
+)
 
 export const BOT_BUTTONS: BotButtons = {
     [BotButtonKeys.AUTH_SUCCESS]: Markup.inlineKeyboard([
-        [
+        createButtonRow(
             Markup.button.callback('📜 Мои подписки', 'follows'),
             Markup.button.callback('👤 Просмотреть профиль', 'me'),
-        ],
-        [Markup.button.url('🌐 На сайт', 'https://4titles.ru')],
-        [Markup.button.callback('💬 Оставить отзыв', 'feedback')],
+        ),
+        ON_SITE_BUTTON,
+        createButtonRow(
+            Markup.button.callback('💬 Оставить отзыв', 'feedback'),
+        ),
     ]),
     [BotButtonKeys.PROFILE]: Markup.inlineKeyboard([
-        Markup.button.url(
-            '⚙️ Настройки аккаунта',
-            'https://4titles.ru/dashboard/settings',
+        createButtonRow(
+            Markup.button.url(
+                '⚙️ Настройки аккаунта',
+                'https://4titles.ru/dashboard/settings',
+            ),
         ),
-        Markup.button.callback('💬 Оставить отзыв', 'feedback'),
+        createButtonRow(
+            Markup.button.callback('💬 Оставить отзыв', 'feedback'),
+        ),
     ]),
     [BotButtonKeys.FEEDBACK]: Markup.inlineKeyboard([
-        [Markup.button.callback('Общий отзыв о платформе', 'feedback_general')],
-        [Markup.button.callback('Сообщить о проблеме', 'feedback_bug')],
-        [Markup.button.callback('Предложить улучшение', 'feedback_feature')],
-        [Markup.button.callback('Отмена', 'feedback_cancel')],
+        createButtonRow(
+            Markup.button.callback(
+                'Общий отзыв о платформе',
+                'feedback_general',
+            ),
+        ),
+        createButtonRow(
+            Markup.button.callback('Сообщить о проблеме', 'feedback_bug'),
+        ),
+        createButtonRow(
+            Markup.button.callback('Предложить улучшение', 'feedback_feature'),
+        ),
+        createButtonRow(Markup.button.callback('Отмена', 'feedback_cancel')),
     ]),
     [BotButtonKeys.RATING]: Markup.inlineKeyboard([
-        [
+        createButtonRow(
             Markup.button.callback('1️⃣', 'rating_1'),
             Markup.button.callback('2️⃣', 'rating_2'),
             Markup.button.callback('3️⃣', 'rating_3'),
             Markup.button.callback('4️⃣', 'rating_4'),
             Markup.button.callback('5️⃣', 'rating_5'),
-        ],
-        [Markup.button.callback('Пропустить', 'rating_skip')],
+        ),
+        createButtonRow(Markup.button.callback('Пропустить', 'rating_skip')),
+    ]),
+    [BotButtonKeys.DEFAULT]: Markup.inlineKeyboard([
+        ON_SITE_BUTTON,
+        createButtonRow(Markup.button.callback('📜 Мои подписки', 'follows')),
     ]),
 }

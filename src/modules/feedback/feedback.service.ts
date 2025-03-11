@@ -1,6 +1,8 @@
+import { SessionMetadata } from '@/shared/types/session-metadata.types'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, avg, count, eq, isNotNull } from 'drizzle-orm'
 import { User } from '../auth/account/models/user.model'
+import { CacheService } from '../cache/cache.service'
 import { DRIZZLE } from '../drizzle/drizzle.module'
 import { DbFeedback, feedbacks } from '../drizzle/schema/feedbacks.schema'
 import { DrizzleDB } from '../drizzle/types/drizzle'
@@ -8,6 +10,7 @@ import { NotificationService } from '../notification/notification.service'
 import { FeedbackSource } from './enums/feedback-source.enum'
 import { FeedbackStatus } from './enums/feedback-status.enum'
 import { FeedbackType } from './enums/feedback-type.enum'
+import { FeedbacksLimitExceededException } from './exceptions/feedbacks-limit-exceeded.exception'
 import { CreateFeedbackInput } from './inputs/create-feedback.input'
 import { FilterFeedbackInput } from './inputs/filter-feedback.input'
 import { UpdateFeedbackStatusInput } from './inputs/update-feedback-status.input'
@@ -18,18 +21,38 @@ import { Feedback } from './models/feedback.model'
 @Injectable()
 export class FeedbackService {
     private readonly logger = new Logger(FeedbackService.name)
+    private readonly FEEDBACK_DAILY_LIMIT = 5
+    private readonly FEEDBACK_ANON_DAILY_LIMIT = 5
+    private readonly FEEDBACK_USER_LIMIT_KEY = 'feedback:user'
+    private readonly FEEDBACK_IP_LIMIT_KEY = 'feedback:ip'
 
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly notificationService: NotificationService,
+        private readonly cacheService: CacheService,
     ) {}
 
     async create(
         input: CreateFeedbackInput,
         user?: User,
         source: FeedbackSource = FeedbackSource.WEBSITE,
+        metadata?: SessionMetadata,
     ): Promise<FeedbackSubmitResponse> {
         try {
+            const wouldExceedLimit = await this.wouldExceedFeedbackLimit(
+                user?.id,
+                metadata.ip,
+            )
+
+            if (wouldExceedLimit) {
+                return {
+                    success: false,
+                    message: user
+                        ? 'Вы превысили дневной лимит отправки фидбеков.'
+                        : 'Лимит отправки фидбеков для анонимных пользователей исчерпан.',
+                }
+            }
+
             const newFeedback = {
                 message: input.message,
                 type: input.type || FeedbackType.GENERAL,
@@ -43,6 +66,8 @@ export class FeedbackService {
                 .insert(feedbacks)
                 .values(newFeedback)
                 .returning()
+
+            await this.incrementFeedbackCounter(user?.id, metadata?.ip)
 
             if (input.type === FeedbackType.BUG_REPORT) {
                 await this.notificationService.notifyAdminsAboutBugReport(
@@ -75,8 +100,20 @@ export class FeedbackService {
         message: string,
         type: FeedbackType = FeedbackType.GENERAL,
         rating?: number,
+        ip?: string,
     ): Promise<Feedback> {
         try {
+            const wouldExceedLimit = await this.wouldExceedFeedbackLimit(
+                user.id,
+                ip,
+            )
+
+            if (wouldExceedLimit) {
+                throw new FeedbacksLimitExceededException(
+                    'Дневной лимит отправки фидбеков исчерпан.',
+                )
+            }
+
             const newFeedback = {
                 message,
                 type,
@@ -90,6 +127,8 @@ export class FeedbackService {
                 .insert(feedbacks)
                 .values(newFeedback)
                 .returning()
+
+            await this.incrementFeedbackCounter(user.id, ip)
 
             if (type === FeedbackType.BUG_REPORT) {
                 await this.notificationService.notifyAdminsAboutBugReport(
@@ -333,5 +372,38 @@ export class FeedbackService {
             )
             throw error
         }
+    }
+
+    async wouldExceedFeedbackLimit(
+        userId?: string,
+        ip?: string,
+    ): Promise<boolean> {
+        const key = userId
+            ? `${this.FEEDBACK_USER_LIMIT_KEY}:${userId}`
+            : `${this.FEEDBACK_IP_LIMIT_KEY}:${ip}`
+        const currentCount = (await this.cacheService.get<number>(key)) || 0
+
+        if (userId && currentCount >= this.FEEDBACK_DAILY_LIMIT) {
+            return true
+        }
+
+        if (!userId && ip && currentCount >= this.FEEDBACK_ANON_DAILY_LIMIT) {
+            return true
+        }
+
+        return false
+    }
+
+    private async incrementFeedbackCounter(
+        userId?: string,
+        ip?: string,
+    ): Promise<void> {
+        if (!userId && !ip) return
+
+        const key = userId
+            ? `${this.FEEDBACK_USER_LIMIT_KEY}:${userId}`
+            : `${this.FEEDBACK_IP_LIMIT_KEY}:${ip}`
+        const currentCount = (await this.cacheService.get<number>(key)) || 0
+        await this.cacheService.set(key, currentCount + 1, 86400) // TTL = 1 day
     }
 }

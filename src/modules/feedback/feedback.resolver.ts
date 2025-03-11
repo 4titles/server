@@ -1,7 +1,11 @@
 import { Authorization } from '@/shared/decorators/auth.decorator'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
+import { UserAgent } from '@/shared/decorators/user-agent.decorator'
+import { GqlContext } from '@/shared/types/gql-context.types'
+import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { User } from '../auth/account/models/user.model'
+import { FeedbackSource } from './enums/feedback-source.enum'
 import { FeedbackService } from './feedback.service'
 import { CreateFeedbackInput } from './inputs/create-feedback.input'
 import { FilterFeedbackInput } from './inputs/filter-feedback.input'
@@ -25,9 +29,16 @@ export class FeedbackResolver {
 
     @Mutation(() => FeedbackSubmitResponse)
     async submitAnonymousFeedback(
+        @Context() { req }: GqlContext,
+        @UserAgent() userAgent: string,
         @Args('data') input: CreateFeedbackInput,
     ): Promise<FeedbackSubmitResponse> {
-        return await this.feedbackService.create(input)
+        return await this.feedbackService.create(
+            input,
+            undefined,
+            FeedbackSource.WEBSITE,
+            getSessionMetadata(req, userAgent),
+        )
     }
 
     @Authorization()
