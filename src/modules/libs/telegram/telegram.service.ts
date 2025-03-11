@@ -1,7 +1,6 @@
 import { AccountContextService } from '@/modules/auth/account/account-context.service'
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { User } from '@/modules/auth/account/models/user.model'
-import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
@@ -40,7 +39,6 @@ export class TelegramService extends Telegraf {
         private readonly accountService: AccountService,
         private readonly followService: FollowService,
         private readonly feedbackService: FeedbackService,
-        private readonly contentModerationService: ContentModerationService,
         private readonly accountContextService: AccountContextService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {
@@ -333,12 +331,10 @@ export class TelegramService extends Telegraf {
             return
         }
 
-        const isMessageValid =
-            await this.contentModerationService.validateContent({
-                text: message,
-            })
+        const validation =
+            await this.feedbackService.validateFeedbackMessage(message)
 
-        if (!isMessageValid) {
+        if (!validation.isValid) {
             feedbackState.attempts++
             if (feedbackState.attempts >= 3) {
                 await ctx.replyWithHTML(

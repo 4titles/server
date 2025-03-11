@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, avg, count, eq, isNotNull } from 'drizzle-orm'
 import { User } from '../auth/account/models/user.model'
 import { CacheService } from '../cache/cache.service'
+import { ContentModerationService } from '../content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '../drizzle/drizzle.module'
 import { DbFeedback, feedbacks } from '../drizzle/schema/feedbacks.schema'
 import { DrizzleDB } from '../drizzle/types/drizzle'
@@ -30,6 +31,7 @@ export class FeedbackService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly notificationService: NotificationService,
         private readonly cacheService: CacheService,
+        private readonly contentModerationService: ContentModerationService,
     ) {}
 
     async create(
@@ -48,8 +50,15 @@ export class FeedbackService {
                 return {
                     success: false,
                     message: user
-                        ? 'Вы превысили дневной лимит отправки фидбеков.'
-                        : 'Лимит отправки фидбеков для анонимных пользователей исчерпан.',
+                        ? 'You have exceeded the daily feedback limit.'
+                        : 'The feedback limit for anonymous users has been reached.',
+                }
+            }
+            const validation = await this.validateFeedbackMessage(input.message)
+            if (!validation.isValid) {
+                return {
+                    success: false,
+                    message: validation.errorMessage,
                 }
             }
 
@@ -79,7 +88,7 @@ export class FeedbackService {
             return {
                 success: true,
                 message:
-                    'Ваш отзыв успешно отправлен. Спасибо за помощь в улучшении платформы!',
+                    'Your feedback has been submitted successfully. Thank you for helping us improve the platform!',
                 feedback: createdFeedback,
             }
         } catch (error) {
@@ -90,7 +99,7 @@ export class FeedbackService {
             return {
                 success: false,
                 message:
-                    'Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте позже.',
+                    'An error occurred while submitting your feedback. Please try again later.',
             }
         }
     }
@@ -110,6 +119,11 @@ export class FeedbackService {
 
             if (wouldExceedLimit) {
                 throw new FeedbacksLimitExceededException()
+            }
+
+            const validation = await this.validateFeedbackMessage(message)
+            if (!validation.isValid) {
+                throw new Error(validation.errorMessage)
             }
 
             const newFeedback = {
@@ -143,6 +157,26 @@ export class FeedbackService {
             )
             throw error
         }
+    }
+
+    async validateFeedbackMessage(message: string): Promise<{
+        isValid: boolean
+        errorMessage?: string
+    }> {
+        const isMessageValid =
+            await this.contentModerationService.validateContent({
+                text: message,
+            })
+
+        if (!isMessageValid) {
+            return {
+                isValid: false,
+                errorMessage:
+                    'The content does not comply with our rules. Please ensure that your message does not contain offensive or inappropriate content.',
+            }
+        }
+
+        return { isValid: true }
     }
 
     async findAll(filters?: FilterFeedbackInput): Promise<Feedback[]> {
