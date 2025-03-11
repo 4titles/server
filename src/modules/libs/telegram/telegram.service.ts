@@ -243,7 +243,7 @@ export class TelegramService extends Telegraf {
                 `Error in feedback type selection: ${error.message}`,
                 error.stack,
             )
-            await ctx.reply(BOT_MESSAGES.errorOccurred)
+            await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
         }
     }
 
@@ -301,7 +301,7 @@ export class TelegramService extends Telegraf {
                 `Error processing text message: ${error.message}`,
                 error.stack,
             )
-            await ctx.reply(BOT_MESSAGES.errorOccurred)
+            await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
         }
     }
 
