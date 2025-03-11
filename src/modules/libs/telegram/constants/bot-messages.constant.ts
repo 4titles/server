@@ -6,6 +6,7 @@ export interface BotMessages {
     welcome: string
     authSuccess: string
     invalidToken: string
+    invalidContent: string
     profile: (user: User, followersCount: number) => string
     follows: (user: User) => string
     resetPassword: (token: string, metadata: SessionMetadata) => string
@@ -22,6 +23,7 @@ export interface BotMessages {
     feedbackSentReply: string
     feedbackAndRatingSentReply: (rating: number | undefined) => string
     feedbackSaveFailed: string
+    maxAttemptsReached: string
 }
 
 export const BOT_MESSAGES: BotMessages = {
@@ -39,6 +41,10 @@ export const BOT_MESSAGES: BotMessages = {
     invalidToken:
         `<b>⚠️ Ошибка подключения</b>\n\n` +
         `Ссылка для авторизации устарела или недействительна. Пожалуйста, запросите новую ссылку в настройках профиля на сайте.`,
+
+    invalidContent:
+        `<b>🚫 Недопустимый контент</b>\n\n` +
+        `Ваше сообщение содержит недопустимые выражения или нарушает правила сообщества. Пожалуйста, перефразируйте ваш отзыв.`,
 
     profile: (user: User, followersCount: number) =>
         `<b>📽 Профиль исследователя кинолокаций</b>\n\n` +
@@ -134,4 +140,6 @@ export const BOT_MESSAGES: BotMessages = {
 
     feedbackSaveFailed:
         '<b>⚠️ Произошла ошибка при сохранении отзыва.</b>\n\nПожалуйста, попробуйте позже.',
+
+    maxAttemptsReached: `<b>🛑 Достигнуто максимальное количество попыток.</b>\n\nК сожалению, вы превысили допустимое количество попыток ввода корректного сообщения. Пожалуйста, попробуйте позже.`,
 }

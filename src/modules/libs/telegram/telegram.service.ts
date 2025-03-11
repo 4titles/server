@@ -1,5 +1,6 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { User } from '@/modules/auth/account/models/user.model'
+import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
 import { tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
@@ -27,6 +28,7 @@ export class TelegramService extends Telegraf {
             type: FeedbackType
             step: 'message' | 'rating'
             message?: string
+            attempts: number
         }
     > = new Map()
 
@@ -35,6 +37,7 @@ export class TelegramService extends Telegraf {
         private readonly accountService: AccountService,
         private readonly followService: FollowService,
         private readonly feedbackService: FeedbackService,
+        private readonly contentModerationService: ContentModerationService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {
         super(configService.getOrThrow<string>('telegraf.token'))
@@ -229,7 +232,11 @@ export class TelegramService extends Telegraf {
                 await ctx.deleteMessage()
             } catch {}
 
-            this.feedbackStates.set(chatId, { type, step: 'message' })
+            this.feedbackStates.set(chatId, {
+                type,
+                step: 'message',
+                attempts: 0,
+            })
             await ctx.reply(message)
         } catch (error) {
             this.logger.error(
@@ -258,10 +265,30 @@ export class TelegramService extends Telegraf {
                     return
                 }
 
+                const isMessageValid =
+                    await this.contentModerationService.validateContent({
+                        text: message,
+                    })
+
+                if (!isMessageValid) {
+                    feedbackState.attempts++
+                    if (feedbackState.attempts >= 3) {
+                        await ctx.replyWithHTML(
+                            'Вы превысили максимально допустимое количество попыток ввода корректного сообщения. Попробуйте позже.',
+                            BOT_BUTTONS.profile,
+                        )
+                        this.feedbackStates.delete(chatId)
+                        return
+                    }
+                    await ctx.replyWithHTML(BOT_MESSAGES.invalidContent)
+                    return
+                }
+
                 this.feedbackStates.set(chatId, {
                     type: feedbackState.type,
                     step: 'rating',
-                    message: message,
+                    message,
+                    attempts: feedbackState.attempts,
                 })
 
                 await ctx.replyWithHTML(
