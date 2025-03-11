@@ -21,7 +21,7 @@ import { Feedback } from './models/feedback.model'
 @Injectable()
 export class FeedbackService {
     private readonly logger = new Logger(FeedbackService.name)
-    private readonly FEEDBACK_DAILY_LIMIT = 5
+    private readonly FEEDBACK_DAILY_LIMIT = 8
     private readonly FEEDBACK_ANON_DAILY_LIMIT = 5
     private readonly FEEDBACK_USER_LIMIT_KEY = 'feedback:user'
     private readonly FEEDBACK_IP_LIMIT_KEY = 'feedback:ip'
