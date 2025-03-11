@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { AccountDeletionService } from '../auth/account/account-deletion.service'
-import { TitleCategory } from '../titles/enums/title-category.enum'
-import { TitleSyncManagerService } from '../titles/services/title-sync-manager.service'
+import { AccountDeletionService } from '../../auth/account/account-deletion.service'
+import { TitleCategory } from '../../titles/enums/title-category.enum'
+import { TitleSyncManagerService } from '../../titles/services/title-sync-manager.service'
+import { TokenCleanupService } from './token-cleanup.service'
 
 @Injectable()
 export class CronService {
@@ -11,6 +12,7 @@ export class CronService {
     constructor(
         private readonly titleSyncManagerService: TitleSyncManagerService,
         private readonly accountDeletionService: AccountDeletionService,
+        private readonly tokenCleanupService: TokenCleanupService,
     ) {}
 
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -25,6 +27,22 @@ export class CronService {
         } catch (error) {
             this.logger.error(
                 `Account deletion job failed: ${error.message}`,
+                error.stack,
+            )
+        }
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_2AM)
+    async runTokenCleanupJob() {
+        this.logger.log('Starting token cleanup job')
+        try {
+            const result = await this.tokenCleanupService.cleanupExpiredTokens()
+            this.logger.log(
+                `Token cleanup completed: ${result.deletedCount} tokens deleted`,
+            )
+        } catch (error) {
+            this.logger.error(
+                `Token cleanup job failed: ${error.message}`,
                 error.stack,
             )
         }

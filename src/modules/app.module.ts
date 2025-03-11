@@ -21,6 +21,7 @@ import { FollowModule } from './follow/follow.module'
 import { HealthModule } from './health/health.module'
 import { MailModule } from './libs/mail/mail.module'
 import { S3Module } from './libs/s3/s3.module'
+import { NotificationModule } from './notification/notification.module'
 
 import telegrafConfig from '@/config/telegraf.config'
 import geocodingConfig from '../config/geocoding.config'
@@ -71,6 +72,7 @@ import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
         HealthModule,
         S3Module,
         ProfileModule,
+        NotificationModule,
         FollowModule,
     ],
 })

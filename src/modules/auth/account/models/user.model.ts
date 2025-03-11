@@ -1,4 +1,6 @@
 import { Follow } from '@/modules/follow/models/follow.model'
+import { NotificationSettings } from '@/modules/notification/models/notification-settings.model'
+import { Notification } from '@/modules/notification/models/notification.model'
 import { Field, ObjectType } from '@nestjs/graphql'
 import { SocialLink } from '../../profile/models/social-link.model'
 
@@ -24,6 +26,9 @@ export class User {
 
     @Field(() => String, { nullable: true })
     bio?: string
+
+    @Field(() => String, { nullable: true })
+    telegramId?: string
 
     @Field(() => Boolean)
     isVerified: boolean
@@ -51,6 +56,12 @@ export class User {
 
     @Field(() => [SocialLink])
     socialLinks?: SocialLink[]
+
+    @Field(() => [Notification])
+    notifications?: Notification[]
+
+    @Field(() => NotificationSettings)
+    notificationSettings?: NotificationSettings
 
     @Field(() => [Follow])
     followers?: Follow[]

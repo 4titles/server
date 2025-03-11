@@ -1,5 +1,6 @@
 import {
     ConflictException,
+    forwardRef,
     Inject,
     Injectable,
     NotFoundException,
@@ -10,10 +11,17 @@ import { DRIZZLE } from '../drizzle/drizzle.module'
 import { follows } from '../drizzle/schema/follows.schema'
 import { users } from '../drizzle/schema/users.schema'
 import { DrizzleDB } from '../drizzle/types/drizzle'
+import { TelegramService } from '../libs/telegram/telegram.service'
+import { NotificationService } from '../notification/notification.service'
 
 @Injectable()
 export class FollowService {
-    constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+    constructor(
+        @Inject(DRIZZLE) private readonly db: DrizzleDB,
+        private readonly notificationService: NotificationService,
+        @Inject(forwardRef(() => TelegramService))
+        private readonly telegramService: TelegramService,
+    ) {}
 
     async findUserFollowers(user: User) {
         return await this.db.query.follows.findMany({
@@ -38,6 +46,7 @@ export class FollowService {
     async follow(user: User, followingId: string): Promise<boolean> {
         const following = await this.db.query.users.findFirst({
             where: eq(users.id, followingId),
+            with: { notificationSettings: true },
         })
 
         if (!following) {
@@ -63,6 +72,23 @@ export class FollowService {
             followerId: user.id,
             followingId: following.id,
         })
+
+        if (following.notificationSettings?.isSiteNotificationsEnabled) {
+            await this.notificationService.createNewFollowingUserNotification(
+                following.id,
+                user,
+            )
+        }
+
+        if (
+            following.notificationSettings?.isTelegramNotificationsEnabled &&
+            following.telegramId
+        ) {
+            await this.telegramService.sendNewFollowing(
+                following.telegramId,
+                user,
+            )
+        }
 
         return true
     }

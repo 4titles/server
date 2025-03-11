@@ -17,6 +17,9 @@ importers:
       '@as-integrations/fastify':
         specifier: ^2.1.1
         version: 2.1.1(@apollo/server@4.11.3(graphql@16.10.0))(fastify@5.2.1)
+      '@faker-js/faker':
+        specifier: ^9.6.0
+        version: 9.6.0
       '@fastify/cookie':
         specifier: ^8.3.0
         version: 8.3.0
@@ -80,6 +83,9 @@ importers:
       '@react-email/tailwind':
         specifier: ^1.0.4
         version: 1.0.4(react@19.0.0)
+      '@telegraf/types':
+        specifier: ^8.3.1
+        version: 8.3.1
       '@tensorflow/tfjs-node':
         specifier: ^4.22.0
         version: 4.22.0(seedrandom@3.0.5)
@@ -1088,6 +1094,10 @@ packages:
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
+  '@faker-js/faker@9.6.0':
+    resolution: {integrity: sha512-3vm4by+B5lvsFPSyep3ELWmZfE3kicDtmemVpuwl1yH7tqtnHdsA6hG8fbXedMVdkzgtvzWoRgjSB4Q+FHnZiw==}
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
+
   '@fastify/ajv-compiler@3.6.0':
     resolution: {integrity: sha512-LwdXQJjmMD+GwLOkP7TVC68qa+pSSogeWWmznRJ/coyTcfe9qA05AHFSe1eZFwK6q+xVRpChnvFUkf1iYaSZsQ==}
 
@@ -1847,6 +1857,9 @@ packages:
 
   '@telegraf/types@7.1.0':
     resolution: {integrity: sha512-kGevOIbpMcIlCDeorKGpwZmdH7kHbqlk/Yj6dEpJMKEQw5lk0KVQY0OLXaCswy8GqlIVLd5625OB+rAntP9xVw==}
+
+  '@telegraf/types@8.3.1':
+    resolution: {integrity: sha512-17RBlU04nwiERnrm6X32C/tr0/bYjXWAujS+zeK1C94pcnqetCk2IdqvfXLK9GluSMcyY6iMV5Kt0oAEZ7NF8w==}
 
   '@tensorflow/tfjs-backend-cpu@4.22.0':
     resolution: {integrity: sha512-1u0FmuLGuRAi8D2c3cocHTASGXOmHc/4OvoVDENJayjYkS119fcTcQf4iHrtLthWyDIPy3JiPhRrZQC9EwnhLw==}
@@ -6803,6 +6816,8 @@ snapshots:
 
   '@eslint/js@8.57.1': {}
 
+  '@faker-js/faker@9.6.0': {}
+
   '@fastify/ajv-compiler@3.6.0':
     dependencies:
       ajv: 8.17.1
@@ -7663,6 +7678,8 @@ snapshots:
       '@sinonjs/commons': 3.0.1
 
   '@telegraf/types@7.1.0': {}
+
+  '@telegraf/types@8.3.1': {}
 
   '@tensorflow/tfjs-backend-cpu@4.22.0(@tensorflow/tfjs-core@4.22.0)':
     dependencies:

@@ -1,5 +1,3 @@
-import { CacheModule } from '@/modules/cache/cache.module'
-import { DrizzleModule } from '@/modules/drizzle/drizzle.module'
 import { LocationsModule } from '@/modules/locations/locations.module'
 import { Module } from '@nestjs/common'
 import { TmdbModule } from '../tmdb/tmdb.module'
@@ -8,7 +6,7 @@ import * as resolvers from './resolvers'
 import * as services from './services'
 import * as entityServices from './services/entity'
 @Module({
-    imports: [CacheModule, TmdbModule, DrizzleModule, LocationsModule],
+    imports: [TmdbModule, LocationsModule],
     providers: [
         // services
         ...Object.values(services),

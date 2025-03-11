@@ -50,6 +50,13 @@ export class AccountService {
         }
     }
 
+    async findByTelegramId(telegramId: string): Promise<User | null> {
+        return await this.db.query.users.findFirst({
+            where: eq(users.telegramId, telegramId),
+            with: { followers: true, followings: true },
+        })
+    }
+
     async findAll(): Promise<User[]> {
         try {
             const dbUsers: DbUser[] = await this.db.query.users.findMany({
@@ -188,6 +195,19 @@ export class AccountService {
                 .update(users)
                 .set(userPasswordUpdate)
                 .where(eq(users.id, user.id))
+
+            return true
+        } catch (error) {
+            throw new DatabaseException(error)
+        }
+    }
+
+    async connectTelegram(userId: string, chatId: string): Promise<boolean> {
+        try {
+            await this.db
+                .update(users)
+                .set({ telegramId: chatId } as Partial<DbUser>)
+                .where(eq(users.id, userId))
 
             return true
         } catch (error) {

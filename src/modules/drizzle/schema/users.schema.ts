@@ -8,6 +8,7 @@ import {
     uuid,
 } from 'drizzle-orm/pg-core'
 import { follows } from './follows.schema'
+import { notifications, notificationSettings } from './notifications.schema'
 import { socialLinks } from './social-links.schema'
 import { tokens } from './tokens.schema'
 
@@ -17,10 +18,11 @@ export const users = pgTable(
         id: uuid('id').primaryKey().defaultRandom(),
         email: text('email').unique().notNull(),
         password: text('password').notNull(),
-        username: text('username').notNull(),
+        username: text('username').unique().notNull(),
         displayName: text('display_name'),
         avatar: text('avatar'),
         bio: text('bio'),
+        telegramId: text('telegram_id').unique(),
         isVerified: boolean('is_verified').default(false),
         isTotpEnabled: boolean('is_totp_enabled').default(false),
         totpSecret: text('totp_secret'),
@@ -49,10 +51,15 @@ export const users = pgTable(
     },
 )
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
     tokens: many(tokens),
     socialLinks: many(socialLinks),
-    following: many(follows, { relationName: 'follower' }),
+    notifications: many(notifications),
+    notificationSettings: one(notificationSettings, {
+        fields: [users.id],
+        references: [notificationSettings.userId],
+    }),
+    followings: many(follows, { relationName: 'follower' }),
     followers: many(follows, { relationName: 'following' }),
 }))
 

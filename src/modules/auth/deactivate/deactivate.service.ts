@@ -3,6 +3,7 @@ import { DbToken, tokens } from '@/modules/drizzle/schema/tokens.schema'
 import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
 import { MailService } from '@/modules/libs/mail/mail.service'
+import { TelegramService } from '@/modules/libs/telegram/telegram.service'
 import { generateToken } from '@/shared/utils/generate-token.util'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import { destroySession } from '@/shared/utils/session.utils'
@@ -28,6 +29,7 @@ export class DeactivateService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly mailService: MailService,
+        private readonly telegramService: TelegramService,
     ) {}
 
     async deactivate(
@@ -124,11 +126,30 @@ export class DeactivateService {
                 false,
             )
 
+            const metadata = getSessionMetadata(req, userAgent)
+
             await this.mailService.sendDeactivationToken(
                 user.email,
                 deactivationToken.token,
-                getSessionMetadata(req, userAgent),
+                metadata,
             )
+
+            const deactivatableUser = await this.db.query.users.findFirst({
+                where: eq(users.id, deactivationToken.userId),
+                with: { notificationSettings: true },
+            })
+
+            if (
+                deactivatableUser.notificationSettings
+                    .isTelegramNotificationsEnabled &&
+                deactivatableUser.telegramId
+            ) {
+                await this.telegramService.sendDeactivationToken(
+                    deactivatableUser.telegramId,
+                    deactivationToken.token,
+                    metadata,
+                )
+            }
 
             return true
         } catch (error) {
