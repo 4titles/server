@@ -7,6 +7,7 @@ import {
     timestamp,
     uuid,
 } from 'drizzle-orm/pg-core'
+import { feedbacks } from './feedbacks.schema'
 import { follows } from './follows.schema'
 import { notifications, notificationSettings } from './notifications.schema'
 import { socialLinks } from './social-links.schema'
@@ -55,6 +56,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     tokens: many(tokens),
     socialLinks: many(socialLinks),
     notifications: many(notifications),
+    feedbacks: many(feedbacks),
     notificationSettings: one(notificationSettings, {
         fields: [users.id],
         references: [notificationSettings.userId],

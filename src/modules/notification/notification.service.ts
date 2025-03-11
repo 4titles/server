@@ -1,5 +1,5 @@
 import { generateToken } from '@/shared/utils/generate-token.util'
-import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, count, desc, eq } from 'drizzle-orm'
 import { TokenType } from '../auth/account/enums/token-type.enum'
 import { User } from '../auth/account/models/user.model'
@@ -11,12 +11,15 @@ import {
 } from '../drizzle/schema/notifications.schema'
 import { DbUser, users } from '../drizzle/schema/users.schema'
 import { DrizzleDB } from '../drizzle/types/drizzle'
+import { Feedback } from '../feedback/models/feedback.model'
 import { TelegramService } from '../libs/telegram/telegram.service'
 import { NotificationType } from './enums/notification-type.enum'
 import { ChangeNotificationSettingsInput } from './inputs/change-notification-settings.input'
 
 @Injectable()
 export class NotificationService {
+    private readonly logger: Logger = new Logger(NotificationService.name)
+
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         @Inject(forwardRef(() => TelegramService))
@@ -197,5 +200,30 @@ export class NotificationService {
         return {
             notificationSettings: updatedNotificationSettings,
         }
+    }
+
+    async notifyUserAboutFeedbackResponse(
+        telegramId: string,
+        feedback: Feedback,
+    ): Promise<void> {
+        try {
+            const message = `<b>✅ Ответ на ваш отзыв</b>\n\n<i>Ваш отзыв:</i>\n${feedback.message}\n\n<b>Ответ от команды:</b>\n${feedback.responseMessage}`
+
+            await this.telegramService.sendInfoNotification(telegramId, message)
+        } catch (error) {
+            this.logger.error(
+                `Failed to notify user about feedback response: ${error.message}`,
+                error.stack,
+            )
+        }
+    }
+
+    async notifyAdminsAboutBugReport(
+        feedback: Feedback,
+        user?: User,
+    ): Promise<void> {
+        this.logger.log(
+            `Critical bug report received from ${user ? user.username : 'unknown'} user: ${feedback.id}: ${feedback.message}}`,
+        )
     }
 }

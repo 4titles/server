@@ -7,6 +7,7 @@ export * from './languages.schema'
 export * from './movies.schema'
 export * from './series.schema'
 
+export * from './feedbacks.schema'
 export * from './follows.schema'
 export * from './notifications.schema'
 export * from './social-links.schema'

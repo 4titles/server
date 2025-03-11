@@ -1,3 +1,4 @@
+import { FeedbackModule } from '@/modules/feedback/feedback.module'
 import { FollowModule } from '@/modules/follow/follow.module'
 import { Global, Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
@@ -14,6 +15,7 @@ import { TelegramService } from './telegram.service'
             inject: [ConfigService],
         }),
         FollowModule,
+        FeedbackModule,
     ],
     providers: [TelegramService],
     exports: [TelegramService],
