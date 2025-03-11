@@ -4,10 +4,10 @@ import { GqlContext } from '@/shared/types/gql-context.types'
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { AuthModel } from '../account/models/auth.model'
 import { LoginInput } from './inputs/login.input'
-import { SessionModel } from './models/session.model'
+import { Session } from './models/session.model'
 import { SessionService } from './session.service'
 
-@Resolver('Session')
+@Resolver(() => Session)
 export class SessionResolver {
     constructor(private readonly sessionService: SessionService) {}
 
@@ -41,7 +41,7 @@ export class SessionResolver {
     }
 
     @Authorization()
-    @Query(() => [SessionModel], {
+    @Query(() => [Session], {
         description: 'Get a list of user sessions',
     })
     async findByUser(@Context() { req }: GqlContext) {
@@ -49,7 +49,7 @@ export class SessionResolver {
     }
 
     @Authorization()
-    @Query(() => SessionModel, {
+    @Query(() => Session, {
         description: 'Get a current user session',
     })
     async findCurrent(@Context() { req }: GqlContext) {

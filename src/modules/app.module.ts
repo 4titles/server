@@ -17,6 +17,7 @@ import { ProfileModule } from './auth/profile/profile.module'
 import { RecoveryModule } from './auth/recovery/recovery.module'
 import { TotpModule } from './auth/totp/totp.module'
 import { VerificationModule } from './auth/verification/verification.module'
+import { FeedbackModule } from './feedback/feedback.module'
 import { FollowModule } from './follow/follow.module'
 import { HealthModule } from './health/health.module'
 import { MailModule } from './libs/mail/mail.module'
@@ -74,6 +75,7 @@ import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
         ProfileModule,
         NotificationModule,
         FollowModule,
+        FeedbackModule,
     ],
 })
 export class AppModule {}
