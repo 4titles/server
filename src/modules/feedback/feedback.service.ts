@@ -109,9 +109,7 @@ export class FeedbackService {
             )
 
             if (wouldExceedLimit) {
-                throw new FeedbacksLimitExceededException(
-                    'Дневной лимит отправки фидбеков исчерпан.',
-                )
+                throw new FeedbacksLimitExceededException()
             }
 
             const newFeedback = {

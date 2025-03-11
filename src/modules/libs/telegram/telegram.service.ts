@@ -17,6 +17,7 @@ import { Action, Command, Ctx, On, Start, Update } from 'nestjs-telegraf'
 import { Context, Telegraf } from 'telegraf'
 import { AccountService } from '../../auth/account/account.service'
 import { BOT_BUTTONS } from './constants/bot-buttons.constant'
+import { BOT_COMMANDS } from './constants/bot-commands.constant'
 import { BOT_MESSAGES } from './constants/bot-messages.constant'
 
 interface FeedbackState {
@@ -32,6 +33,7 @@ interface FeedbackState {
 export class TelegramService extends Telegraf {
     private readonly logger: Logger = new Logger(TelegramService.name)
     private readonly feedbackStates: Map<string, FeedbackState> = new Map()
+    private isBotLaunched: boolean = false
 
     constructor(
         private readonly configService: ConfigService,
@@ -48,6 +50,12 @@ export class TelegramService extends Telegraf {
     @Start()
     async onStart(@Ctx() ctx: Context): Promise<void> {
         try {
+            if (!this.isBotLaunched) {
+                await this.telegram.setMyCommands(BOT_COMMANDS)
+                await this.launch()
+                this.isBotLaunched = true
+            }
+
             const chatId = ctx.chat.id.toString()
             const message = ctx.message as any
             const token = message?.text?.split(' ')[1]
