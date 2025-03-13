@@ -1,4 +1,4 @@
-import { DatabaseSeeder } from '@/modules/drizzle/seeders'
+import { DatabaseSeeder } from '@/modules/infrastructure/drizzle/seeders'
 import { Injectable } from '@nestjs/common'
 import { Command } from 'nestjs-command'
 

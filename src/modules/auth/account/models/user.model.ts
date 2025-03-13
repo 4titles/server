@@ -1,6 +1,6 @@
-import { Follow } from '@/modules/follow/models/follow.model'
-import { NotificationSettings } from '@/modules/notification/models/notification-settings.model'
-import { Notification } from '@/modules/notification/models/notification.model'
+import { Follow } from '@/modules/content/follow/models/follow.model'
+import { NotificationSettings } from '@/modules/infrastructure/notification/models/notification-settings.model'
+import { Notification } from '@/modules/infrastructure/notification/models/notification.model'
 import { Field, ObjectType } from '@nestjs/graphql'
 import { SocialLink } from '../../profile/models/social-link.model'
 

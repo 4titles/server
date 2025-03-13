@@ -1,6 +1,6 @@
+import { CountrySeeder } from '@/modules/infrastructure/drizzle/seeders/country.seeder'
 import { Injectable } from '@nestjs/common'
 import { Command } from 'nestjs-command'
-import { CountrySeeder } from '@/modules/drizzle/seeders/country.seeder'
 
 @Injectable()
 export class SeedCountriesCommand {

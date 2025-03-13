@@ -1,6 +1,14 @@
-import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { MailService } from '@/modules/libs/mail/mail.service'
+import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import {
+    DbToken,
+    tokens,
+} from '@/modules/infrastructure/drizzle/schema/tokens.schema'
+import {
+    DbUser,
+    users,
+} from '@/modules/infrastructure/drizzle/schema/users.schema'
+import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { MailService } from '@/modules/infrastructure/mail/mail.service'
 import { generateToken } from '@/shared/utils/generate-token.util'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import { saveSession } from '@/shared/utils/session.utils'
@@ -13,8 +21,6 @@ import {
 } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import type { FastifyRequest } from 'fastify'
-import { DbToken, tokens } from '../../drizzle/schema/tokens.schema'
-import { DbUser, users } from '../../drizzle/schema/users.schema'
 import { TokenType } from '../account/enums/token-type.enum'
 import { AuthModel } from '../account/models/auth.model'
 import { User } from '../account/models/user.model'

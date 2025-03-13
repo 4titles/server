@@ -1,10 +1,12 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { User } from '@/modules/auth/account/models/user.model'
-import { DbToken } from '@/modules/drizzle/schema/tokens.schema'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
+import {
+    DbToken,
+    tokens,
+} from '@/modules/infrastructure/drizzle/schema/tokens.schema'
+import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { eq } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
-import { tokens } from '../../modules/drizzle/schema/tokens.schema'
 
 export async function generateToken(
     db: DrizzleDB,

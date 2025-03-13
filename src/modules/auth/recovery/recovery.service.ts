@@ -1,8 +1,15 @@
-import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DbToken, tokens } from '@/modules/drizzle/schema/tokens.schema'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { MailService } from '@/modules/libs/mail/mail.service'
-import { TelegramService } from '@/modules/libs/telegram/telegram.service'
+import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import {
+    DbToken,
+    tokens,
+} from '@/modules/infrastructure/drizzle/schema/tokens.schema'
+import {
+    DbUser,
+    users,
+} from '@/modules/infrastructure/drizzle/schema/users.schema'
+import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { MailService } from '@/modules/infrastructure/mail/mail.service'
+import { TelegramService } from '@/modules/infrastructure/telegram/telegram.service'
 import { generateToken } from '@/shared/utils/generate-token.util'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import {
@@ -14,7 +21,6 @@ import {
 import { hash } from 'argon2'
 import { and, eq } from 'drizzle-orm'
 import { FastifyRequest } from 'fastify'
-import { DbUser, users } from '../../drizzle/schema/users.schema'
 import { TokenType } from '../account/enums/token-type.enum'
 import { User } from '../account/models/user.model'
 import { NewPasswordInput } from './input/new-password.input'

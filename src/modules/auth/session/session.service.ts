@@ -1,4 +1,4 @@
-import { CacheService } from '@/modules/cache/cache.service'
+import { CacheService } from '@/modules/infrastructure/cache/cache.service'
 import { COMPANY_NAME } from '@/shared/constants/company.constants'
 import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
 import { destroySession, saveSession } from '@/shared/utils/session.utils'

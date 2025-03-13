@@ -1,10 +1,13 @@
-import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { MailService } from '@/modules/libs/mail/mail.service'
-import { S3Service } from '@/modules/libs/s3/s3.service'
-import { TelegramService } from '@/modules/libs/telegram/telegram.service'
-import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
+import { DatabaseException } from '@/modules/content/titles/exceptions/database.exception'
+import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import {
+    DbUser,
+    users,
+} from '@/modules/infrastructure/drizzle/schema/users.schema'
+import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { MailService } from '@/modules/infrastructure/mail/mail.service'
+import { S3Service } from '@/modules/infrastructure/s3/s3.service'
+import { TelegramService } from '@/modules/infrastructure/telegram/telegram.service'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, eq, lte } from 'drizzle-orm'
 import { User } from './models/user.model'

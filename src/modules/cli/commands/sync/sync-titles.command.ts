@@ -1,7 +1,7 @@
-import { TitlesService } from '@/modules/titles/services'
+import { TitleCategory } from '@/modules/content/titles/enums/title-category.enum'
+import { TitlesService } from '@/modules/content/titles/services'
 import { Injectable, Logger } from '@nestjs/common'
 import { Command, Positional } from 'nestjs-command'
-import { TitleCategory } from '@/modules/titles/enums/title-category.enum'
 
 @Injectable()
 export class SyncTitlesCommand {

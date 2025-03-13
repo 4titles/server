@@ -1,5 +1,5 @@
+import { GenreSeeder } from '@/modules/infrastructure/drizzle/seeders/genre.seeder'
 import { Injectable } from '@nestjs/common'
-import { GenreSeeder } from '../../../drizzle/seeders/genre.seeder'
 import { Command } from 'nestjs-command'
 
 @Injectable()

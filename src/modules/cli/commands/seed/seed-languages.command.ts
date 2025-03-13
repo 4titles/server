@@ -1,6 +1,6 @@
+import { LanguageSeeder } from '@/modules/infrastructure/drizzle/seeders'
 import { Injectable } from '@nestjs/common'
 import { Command } from 'nestjs-command'
-import { LanguageSeeder } from '@/modules/drizzle/seeders'
 
 @Injectable()
 export class SeedLanguagesCommand {

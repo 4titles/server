@@ -1,4 +1,4 @@
-import { UserSeeder } from '@/modules/drizzle/seeders/user.seeder'
+import { UserSeeder } from '@/modules/infrastructure/drizzle/seeders/user.seeder'
 import { Injectable } from '@nestjs/common'
 import { Command, Option } from 'nestjs-command'
 

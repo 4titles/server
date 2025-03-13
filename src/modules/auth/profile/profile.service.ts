@@ -1,16 +1,19 @@
-import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
-import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { S3Service } from '@/modules/libs/s3/s3.service'
+import { ContentModerationService } from '@/modules/content/content-moderation/services/content-moderation.service'
+import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import {
+    DbSocialLink,
+    socialLinks,
+} from '@/modules/infrastructure/drizzle/schema/social-links.schema'
+import {
+    DbUser,
+    users,
+} from '@/modules/infrastructure/drizzle/schema/users.schema'
+import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { S3Service } from '@/modules/infrastructure/s3/s3.service'
 import { ConflictException, Inject, Injectable } from '@nestjs/common'
 import { asc, desc, eq } from 'drizzle-orm'
 import * as Upload from 'graphql-upload/Upload.js'
 import sharp from 'sharp'
-import {
-    DbSocialLink,
-    socialLinks,
-} from '../../drizzle/schema/social-links.schema'
 import { User } from '../account/models/user.model'
 import { ChangeProfileInfoInput } from './inputs/change-profile-info.input'
 import {
