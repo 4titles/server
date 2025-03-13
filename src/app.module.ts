@@ -18,6 +18,7 @@ import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
 import { AuthModule } from './modules/auth/auth.module'
 import { ContentModule } from './modules/content/content.module'
 import { InfrastructureModule } from './modules/infrastructure/infrastructure.module'
+import { IS_DEV_ENV } from './shared/utils/common/is-dev.util'
 
 @Module({
     imports: [
@@ -34,7 +35,11 @@ import { InfrastructureModule } from './modules/infrastructure/infrastructure.mo
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
             autoSchemaFile: true,
-            plugins: [ApolloServerPluginLandingPageLocalDefault()],
+            plugins: [
+                IS_DEV_ENV
+                    ? ApolloServerPluginLandingPageLocalDefault()
+                    : undefined,
+            ],
             playground: false,
             context: ({ req }) => ({ req }),
             buildSchemaOptions: {
