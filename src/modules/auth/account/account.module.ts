@@ -1,4 +1,4 @@
-import { ContentModerationModule } from '@/modules/content-moderation/content-moderation.module'
+import { ContentModerationModule } from '@/modules/content/content-moderation/content-moderation.module'
 import { Global, Module } from '@nestjs/common'
 import { VerificationService } from '../verification/verification.service'
 import { AccountDeletionService } from './account-deletion.service'

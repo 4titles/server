@@ -63,7 +63,7 @@ export class SessionMetadataModel implements SessionMetadata {
 }
 
 @ObjectType()
-export class SessionModel {
+export class Session {
     @Field(() => ID)
     id: string
 

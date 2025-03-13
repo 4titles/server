@@ -6,7 +6,7 @@ import { EnableTotpInput } from './inputs/enable-totp.input'
 import { TotpModel } from './models/totp.model'
 import { TotpService } from './totp.service'
 
-@Resolver()
+@Resolver(() => TotpModel)
 export class TotpResolver {
     constructor(private readonly totpService: TotpService) {}
 

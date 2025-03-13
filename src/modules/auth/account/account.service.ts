@@ -1,8 +1,11 @@
-import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
-import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
-import { DbUser, users } from '@/modules/drizzle/schema/users.schema'
-import { DrizzleDB } from '@/modules/drizzle/types/drizzle'
-import { DatabaseException } from '@/modules/titles/exceptions/database.exception'
+import { ContentModerationService } from '@/modules/content/content-moderation/services/content-moderation.service'
+import { DatabaseException } from '@/modules/content/titles/exceptions/database.exception'
+import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import {
+    DbUser,
+    users,
+} from '@/modules/infrastructure/drizzle/schema/users.schema'
+import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import {
     ConflictException,
     Inject,

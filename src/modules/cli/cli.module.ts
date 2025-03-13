@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common'
 import { CommandModule } from 'nestjs-command'
-import * as seeders from '../drizzle/seeders'
-import { TitlesModule } from '../titles/titles.module'
-import { TmdbModule } from '../tmdb/tmdb.module'
+import { TitlesModule } from '../content/titles/titles.module'
+import * as seeders from '../infrastructure/drizzle/seeders'
+import { TmdbModule } from '../infrastructure/tmdb/tmdb.module'
 import * as commands from './commands'
 
 @Module({

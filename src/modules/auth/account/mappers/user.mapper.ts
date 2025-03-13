@@ -1,4 +1,4 @@
-import { DbUser } from '@/modules/drizzle/schema/users.schema'
+import { DbUser } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { User } from '../models/user.model'
 
 export class UserMapper {

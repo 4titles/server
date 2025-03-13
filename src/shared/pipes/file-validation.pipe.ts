@@ -1,4 +1,4 @@
-import { ContentModerationService } from '@/modules/content-moderation/services/content-moderation.service'
+import { ContentModerationService } from '@/modules/content/content-moderation/services/content-moderation.service'
 import {
     BadRequestException,
     Injectable,
@@ -7,7 +7,7 @@ import {
 import {
     readStreamWithSizeValidation,
     validateFileFormat,
-} from '../utils/file.util'
+} from '../utils/file/file.util'
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {

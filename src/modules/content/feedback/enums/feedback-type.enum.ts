@@ -1,0 +1,7 @@
+export enum FeedbackType {
+    GENERAL = 'GENERAL',
+    BUG_REPORT = 'BUG_REPORT',
+    FEATURE_REQUEST = 'FEATURE_REQUEST',
+    CONTENT_ISSUE = 'CONTENT_ISSUE',
+    OTHER = 'OTHER',
+}
