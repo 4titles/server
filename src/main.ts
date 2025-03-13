@@ -11,15 +11,15 @@ import {
 } from '@nestjs/platform-fastify'
 import Redis from 'ioredis'
 import MercuriusGQLUpload from 'mercurius-upload'
+import { AppModule } from './app.module'
 import { IRedisConfig } from './config/redis/redis-config.interface'
-import { AppModule } from './modules/app.module'
 import {
     COMPANY_DESCRIPTION,
     COMPANY_NAME,
 } from './shared/constants/company.constants'
 import { AppLoggerService } from './shared/logger/app-logger.service'
-import { ms, type StringValue } from './shared/utils/ms.utils'
-import { parseBoolean } from './shared/utils/parse-boolean.utils'
+import { parseBoolean } from './shared/utils/common/parse-boolean.utils'
+import { ms, type StringValue } from './shared/utils/time/ms.utils'
 
 async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(

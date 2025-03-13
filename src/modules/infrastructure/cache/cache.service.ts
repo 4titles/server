@@ -1,5 +1,5 @@
 import { IRedisConfig } from '@/config/redis/redis-config.interface'
-import { bigIntSerializer } from '@/shared/utils/json.utils'
+import { bigIntSerializer } from '@/shared/utils/common/json.utils'
 import { Global, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Redis } from 'ioredis'

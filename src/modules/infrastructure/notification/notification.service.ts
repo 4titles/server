@@ -1,4 +1,4 @@
-import { generateToken } from '@/shared/utils/generate-token.util'
+import { generateToken } from '@/shared/utils/common/generate-token.util'
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { and, count, desc, eq } from 'drizzle-orm'
 import { TokenType } from '../../auth/account/enums/token-type.enum'

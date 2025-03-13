@@ -1,8 +1,8 @@
 import { AuthModel } from '@/modules/auth/account/models/auth.model'
 import { User } from '@/modules/auth/account/models/user.model'
+import { SessionMetadata } from '@/shared/types/session-metadata.types'
 import { InternalServerErrorException } from '@nestjs/common'
 import { FastifyRequest } from 'fastify'
-import { SessionMetadata } from '../types/session-metadata.types'
 
 export async function saveSession(
     req: FastifyRequest,

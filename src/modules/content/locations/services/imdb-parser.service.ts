@@ -1,6 +1,6 @@
 import { IImdbConfig } from '@/config/imdb/imdb-config.interface'
-import { chunkArray } from '@/shared/utils/chunk-array.utils'
-import { delay } from '@/shared/utils/delay.utils'
+import { chunkArray } from '@/shared/utils/common/chunk-array.utils'
+import { delay } from '@/shared/utils/time/delay.utils'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as puppeteer from 'puppeteer'

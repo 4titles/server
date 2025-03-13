@@ -9,9 +9,9 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { MailService } from '@/modules/infrastructure/mail/mail.service'
-import { generateToken } from '@/shared/utils/generate-token.util'
-import { getSessionMetadata } from '@/shared/utils/session-metadata.util'
-import { saveSession } from '@/shared/utils/session.utils'
+import { generateToken } from '@/shared/utils/common/generate-token.util'
+import { getSessionMetadata } from '@/shared/utils/seesion/session-metadata.util'
+import { saveSession } from '@/shared/utils/seesion/session.utils'
 import {
     BadRequestException,
     Inject,

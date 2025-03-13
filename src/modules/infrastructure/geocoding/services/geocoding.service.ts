@@ -1,5 +1,5 @@
-import { chunkArray } from '@/shared/utils/chunk-array.utils'
-import { delay } from '@/shared/utils/delay.utils'
+import { chunkArray } from '@/shared/utils/common/chunk-array.utils'
+import { delay } from '@/shared/utils/time/delay.utils'
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'

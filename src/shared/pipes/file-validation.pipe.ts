@@ -7,7 +7,7 @@ import {
 import {
     readStreamWithSizeValidation,
     validateFileFormat,
-} from '../utils/file.util'
+} from '../utils/file/file.util'
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {

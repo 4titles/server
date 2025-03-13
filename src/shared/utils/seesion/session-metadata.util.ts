@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+import { SessionMetadata } from '@/shared/types/session-metadata.types'
 import type { FastifyRequest } from 'fastify'
 import { lookup } from 'geoip-lite'
 import * as countries from 'i18n-iso-countries'
-import type { SessionMetadata } from '../types/session-metadata.types'
-import { IS_DEV_ENV } from './is-dev.util'
+import { IS_DEV_ENV } from '../common/is-dev.util'
 
 import DeviceDetector = require('device-detector-js')
 countries.registerLocale(require('i18n-iso-countries/langs/en.json'))
