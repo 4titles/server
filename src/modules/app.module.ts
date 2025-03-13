@@ -10,6 +10,7 @@ import { DrizzleModule } from './drizzle/drizzle.module'
 import { TelegramModule } from './libs/telegram/telegram.module'
 import { TitlesModule } from './titles/titles.module'
 
+import { LoggerModule } from '@/shared/logger/logger.module'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
 import { DeactivateModule } from './auth/deactivate/deactivate.module'
@@ -76,6 +77,7 @@ import * as GraphQLUpload from 'graphql-upload/GraphQLUpload.js'
         NotificationModule,
         FollowModule,
         FeedbackModule,
+        LoggerModule,
     ],
 })
 export class AppModule {}

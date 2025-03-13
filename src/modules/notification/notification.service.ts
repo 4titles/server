@@ -222,8 +222,9 @@ export class NotificationService {
         feedback: Feedback,
         user?: User,
     ): Promise<void> {
-        this.logger.log(
-            `Critical bug report received from ${user ? user.username : 'unknown'} user: ${feedback.id}: ${feedback.message}}`,
+        this.logger.warn(
+            `Critical bug report received from user <b>${user ? user.username : 'unknown'}</b>: "${feedback.message}"`,
+            `${NotificationService.name}.${this.notifyAdminsAboutBugReport.name}`,
         )
     }
 }

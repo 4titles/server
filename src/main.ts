@@ -2,7 +2,7 @@ import fastifyCookie from '@fastify/cookie'
 import fastifyCors from '@fastify/cors'
 import fastifySession from '@mgcrea/fastify-session'
 import RedisStore from '@mgcrea/fastify-session-redis-store'
-import { Logger, ValidationPipe } from '@nestjs/common'
+import { ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import {
@@ -17,20 +17,26 @@ import {
     COMPANY_DESCRIPTION,
     COMPANY_NAME,
 } from './shared/constants/company.constants'
+import { AppLoggerService } from './shared/logger/app-logger.service'
 import { ms, type StringValue } from './shared/utils/ms.utils'
 import { parseBoolean } from './shared/utils/parse-boolean.utils'
 
 async function bootstrap() {
-    const logger = new Logger()
+    const app = await NestFactory.create<NestFastifyApplication>(
+        AppModule,
+        new FastifyAdapter({
+            ignoreTrailingSlash: true,
+        }),
+        {
+            bufferLogs: true,
+        },
+    )
+
+    const appLogger = app.get(AppLoggerService)
+    appLogger.setContext('Global')
+    app.useLogger(appLogger)
 
     try {
-        const app = await NestFactory.create<NestFastifyApplication>(
-            AppModule,
-            new FastifyAdapter({
-                ignoreTrailingSlash: true,
-            }),
-        )
-
         const config = app.get(ConfigService)
 
         app.useGlobalPipes(
@@ -91,10 +97,10 @@ async function bootstrap() {
         const port = config.getOrThrow<number>('APPLICATION_PORT')
 
         await app.listen(port, config.getOrThrow<string>('APPLICATION_HOST'))
-        logger.log(`Server listening at ${await app.getUrl()}`)
-        logger.log(`Health check available at ${await app.getUrl()}/health`)
+        appLogger.log(`Server listening at ${await app.getUrl()}`)
+        appLogger.log(`Health check available at ${await app.getUrl()}/health`)
     } catch (error) {
-        logger.error('Failed to start application:', error)
+        appLogger.error('Failed to start application:', error)
         process.exit(1)
     }
 }
