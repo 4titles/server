@@ -1,10 +1,10 @@
 import { User } from '@/modules/auth/account/models/user.model'
 import { Injectable, Logger } from '@nestjs/common'
-import { AccountService } from './account.service'
+import { AccountService } from '../../auth/account/account.service'
 
 @Injectable()
-export class AccountContextService {
-    private readonly logger = new Logger(AccountContextService.name)
+export class TelegramUserContextService {
+    private readonly logger = new Logger(TelegramUserContextService.name)
     private readonly userCache = new Map<
         string,
         { user: User; timestamp: number }

@@ -3,6 +3,7 @@ import { FollowModule } from '@/modules/follow/follow.module'
 import { Global, Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TelegrafModule } from 'nestjs-telegraf'
+import { TelegramUserContextService } from './telegram-user-context.service'
 import { TelegramService } from './telegram.service'
 
 @Global()
@@ -17,7 +18,7 @@ import { TelegramService } from './telegram.service'
         FollowModule,
         FeedbackModule,
     ],
-    providers: [TelegramService],
+    providers: [TelegramService, TelegramUserContextService],
     exports: [TelegramService],
 })
 export class TelegramModule {}

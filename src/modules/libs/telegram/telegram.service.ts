@@ -1,4 +1,3 @@
-import { AccountContextService } from '@/modules/auth/account/account-context.service'
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { User } from '@/modules/auth/account/models/user.model'
 import { DRIZZLE } from '@/modules/drizzle/drizzle.module'
@@ -8,6 +7,7 @@ import { FeedbackType } from '@/modules/feedback/enums/feedback-type.enum'
 import { FeedbacksLimitExceededException } from '@/modules/feedback/exceptions/feedbacks-limit-exceeded.exception'
 import { FeedbackService } from '@/modules/feedback/feedback.service'
 import { FollowService } from '@/modules/follow/follow.service'
+import { TelegramUserContextService } from '@/modules/libs/telegram/telegram-user-context.service'
 import { SessionMetadata } from '@/shared/types/session-metadata.types'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -39,7 +39,7 @@ export class TelegramService extends Telegraf {
         private readonly accountService: AccountService,
         private readonly followService: FollowService,
         private readonly feedbackService: FeedbackService,
-        private readonly accountContextService: AccountContextService,
+        private readonly userContextService: TelegramUserContextService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {
         super(configService.getOrThrow<string>('telegraf.token'))
@@ -96,7 +96,7 @@ export class TelegramService extends Telegraf {
         ctx: Context,
         chatId: string,
     ): Promise<void> {
-        const user = await this.accountContextService.getUserByChatId(chatId)
+        const user = await this.userContextService.getUserByChatId(chatId)
 
         if (user) {
             await this.onMe(ctx)
@@ -110,8 +110,7 @@ export class TelegramService extends Telegraf {
     async onMe(@Ctx() ctx: Context): Promise<void> {
         try {
             const chatId = ctx.chat.id.toString()
-            const user =
-                await this.accountContextService.getUserByChatId(chatId)
+            const user = await this.userContextService.getUserByChatId(chatId)
 
             if (!user) {
                 await ctx.replyWithHTML(
@@ -139,8 +138,7 @@ export class TelegramService extends Telegraf {
     async onFollows(@Ctx() ctx: Context) {
         try {
             const chatId = ctx.chat.id.toString()
-            const user =
-                await this.accountContextService.getUserByChatId(chatId)
+            const user = await this.userContextService.getUserByChatId(chatId)
 
             if (!user) {
                 await ctx.replyWithHTML(
@@ -183,8 +181,7 @@ export class TelegramService extends Telegraf {
     async onFeedback(@Ctx() ctx: Context): Promise<void> {
         try {
             const chatId = ctx.chat.id.toString()
-            const user =
-                await this.accountContextService.getUserByChatId(chatId)
+            const user = await this.userContextService.getUserByChatId(chatId)
 
             if (!user) {
                 await ctx.replyWithHTML(
@@ -232,8 +229,7 @@ export class TelegramService extends Telegraf {
                 return
             }
 
-            const user =
-                await this.accountContextService.getUserByChatId(chatId)
+            const user = await this.userContextService.getUserByChatId(chatId)
             if (!user) {
                 await ctx.answerCbQuery('Пользователь не найден')
                 return
@@ -379,7 +375,7 @@ export class TelegramService extends Telegraf {
             }
 
             try {
-                const user = await this.accountContextService.getUserById(
+                const user = await this.userContextService.getUserById(
                     feedbackState.userId,
                 )
 
@@ -497,8 +493,7 @@ export class TelegramService extends Telegraf {
 
     async sendNewFollowing(chatId: string, follower: User): Promise<void> {
         try {
-            const user =
-                await this.accountContextService.getUserByChatId(chatId)
+            const user = await this.userContextService.getUserByChatId(chatId)
 
             if (!user) {
                 this.logger.warn(`User not found for Telegram ID: ${chatId}`)
