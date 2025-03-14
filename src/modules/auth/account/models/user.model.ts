@@ -3,6 +3,7 @@ import { NotificationSettings } from '@/modules/infrastructure/notification/mode
 import { Notification } from '@/modules/infrastructure/notification/models/notification.model'
 import { Field, ObjectType } from '@nestjs/graphql'
 import { SocialLink } from '../../profile/models/social-link.model'
+import { Role } from '../../rbac/models/role.model'
 
 @ObjectType()
 export class User {
@@ -68,4 +69,7 @@ export class User {
 
     @Field(() => [Follow])
     followings?: Follow[]
+
+    @Field(() => [Role], { nullable: true })
+    roles?: Role[]
 }

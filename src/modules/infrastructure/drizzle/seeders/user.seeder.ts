@@ -1,11 +1,13 @@
+import { Role } from '@/modules/auth/rbac/enums/roles.enum'
+import { RbacService } from '@/modules/auth/rbac/rbac.service'
 import { faker } from '@faker-js/faker'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { hash } from 'argon2'
 import { like, not } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { DRIZZLE } from '../drizzle.module'
 import { notificationSettings } from '../schema/notifications.schema'
+import { userRoles } from '../schema/roles-permissions.schema'
 import { users } from '../schema/users.schema'
 import { DrizzleDB } from '../types/drizzle'
 
@@ -16,7 +18,7 @@ export class UserSeeder {
 
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
-        private readonly configService: ConfigService,
+        private readonly rbacService: RbacService,
     ) {}
 
     async seed(
@@ -27,17 +29,32 @@ export class UserSeeder {
             deactivatedPercentage?: number
             withTelegramPercentage?: number
             withTotpPercentage?: number
+            adminPercentage?: number
+            moderatorPercentage?: number
         } = {},
     ): Promise<string[]> {
         this.logger.log(`Starting to seed ${count} users`)
+
+        const [allRoles, allPermissions] = await Promise.all([
+            await this.rbacService.getAllRoles(),
+            await this.rbacService.getAllPermissions(),
+        ])
+
+        if (!allRoles.length || !allPermissions.length) {
+            throw new Error('Roles and permissions not found')
+        }
 
         const hashedPassword = await hash(
             options.password || this.defaultPassword,
         )
 
         const userBatch = []
+        const userRolesBatch = []
         const notificationSettingsBatch = []
         const createdUserIds = []
+
+        const adminPercentage = options.adminPercentage ?? 5
+        const moderatorPercentage = options.moderatorPercentage ?? 10
 
         const verifiedEmailCount = Math.floor(
             ((options.verifiedEmailPercentage ?? 80) * count) / 100,
@@ -93,10 +110,39 @@ export class UserSeeder {
                     hasTelegram && Math.random() > 0.3,
             })
 
+            const rand = Math.random() * 100
+            let assignedRole: Role
+            if (rand < adminPercentage) {
+                assignedRole = Role.ADMIN
+            } else if (rand < adminPercentage + moderatorPercentage) {
+                assignedRole = Role.MODERATOR
+            } else {
+                assignedRole = Role.USER
+            }
+
+            const roleId = (await this.rbacService.getRoleByName(assignedRole))
+                .id
+
+            if (!roleId) {
+                throw new Error(`The role ${assignedRole} was not found.`)
+            }
+
+            userRolesBatch.push({
+                id: uuidv4(),
+                userId,
+                roleId,
+                createdAt: new Date(),
+            })
+
             if (userBatch.length >= 1000 || i === count - 1) {
-                await this._insertBatch(userBatch, notificationSettingsBatch)
+                await this._insertBatch(
+                    userBatch,
+                    notificationSettingsBatch,
+                    userRolesBatch,
+                )
                 userBatch.length = 0
                 notificationSettingsBatch.length = 0
+                userRolesBatch.length = 0
                 this.logger.log(
                     `Seeded batch of users (total progress: ${i + 1}/${count})`,
                 )
@@ -110,6 +156,7 @@ export class UserSeeder {
     async seedTestUsers(count = 5): Promise<string[]> {
         const testUsers = []
         const testNotificationSettings = []
+        const testUserRoles = []
         const createdUserIds = []
 
         const hashedPassword = await hash(this.defaultPassword)
@@ -140,11 +187,37 @@ export class UserSeeder {
                 isSiteNotificationsEnabled: true,
                 isTelegramNotificationsEnabled: i % 2 === 0,
             })
+
+            let assignedRole: Role
+            if (i === 0) {
+                assignedRole = Role.ADMIN
+            } else if (i === 1) {
+                assignedRole = Role.MODERATOR
+            } else {
+                assignedRole = Role.USER
+            }
+
+            const roleId = (await this.rbacService.getRoleByName(assignedRole))
+                .id
+
+            if (!roleId) {
+                throw new Error(`The role ${assignedRole} was not found.`)
+            }
+
+            testUserRoles.push({
+                id: uuidv4(),
+                userId,
+                roleId,
+                createdAt: new Date(),
+            })
         }
 
-        await this._insertBatch(testUsers, testNotificationSettings)
+        await this._insertBatch(
+            testUsers,
+            testNotificationSettings,
+            testUserRoles,
+        )
         this.logger.log(`Successfully seeded ${count} test users`)
-
         return createdUserIds
     }
 
@@ -173,13 +246,20 @@ export class UserSeeder {
         }
     }
 
-    private async _insertBatch(userBatch, notificationSettingsBatch) {
+    private async _insertBatch(
+        userBatch: any[],
+        notificationSettingsBatch: any[],
+        userRolesBatch: any[],
+    ) {
         try {
             await this.db.transaction(async (tx) => {
                 await tx.insert(users).values(userBatch)
                 await tx
                     .insert(notificationSettings)
                     .values(notificationSettingsBatch)
+                if (userRolesBatch.length > 0) {
+                    await tx.insert(userRoles).values(userRolesBatch)
+                }
             })
         } catch (error) {
             this.logger.error(

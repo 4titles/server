@@ -6,18 +6,26 @@ import {
     users,
 } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { destroySession } from '@/shared/utils/seesion/session.utils'
 import {
     ConflictException,
+    forwardRef,
     Inject,
     Injectable,
     UnauthorizedException,
 } from '@nestjs/common'
 import { hash, verify } from 'argon2'
 import { asc, eq } from 'drizzle-orm'
+import { FastifyRequest } from 'fastify'
+import { Role } from '../rbac/enums/roles.enum'
+import { Role as RoleModel } from '../rbac/models/role.model'
+import { RbacService } from '../rbac/rbac.service'
 import { EnableTotpInput } from '../totp/inputs/enable-totp.input'
 import { VerificationService } from '../verification/verification.service'
+import { AccountDeletionService } from './account-deletion.service'
 import { ChangeEmailInput } from './inputs/change-email.input'
 import { ChangePasswordInput } from './inputs/change-password.input'
+import { CreateUserWithRoleInput } from './inputs/create-user-with-role.input'
 import { CreateUserInput } from './inputs/create-user.input'
 import { UserMapper } from './mappers/user.mapper'
 import { User } from './models/user.model'
@@ -28,14 +36,44 @@ export class AccountService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly verificationService: VerificationService,
         private readonly contentModerationService: ContentModerationService,
+        private readonly rbacService: RbacService,
+        @Inject(forwardRef(() => AccountDeletionService))
+        private readonly accountDeletionService: AccountDeletionService,
     ) {}
 
     async findById(id: string): Promise<User | null> {
         try {
-            return await this.db.query.users.findFirst({
+            const user = await this.db.query.users.findFirst({
                 where: (users, { eq }) => eq(users.id, id),
-                with: { socialLinks: true },
+                with: {
+                    socialLinks: true,
+                    roles: {
+                        with: {
+                            role: {
+                                with: {
+                                    rolePermissions: {
+                                        with: {
+                                            permission: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             })
+
+            if (!user) return null
+
+            return {
+                ...user,
+                roles: user.roles.map((userRole) => ({
+                    ...userRole.role,
+                    permissions: userRole.role.rolePermissions.map(
+                        (rp) => rp.permission,
+                    ),
+                })),
+            }
         } catch (error) {
             throw new DatabaseException(error)
         }
@@ -71,7 +109,9 @@ export class AccountService {
         }
     }
 
-    async create(input: CreateUserInput): Promise<boolean> {
+    async create(
+        input: CreateUserInput | CreateUserWithRoleInput,
+    ): Promise<boolean> {
         try {
             const { email, username, password } = input
 
@@ -108,6 +148,16 @@ export class AccountService {
                 .insert(users)
                 .values(newUser)
                 .returning()
+
+            const role: RoleModel =
+                input instanceof CreateUserWithRoleInput
+                    ? await this.rbacService.getRoleByName(input.role)
+                    : await this.rbacService.getRoleByName(Role.USER)
+
+            await this.rbacService.assignRole({
+                userId: user[0].id,
+                roleId: role.id,
+            })
 
             await this.verificationService.sendVerificationToken(user[0])
 
@@ -216,6 +266,23 @@ export class AccountService {
         } catch (error) {
             throw new DatabaseException(error)
         }
+    }
+
+    async delete(req: FastifyRequest, userId: string): Promise<boolean> {
+        const user = await this.findById(userId)
+
+        if (!user) {
+            throw new ConflictException('User not found')
+        }
+
+        if (req.session.get('userId') === user.id) {
+            throw new ConflictException('Cannot delete your own account')
+        }
+
+        req.session.set('userId', user.id)
+        destroySession(req)
+
+        return await this.accountDeletionService.deleteSingle(user)
     }
 
     private async isUsernameExists(username: string): Promise<boolean> {

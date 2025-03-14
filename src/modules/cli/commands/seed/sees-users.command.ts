@@ -60,6 +60,22 @@ export class SeedUsersCommand {
         totp?: number,
 
         @Option({
+            name: 'adminPercentage',
+            describe: 'Percentage of users with ADMIN role (0-100)',
+            type: 'number',
+            default: 5,
+        })
+        adminPercentage?: number,
+
+        @Option({
+            name: 'moderatorPercentage',
+            describe: 'Percentage of users with MODERATOR role (0-100)',
+            type: 'number',
+            default: 10,
+        })
+        moderatorPercentage?: number,
+
+        @Option({
             name: 'test-users',
             describe: 'Number of test users to create',
             type: 'number',

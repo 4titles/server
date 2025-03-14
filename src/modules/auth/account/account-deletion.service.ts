@@ -173,6 +173,12 @@ export class AccountDeletionService {
         }
     }
 
+    async deleteSingle(user: User): Promise<boolean> {
+        await this.db.delete(users).where(eq(users.id, user.id))
+        await this.deleteAccountDataFromStorage(user)
+        return true
+    }
+
     private calculateThresholdDate(days: number): Date {
         const thresholdDate = new Date()
         thresholdDate.setDate(thresholdDate.getDate() - days)
