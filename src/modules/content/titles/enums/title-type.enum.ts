@@ -1,9 +1,8 @@
 import { registerEnumType } from '@nestjs/graphql'
 
 export enum TitleType {
-    MOVIES = 'MOVIES',
-    TV_SHOWS = 'TV_SHOWS',
-    ALL = 'ALL',
+    MOVIE = 'movie',
+    SERIES = 'series',
 }
 
 registerEnumType(TitleType, {

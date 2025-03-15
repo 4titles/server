@@ -4,7 +4,7 @@ import { FeedbackSource } from '@/modules/content/feedback/enums/feedback-source
 import { FeedbackStatus } from '@/modules/content/feedback/enums/feedback-status.enum'
 import { FeedbackType } from '@/modules/content/feedback/enums/feedback-type.enum'
 import { CommentableType } from '@/modules/content/titles/enums/commentable-type.enum'
-import { CountryRelation } from '@/modules/content/titles/enums/country-relation-type.enum'
+import { CountryRelation } from '@/modules/content/titles/enums/country-relation.enum'
 import { TitleCategory } from '@/modules/content/titles/enums/title-category.enum'
 import { TitleLanguageType } from '@/modules/content/titles/enums/title-language-type.enum'
 import { TitleStatus } from '@/modules/content/titles/enums/title-status.enum'

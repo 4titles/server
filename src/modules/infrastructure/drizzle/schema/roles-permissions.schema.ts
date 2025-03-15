@@ -8,12 +8,11 @@ import {
     uuid,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
-import { userRoleEnum } from './enums.schema'
 import { users } from './users.schema'
 
 export const roles = pgTable('roles', {
     id: uuid('id').primaryKey().defaultRandom(),
-    name: userRoleEnum('name').notNull().unique(),
+    name: text('name').notNull().unique(),
     description: text('description'),
     ...timestamps,
 })

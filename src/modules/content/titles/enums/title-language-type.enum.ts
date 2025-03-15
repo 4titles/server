@@ -1,11 +1,11 @@
 import { registerEnumType } from '@nestjs/graphql'
 
-export enum SeriesLanguageType {
+export enum TitleLanguageType {
     ORIGINAL = 'original',
     SPOKEN = 'spoken',
     AVAILABLE = 'available',
 }
 
-registerEnumType(SeriesLanguageType, {
-    name: 'SeriesLanguageType',
+registerEnumType(TitleLanguageType, {
+    name: 'TitleLanguageType',
 })

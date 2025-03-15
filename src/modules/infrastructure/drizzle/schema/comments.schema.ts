@@ -22,7 +22,7 @@ export const comments = pgTable(
                 onDelete: 'cascade',
             },
         ),
-        parentId: uuid('parent_id').references(() => comments.id, {
+        parentId: uuid('parent_id').references((): any => comments.id, {
             onDelete: 'cascade',
         }),
         content: text('content').notNull(),

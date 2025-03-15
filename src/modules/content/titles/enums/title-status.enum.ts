@@ -1,15 +1,16 @@
 import { registerEnumType } from '@nestjs/graphql'
 
-export enum MovieStatus {
+export enum TitleStatus {
     RUMORED = 'Rumored',
     PLANNED = 'Planned',
     IN_PRODUCTION = 'In Production',
     POST_PRODUCTION = 'Post Production',
     RELEASED = 'Released',
     CANCELED = 'Canceled',
+    AIRING = 'Airing',
 }
 
-registerEnumType(MovieStatus, {
-    name: 'MovieStatus',
-    description: 'The status of the movie',
+registerEnumType(TitleStatus, {
+    name: 'TitleStatus',
+    description: 'The status of the title',
 })
