@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm'
 import { pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { countries } from './countries.schema'
 import { titleProductionCompanies } from './title-production-companies.schema'
 
 export const productionCompanies = pgTable('production_companies', {
@@ -7,13 +8,16 @@ export const productionCompanies = pgTable('production_companies', {
     tmdbId: text('tmdb_id').unique(),
     name: text('name').notNull(),
     logoPath: text('logo_path'),
-    originCountry: text('origin_country'),
+    originContryId: uuid('origin_country_id').references(() => countries.id, {
+        onDelete: 'set null',
+    }),
 })
 
 export const productionCompaniesRelations = relations(
     productionCompanies,
-    ({ many }) => ({
+    ({ one, many }) => ({
         titles: many(titleProductionCompanies),
+        country: one(countries),
     }),
 )
 

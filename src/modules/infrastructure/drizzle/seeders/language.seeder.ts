@@ -1,4 +1,4 @@
-import { TmdbService } from '@/modules/infrastructure/tmdb/tmdb.service'
+import { TmdbService } from '@/modules/content/titles/modules/tmdb/tmdb.service'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { Language } from 'moviedb-promise'

@@ -6,5 +6,3 @@ export { SeedRolesPermissionsCommand } from './seed/seed-roles-permissions.comma
 export { SeedUsersCommand } from './seed/seed-users.command'
 
 export { DeleteDeactivatedAccountsCommand } from './accounts/delete-deactivated-accounts.command'
-
-export { SyncTitlesCommand } from './sync/sync-titles.command'

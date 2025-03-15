@@ -1,25 +1,18 @@
-import { LocationsModule } from '@/modules/content/locations/locations.module'
 import { Module } from '@nestjs/common'
-import { TmdbModule } from '../../infrastructure/tmdb/tmdb.module'
-import * as mappers from './mappers'
-import * as resolvers from './resolvers'
-import * as services from './services'
-import * as entityServices from './services/entity'
+import { GeocodingModule } from './modules/geocoding/geocoding.module'
+import { LocationsModule } from './modules/locations/locations.module'
+import { TmdbModule } from './modules/tmdb/tmdb.module'
+import { TitlesResolver } from './titles.resolver'
+import { TitlesService } from './titles.service'
+
 @Module({
-    imports: [TmdbModule, LocationsModule],
     providers: [
-        // services
-        ...Object.values(services),
-
-        // entity services
-        ...Object.values(entityServices),
-
-        // resolvers
-        ...Object.values(resolvers),
-
-        // mappers
-        ...Object.values(mappers),
+        LocationsModule,
+        TmdbModule,
+        GeocodingModule,
+        TitlesService,
+        TitlesResolver,
     ],
-    exports: [services.TitlesService, services.TitleSyncManagerService],
+    exports: [TitlesService],
 })
 export class TitlesModule {}

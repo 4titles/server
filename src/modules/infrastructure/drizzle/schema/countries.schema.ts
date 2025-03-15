@@ -1,5 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { index, pgTable, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { networks } from './networks.schema'
+import { productionCompanies } from './production-companies.schema'
 import { titleCountries } from './title-countries.schema'
 
 export const countries = pgTable(
@@ -19,6 +21,8 @@ export const countries = pgTable(
 
 export const countriesRelations = relations(countries, ({ many }) => ({
     titles: many(titleCountries),
+    networks: many(networks),
+    productionCompanies: many(productionCompanies),
 }))
 
 export type DbCountry = typeof countries.$inferSelect

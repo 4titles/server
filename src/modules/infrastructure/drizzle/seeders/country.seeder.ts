@@ -1,8 +1,8 @@
+import { TmdbCountry } from '@/modules/content/titles/modules/tmdb/types/country.type'
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
-import { TmdbCountry } from '@/modules/infrastructure/tmdb/types/country.type'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
-import { TmdbService } from '../../tmdb/tmdb.service'
+import { TmdbService } from '../../../content/titles/modules/tmdb/tmdb.service'
 import { countries, DbCountryInsert } from '../schema/countries.schema'
 import { DrizzleDB } from '../types/drizzle'
 

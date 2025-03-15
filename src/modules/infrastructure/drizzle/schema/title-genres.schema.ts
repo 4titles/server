@@ -6,12 +6,16 @@ import { titles } from './titles.schema'
 export const titleGenres = pgTable(
     'title_genres',
     {
-        titleId: uuid('title_id').references(() => titles.id, {
-            onDelete: 'cascade',
-        }),
-        genreId: uuid('genre_id').references(() => genres.id, {
-            onDelete: 'cascade',
-        }),
+        titleId: uuid('title_id')
+            .references(() => titles.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
+        genreId: uuid('genre_id')
+            .references(() => genres.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
     },
     (table) => ({
         pk: primaryKey({ columns: [table.titleId, table.genreId] }),

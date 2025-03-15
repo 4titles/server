@@ -9,12 +9,16 @@ export const titleFilmingLocations = pgTable(
     'title_filming_locations',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        titleId: uuid('title_id').references(() => titles.id, {
-            onDelete: 'cascade',
-        }),
-        locationId: uuid('location_id').references(() => locations.id, {
-            onDelete: 'cascade',
-        }),
+        titleId: uuid('title_id')
+            .references(() => titles.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
+        locationId: uuid('location_id')
+            .references(() => locations.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
         userId: uuid('user_id')
             .references(() => users.id, {
                 onDelete: 'set null',

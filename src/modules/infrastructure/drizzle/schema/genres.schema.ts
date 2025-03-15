@@ -1,4 +1,4 @@
-import { GenreTranslations } from '@/modules/content/titles/models/genre.model'
+import { GenreTranslations } from '@/modules/content/titles/models/title-genre.model'
 import { relations } from 'drizzle-orm'
 import { index, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { titleGenres } from './title-genres.schema'

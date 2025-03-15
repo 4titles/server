@@ -7,12 +7,16 @@ import { titles } from './titles.schema'
 export const titleLanguages = pgTable(
     'title_languages',
     {
-        titleId: uuid('title_id').references(() => titles.id, {
-            onDelete: 'cascade',
-        }),
-        languageId: uuid('language_id').references(() => languages.id, {
-            onDelete: 'cascade',
-        }),
+        titleId: uuid('title_id')
+            .references(() => titles.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
+        languageId: uuid('language_id')
+            .references(() => languages.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
         type: titleLanguageTypeEnum('type').notNull(),
     },
     (table) => ({

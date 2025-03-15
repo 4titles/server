@@ -6,13 +6,14 @@ import { titles } from './titles.schema'
 export const titleProductionCompanies = pgTable(
     'title_production_companies',
     {
-        titleId: uuid('title_id').references(() => titles.id, {
-            onDelete: 'cascade',
-        }),
-        productionCompanyId: uuid('production_company_id').references(
-            () => productionCompanies.id,
-            { onDelete: 'cascade' },
-        ),
+        titleId: uuid('title_id')
+            .references(() => titles.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
+        productionCompanyId: uuid('production_company_id')
+            .references(() => productionCompanies.id, { onDelete: 'cascade' })
+            .notNull(),
     },
     (table) => ({
         pk: primaryKey({ columns: [table.titleId, table.productionCompanyId] }),

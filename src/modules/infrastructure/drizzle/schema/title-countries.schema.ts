@@ -7,12 +7,16 @@ import { titles } from './titles.schema'
 export const titleCountries = pgTable(
     'title_countries',
     {
-        titleId: uuid('title_id').references(() => titles.id, {
-            onDelete: 'cascade',
-        }),
-        countryId: uuid('country_id').references(() => countries.id, {
-            onDelete: 'cascade',
-        }),
+        titleId: uuid('title_id')
+            .references(() => titles.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
+        countryId: uuid('country_id')
+            .references(() => countries.id, {
+                onDelete: 'cascade',
+            })
+            .notNull(),
         type: countryRelationTypeEnum('type').notNull(),
     },
     (table) => ({
