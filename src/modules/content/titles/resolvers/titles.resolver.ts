@@ -1,9 +1,12 @@
-import { Resolver, Mutation, Args, Int } from '@nestjs/graphql'
-import { TitlesService } from '../services/titles.service'
+import { Action } from '@/modules/auth/rbac/enums/actions.enum'
+import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Logger } from '@nestjs/common'
-import { SyncResult } from '../models/sync-result.model'
+import { Args, Int, Mutation, Resolver } from '@nestjs/graphql'
 import { TitleType } from '../enums/title-type.enum'
 import { FullSyncResult } from '../models/full-sync-result.model'
+import { SyncResult } from '../models/sync-result.model'
+import { TitlesService } from '../services/titles.service'
 
 @Resolver()
 export class TitlesResolver {
@@ -11,6 +14,11 @@ export class TitlesResolver {
 
     constructor(private readonly titlesService: TitlesService) {}
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.CREATE,
+        possession: 'any',
+    })
     @Mutation(() => SyncResult, {
         description: 'Synchronize popular titles with an optional type filter',
     })
@@ -26,6 +34,11 @@ export class TitlesResolver {
         return result
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.CREATE,
+        possession: 'any',
+    })
     @Mutation(() => SyncResult, {
         description: 'Synchronize trending titles with an optional type filter',
     })
@@ -41,6 +54,11 @@ export class TitlesResolver {
         return result
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.CREATE,
+        possession: 'any',
+    })
     @Mutation(() => SyncResult, {
         description:
             'Synchronize top-rated titles with an optional type filter and limit',
@@ -57,6 +75,11 @@ export class TitlesResolver {
         return result
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.CREATE,
+        possession: 'any',
+    })
     @Mutation(() => SyncResult, {
         description: 'Synchronize upcoming titles with an optional limit',
     })
@@ -69,6 +92,11 @@ export class TitlesResolver {
         return result
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.CREATE,
+        possession: 'any',
+    })
     @Mutation(() => SyncResult, {
         description: 'Synchronize airing titles with an optional limit',
     })
@@ -81,6 +109,11 @@ export class TitlesResolver {
         return result
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.CREATE,
+        possession: 'any',
+    })
     @Mutation(() => FullSyncResult, {
         description: 'Perform a full content cache refresh',
     })

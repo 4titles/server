@@ -9,7 +9,7 @@ import { tokens } from '@/modules/infrastructure/drizzle/schema/tokens.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { TelegramUserContextService } from '@/modules/infrastructure/telegram/telegram-user-context.service'
 import { SessionMetadata } from '@/shared/types/session-metadata.types'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq } from 'drizzle-orm'
 import { Action, Command, Ctx, On, Start, Update } from 'nestjs-telegraf'
@@ -18,14 +18,7 @@ import { AccountService } from '../../auth/account/account.service'
 import { BOT_BUTTONS } from './constants/bot-buttons.constant'
 import { BOT_COMMANDS } from './constants/bot-commands.constant'
 import { BOT_MESSAGES } from './constants/bot-messages.constant'
-
-interface FeedbackState {
-    type: FeedbackType
-    userId: string
-    step: 'message' | 'rating'
-    message?: string
-    attempts: number
-}
+import { FeedbackState } from './interfaces/feedback-state.interface'
 
 @Update()
 @Injectable()
@@ -36,6 +29,7 @@ export class TelegramService extends Telegraf {
 
     constructor(
         private readonly configService: ConfigService,
+        @Inject(forwardRef(() => AccountService))
         private readonly accountService: AccountService,
         private readonly followService: FollowService,
         private readonly feedbackService: FeedbackService,

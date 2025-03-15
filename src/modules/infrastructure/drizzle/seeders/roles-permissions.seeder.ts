@@ -3,10 +3,14 @@ import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
 import { Role } from '@/modules/auth/rbac/enums/roles.enum'
 import { RbacService } from '@/modules/auth/rbac/rbac.service'
 import { Injectable } from '@nestjs/common'
+import { InjectRolesBuilder, RolesBuilder } from 'nest-access-control'
 
 @Injectable()
 export class RolesPermissionsSeeder {
-    constructor(private readonly rbacService: RbacService) {}
+    constructor(
+        private readonly rbacService: RbacService,
+        @InjectRolesBuilder() private readonly rolesBuilder: RolesBuilder,
+    ) {}
 
     async seed(): Promise<void> {
         await this.seedRoles()
@@ -23,7 +27,6 @@ export class RolesPermissionsSeeder {
 
         for (const role of rolesData) {
             const existing = await this.rbacService.getRoleByName(role.name)
-
             if (!existing) {
                 await this.rbacService.createRole(role)
             }
@@ -31,113 +34,20 @@ export class RolesPermissionsSeeder {
     }
 
     async seedPermissions(): Promise<void> {
-        const permissionsData = [
-            // Feedback
-            {
-                resource: Resource.FEEDBACK,
-                action: Action.CREATE,
-                description: 'Feedback creation',
-            },
-            {
-                resource: Resource.FEEDBACK,
-                action: Action.READ,
-                description: 'Feedback reading',
-            },
-            {
-                resource: Resource.FEEDBACK,
-                action: Action.UPDATE,
-                description: 'Feedback update',
-            },
-            {
-                resource: Resource.FEEDBACK,
-                action: Action.DELETE,
-                description: 'Feedback deletion',
-            },
-            // User
-            {
-                resource: Resource.USER,
-                action: Action.CREATE,
-                description: 'User creation',
-            },
-            {
-                resource: Resource.USER,
-                action: Action.READ,
-                description: 'User reading',
-            },
-            {
-                resource: Resource.USER,
-                action: Action.UPDATE,
-                description: 'User update',
-            },
-            {
-                resource: Resource.USER,
-                action: Action.DELETE,
-                description: 'User deletion',
-            },
-            // Notification
-            {
-                resource: Resource.NOTIFICATION,
-                action: Action.CREATE,
-                description: 'Notification creation',
-            },
-            {
-                resource: Resource.NOTIFICATION,
-                action: Action.READ,
-                description: 'Notification reading',
-            },
-            {
-                resource: Resource.NOTIFICATION,
-                action: Action.UPDATE,
-                description: 'Notification update',
-            },
-            {
-                resource: Resource.NOTIFICATION,
-                action: Action.DELETE,
-                description: 'Notification deletion',
-            },
-            // Content
-            {
-                resource: Resource.CONTENT,
-                action: Action.CREATE,
-                description: 'Content creation',
-            },
-            {
-                resource: Resource.CONTENT,
-                action: Action.READ,
-                description: 'Content reading',
-            },
-            {
-                resource: Resource.CONTENT,
-                action: Action.UPDATE,
-                description: 'Content update',
-            },
-            {
-                resource: Resource.CONTENT,
-                action: Action.DELETE,
-                description: 'Content deletion',
-            },
-            // Permission
-            {
-                resource: Resource.PERMISSION,
-                action: Action.CREATE,
-                description: 'Permission creation',
-            },
-            {
-                resource: Resource.PERMISSION,
-                action: Action.READ,
-                description: 'Permission reading',
-            },
-            {
-                resource: Resource.PERMISSION,
-                action: Action.UPDATE,
-                description: 'Permission update',
-            },
-            {
-                resource: Resource.PERMISSION,
-                action: Action.DELETE,
-                description: 'Permission deletion',
-            },
-        ]
+        const permissionsData = []
+
+        const resourceValues = Object.values(Resource)
+        const actionValues = Object.values(Action)
+
+        for (const resource of resourceValues) {
+            for (const action of actionValues) {
+                permissionsData.push({
+                    resource,
+                    action,
+                    description: `${this.formatActionName(action)} ${this.formatResourceName(resource)}`,
+                })
+            }
+        }
 
         for (const permission of permissionsData) {
             const { resource, action } = permission
@@ -153,74 +63,68 @@ export class RolesPermissionsSeeder {
     }
 
     async assignPermissionsToRoles(): Promise<void> {
-        const adminRole = await this.rbacService.getRoleByName(Role.ADMIN)
-        const moderatorRole = await this.rbacService.getRoleByName(
-            Role.MODERATOR,
-        )
-        const userRole = await this.rbacService.getRoleByName(Role.USER)
+        const resources = Object.values(Resource)
+        const actions = Object.values(Action)
 
-        if (!adminRole || !moderatorRole || !userRole) {
-            throw new Error('Roles not found')
-        }
+        for (const roleName of Object.values(Role)) {
+            const role = await this.rbacService.getRoleByName(roleName)
+            if (!role) continue
 
-        const allPermissions = await this.rbacService.getAllPermissions()
-
-        for (const perm of allPermissions) {
-            const exists =
-                await this.rbacService.getRolePermissionsByIdAndPermissionId(
-                    adminRole.id,
-                    perm.id,
-                )
-            if (!exists) {
-                await this.rbacService.assignPermissionToRole({
-                    roleId: adminRole.id,
-                    permissionId: perm.id,
-                })
+            for (const resource of resources) {
+                const permissionChecker = this.rolesBuilder.can(roleName)
+                for (const action of actions) {
+                    const methodOwn = `${action}Own`
+                    const methodAny = `${action}Any`
+                    if (
+                        permissionChecker[methodOwn]?.(resource) ||
+                        permissionChecker[methodAny]?.(resource)
+                    ) {
+                        const dbPermission =
+                            await this.rbacService.getPermissionByResourceAndAction(
+                                resource,
+                                action,
+                            )
+                        if (dbPermission) {
+                            const exists =
+                                await this.rbacService.getRolePermissionsByIdAndPermissionId(
+                                    role.id,
+                                    dbPermission.id,
+                                )
+                            if (!exists) {
+                                await this.rbacService.assignPermissionToRole({
+                                    roleId: role.id,
+                                    permissionId: dbPermission.id,
+                                })
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
 
-        const moderatorAssignments = allPermissions.filter(
-            (p) =>
-                (p.resource === Resource.FEEDBACK ||
-                    p.resource === Resource.CONTENT) &&
-                (p.action === Action.READ || p.action === Action.UPDATE),
-        )
-        for (const perm of moderatorAssignments) {
-            const exists =
-                await this.rbacService.getRolePermissionsByIdAndPermissionId(
-                    moderatorRole.id,
-                    perm.id,
-                )
-            if (!exists) {
-                await this.rbacService.assignPermissionToRole({
-                    roleId: moderatorRole.id,
-                    permissionId: perm.id,
-                })
-            }
+    private formatActionName(action: Action): string {
+        const actionMap = {
+            [Action.CREATE]: 'Create',
+            [Action.READ]: 'Read',
+            [Action.UPDATE]: 'Update',
+            [Action.DELETE]: 'Delete',
         }
+        return actionMap[action] || action
+    }
 
-        const userAssignments = allPermissions.filter(
-            (p) =>
-                (p.resource === Resource.FEEDBACK &&
-                    p.action === Action.CREATE) ||
-                (p.resource === Resource.FEEDBACK &&
-                    p.action === Action.READ) ||
-                (p.resource === Resource.NOTIFICATION &&
-                    p.action === Action.READ) ||
-                (p.resource === Resource.CONTENT && p.action === Action.READ),
-        )
-        for (const perm of userAssignments) {
-            const exists =
-                await this.rbacService.getRolePermissionsByIdAndPermissionId(
-                    userRole.id,
-                    perm.id,
-                )
-            if (!exists) {
-                await this.rbacService.assignPermissionToRole({
-                    roleId: userRole.id,
-                    permissionId: perm.id,
-                })
-            }
+    private formatResourceName(resource: Resource): string {
+        const resourceMap = {
+            [Resource.USER]: 'users',
+            [Resource.FEEDBACK]: 'feedbacks',
+            [Resource.NOTIFICATION]: 'notifications',
+            [Resource.CONTENT]: 'content',
+            [Resource.ROLE]: 'roles',
+            [Resource.PERMISSION]: 'permissions',
+            [Resource.TITLE]: 'titles',
+            [Resource.GENRE]: 'genres',
+            [Resource.LANGUAGE]: 'languages',
         }
+        return resourceMap[resource] || resource
     }
 }

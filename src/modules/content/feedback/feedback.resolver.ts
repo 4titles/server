@@ -102,4 +102,16 @@ export class FeedbackResolver {
     ): Promise<FeedbackStats> {
         return await this.feedbackService.getStats(filters)
     }
+
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.READ,
+        possession: 'own',
+    })
+    @Query(() => FeedbackStats)
+    async getOwnFeedbacksStats(
+        @Args('filters') filters: FilterFeedbackInput,
+    ): Promise<FeedbackStats> {
+        return await this.feedbackService.getStats(filters)
+    }
 }

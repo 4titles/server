@@ -1,4 +1,3 @@
-import { Authorization } from '@/shared/decorators/auth.decorator'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { GqlContext } from '@/shared/types/gql-context.types'
@@ -16,7 +15,11 @@ import { User } from './models/user.model'
 export class AccountResolver {
     constructor(private readonly accountService: AccountService) {}
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.READ,
+        possession: 'own',
+    })
     @Query(() => User)
     async me(@Authorized('id') id: string): Promise<User> {
         return await this.accountService.findById(id)

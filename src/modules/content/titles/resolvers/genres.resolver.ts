@@ -1,3 +1,6 @@
+import { Action } from '@/modules/auth/rbac/enums/actions.enum'
+import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Args, Query, Resolver } from '@nestjs/graphql'
 import { Genre } from '../models/genre.model'
 import { GenreService } from '../services/genre.service'
@@ -6,6 +9,11 @@ import { GenreService } from '../services/genre.service'
 export class GenresResolver {
     constructor(private readonly genreService: GenreService) {}
 
+    @RbacProtected({
+        resource: Resource.GENRE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Genre], {
         description: 'Get all available genres',
     })
@@ -13,6 +21,11 @@ export class GenresResolver {
         return await this.genreService.getAllGenres()
     }
 
+    @RbacProtected({
+        resource: Resource.GENRE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Genre], {
         description: 'Get genres for a specific title by IMDB ID',
     })
@@ -23,6 +36,11 @@ export class GenresResolver {
         return await this.genreService.getGenresForTitle(imdbId, isMovie)
     }
 
+    @RbacProtected({
+        resource: Resource.GENRE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => Genre, {
         nullable: true,
         description: 'Get a specific genre by TMDB ID',

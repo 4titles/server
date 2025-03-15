@@ -13,8 +13,8 @@ export class User {
     @Field(() => String)
     email: string
 
-    @Field(() => String)
-    password: string
+    @Field(() => String, { nullable: true })
+    password?: string
 
     @Field(() => String)
     username: string
@@ -55,19 +55,19 @@ export class User {
     @Field(() => Date)
     updatedAt: Date
 
-    @Field(() => [SocialLink])
+    @Field(() => [SocialLink], { nullable: true })
     socialLinks?: SocialLink[]
 
-    @Field(() => [Notification])
+    @Field(() => [Notification], { nullable: true })
     notifications?: Notification[]
 
-    @Field(() => NotificationSettings)
+    @Field(() => NotificationSettings, { nullable: true })
     notificationSettings?: NotificationSettings
 
-    @Field(() => [Follow])
+    @Field(() => [Follow], { nullable: true })
     followers?: Follow[]
 
-    @Field(() => [Follow])
+    @Field(() => [Follow], { nullable: true })
     followings?: Follow[]
 
     @Field(() => [Role], { nullable: true })

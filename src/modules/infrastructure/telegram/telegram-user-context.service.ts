@@ -1,5 +1,5 @@
 import { User } from '@/modules/auth/account/models/user.model'
-import { Injectable, Logger } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { AccountService } from '../../auth/account/account.service'
 
 @Injectable()
@@ -11,7 +11,10 @@ export class TelegramUserContextService {
     >()
     private readonly USER_CACHE_TTL = 5 * 60 * 1000
 
-    constructor(private readonly accountService: AccountService) {}
+    constructor(
+        @Inject(forwardRef(() => AccountService))
+        private readonly accountService: AccountService,
+    ) {}
 
     async getUserByChatId(chatId: string): Promise<User | null> {
         const cacheKey = `telegram:${chatId}`

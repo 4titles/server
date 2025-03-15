@@ -1,8 +1,10 @@
-import { Authorization } from '@/shared/decorators/auth.decorator'
 import { UserAgent } from '@/shared/decorators/user-agent.decorator'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { GqlContext } from '@/shared/types/gql-context.types'
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { AuthModel } from '../account/models/auth.model'
+import { Action } from '../rbac/enums/actions.enum'
+import { Resource } from '../rbac/enums/resources.enum'
 import { LoginInput } from './inputs/login.input'
 import { Session } from './models/session.model'
 import { SessionService } from './session.service'
@@ -20,7 +22,11 @@ export class SessionResolver {
         return await this.sessionService.login(req, input, userAgent)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async logout(@Context() { req }: GqlContext): Promise<boolean> {
         return await this.sessionService.logout(req)
@@ -31,7 +37,11 @@ export class SessionResolver {
         return await this.sessionService.clearSession(req)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.DELETE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async removeSession(
         @Context() { req }: GqlContext,
@@ -40,7 +50,11 @@ export class SessionResolver {
         return await this.sessionService.remove(req, id)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.READ,
+        possession: 'own',
+    })
     @Query(() => [Session], {
         description: 'Get a list of user sessions',
     })
@@ -48,7 +62,11 @@ export class SessionResolver {
         return await this.sessionService.findByUser(req)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.READ,
+        possession: 'own',
+    })
     @Query(() => Session, {
         description: 'Get a current user session',
     })

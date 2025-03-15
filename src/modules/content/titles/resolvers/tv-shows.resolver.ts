@@ -1,11 +1,19 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql'
+import { Action } from '@/modules/auth/rbac/enums/actions.enum'
+import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
+import { Args, Int, Query, Resolver } from '@nestjs/graphql'
+import { TitleCategory } from '../enums/title-category.enum'
 import { TvShow } from '../models/tv-show.model'
 import { TvShowService } from '../services/tv-show.service'
-import { TitleCategory } from '../enums/title-category.enum'
 @Resolver(() => TvShow)
 export class TvShowsResolver {
     constructor(private readonly tvShowService: TvShowService) {}
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [TvShow], {
         description:
             'Get a list of TV shows with an optional category filter and limit',
@@ -18,6 +26,11 @@ export class TvShowsResolver {
         return await this.tvShowService.getTvShowsByCategory(limit, category)
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [TvShow], {
         description: 'Get a list of popular TV shows with an optional limit',
     })
@@ -30,6 +43,11 @@ export class TvShowsResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [TvShow], {
         description: 'Get a list of top-rated TV shows with an optional limit',
     })
@@ -42,6 +60,11 @@ export class TvShowsResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [TvShow], {
         description: 'Get a list of trending TV shows with an optional limit',
     })
@@ -54,6 +77,11 @@ export class TvShowsResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [TvShow], {
         description: 'Get a list of an airing TV shows with an optional limit',
     })
@@ -66,6 +94,11 @@ export class TvShowsResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => TvShow, {
         nullable: true,
         description: 'Get a TV show by TMDB ID',
@@ -76,6 +109,11 @@ export class TvShowsResolver {
         return await this.tvShowService.getTvShowByTmdbId(tmdbId)
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [TvShow], {
         description: 'Search for TV shows by query with an optional limit',
     })

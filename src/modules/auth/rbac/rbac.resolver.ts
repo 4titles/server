@@ -19,7 +19,7 @@ export class RbacResolver {
     constructor(private readonly rbacService: RbacService) {}
 
     @RbacProtected({
-        resource: Resource.PERMISSION,
+        resource: Resource.ROLE,
         action: Action.CREATE,
         possession: 'any',
     })
@@ -87,7 +87,7 @@ export class RbacResolver {
     }
 
     @RbacProtected({
-        resource: Resource.PERMISSION,
+        resource: Resource.ROLE,
         action: Action.READ,
         possession: 'any',
     })
@@ -107,7 +107,7 @@ export class RbacResolver {
     }
 
     @RbacProtected({
-        resource: Resource.PERMISSION,
+        resource: Resource.ROLE,
         action: Action.READ,
         possession: 'any',
     })
@@ -134,7 +134,7 @@ export class RbacResolver {
     }
 
     @RbacProtected({
-        resource: Resource.PERMISSION,
+        resource: Resource.ROLE,
         action: Action.READ,
         possession: 'any',
     })

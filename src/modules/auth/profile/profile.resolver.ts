@@ -1,10 +1,12 @@
-import { Authorization } from '@/shared/decorators/auth.decorator'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { FileValidationPipe } from '@/shared/pipes/file-validation.pipe'
 import { GraphQLUploadScalar } from '@/shared/scalars/gql-upload.scalar'
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
 import * as Upload from 'graphql-upload/Upload.js'
 import { User } from '../account/models/user.model'
+import { Action } from '../rbac/enums/actions.enum'
+import { Resource } from '../rbac/enums/resources.enum'
 import { ChangeProfileInfoInput } from './inputs/change-profile-info.input'
 import {
     SocialLinkInput,
@@ -17,7 +19,11 @@ import { ProfileService } from './profile.service'
 export class ProfileResolver {
     constructor(private readonly profileService: ProfileService) {}
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     public async changeAvatar(
         @Authorized() user: User,
@@ -27,13 +33,21 @@ export class ProfileResolver {
         return this.profileService.changeAvatar(user, avatar.file)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async removeAvatar(@Authorized() user: User) {
         return await this.profileService.removeAvatar(user)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async changeProfileInfo(
         @Authorized() user: User,
@@ -42,13 +56,21 @@ export class ProfileResolver {
         return await this.profileService.changeInfo(user, input)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.READ,
+        possession: 'own',
+    })
     @Query(() => [SocialLink])
     async findSocialLinks(@Authorized() user: User) {
         return await this.profileService.findSocialLinks(user)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async createSocialLink(
         @Authorized() user: User,
@@ -57,7 +79,11 @@ export class ProfileResolver {
         return await this.profileService.createSocialLink(user, input)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async reorderSocialLinks(
         @Args('list', { type: () => [SocialLinkOrderInput] })
@@ -66,7 +92,11 @@ export class ProfileResolver {
         return await this.profileService.reorderSocialLinks(list)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async updateSocialLink(
         @Args('id') id: string,
@@ -75,7 +105,11 @@ export class ProfileResolver {
         return await this.profileService.updateSocialLink(id, input)
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
     @Mutation(() => Boolean)
     async removeSocialLink(@Args('id') id: string) {
         return await this.profileService.removeSocialLink(id)
