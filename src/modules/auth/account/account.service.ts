@@ -6,51 +6,96 @@ import {
     users,
 } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { destroySession } from '@/shared/utils/seesion/session.utils'
 import {
     ConflictException,
+    forwardRef,
     Inject,
     Injectable,
+    Logger,
+    NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common'
 import { hash, verify } from 'argon2'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, or, SQL } from 'drizzle-orm'
+import { FastifyRequest } from 'fastify'
+import { Role } from '../rbac/enums/roles.enum'
+import { Role as RoleModel } from '../rbac/models/role.model'
+import { RbacService } from '../rbac/rbac.service'
 import { EnableTotpInput } from '../totp/inputs/enable-totp.input'
 import { VerificationService } from '../verification/verification.service'
+import { AccountDeletionService } from './account-deletion.service'
 import { ChangeEmailInput } from './inputs/change-email.input'
 import { ChangePasswordInput } from './inputs/change-password.input'
+import { CreateUserWithRoleInput } from './inputs/create-user-with-role.input'
 import { CreateUserInput } from './inputs/create-user.input'
 import { UserMapper } from './mappers/user.mapper'
 import { User } from './models/user.model'
 
 @Injectable()
 export class AccountService {
+    private readonly logger: Logger = new Logger(AccountService.name)
+
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly verificationService: VerificationService,
         private readonly contentModerationService: ContentModerationService,
+        private readonly rbacService: RbacService,
+        @Inject(forwardRef(() => AccountDeletionService))
+        private readonly accountDeletionService: AccountDeletionService,
     ) {}
 
-    async findById(id: string): Promise<User | null> {
+    private async findUser(
+        whereFn: (
+            table: typeof users,
+            operators: { eq: typeof eq; or: typeof or },
+        ) => SQL,
+    ): Promise<User | null> {
         try {
-            return await this.db.query.users.findFirst({
-                where: (users, { eq }) => eq(users.id, id),
-                with: { socialLinks: true },
+            const user = await this.db.query.users.findFirst({
+                where: whereFn,
+                with: {
+                    socialLinks: true,
+                    roles: {
+                        with: {
+                            role: {
+                                with: {
+                                    rolePermissions: {
+                                        with: {
+                                            permission: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             })
+
+            if (!user) return null
+
+            return {
+                ...user,
+                roles: user.roles.map((userRole) => ({
+                    ...userRole.role,
+                    permissions: userRole.role.rolePermissions.map(
+                        (rp) => rp.permission,
+                    ),
+                })),
+            }
         } catch (error) {
             throw new DatabaseException(error)
         }
     }
 
+    async findById(id: string): Promise<User | null> {
+        return await this.findUser((users, { eq }) => eq(users.id, id))
+    }
+
     async findByLogin(login: string): Promise<User | null> {
-        try {
-            return await this.db.query.users.findFirst({
-                where: (users, { or, eq }) =>
-                    or(eq(users.username, login), eq(users.email, login)),
-                with: { socialLinks: true },
-            })
-        } catch (error) {
-            throw new DatabaseException(error)
-        }
+        return await this.findUser((users, { or, eq }) =>
+            or(eq(users.username, login), eq(users.email, login)),
+        )
     }
 
     async findByTelegramId(telegramId: string): Promise<User | null> {
@@ -71,7 +116,9 @@ export class AccountService {
         }
     }
 
-    async create(input: CreateUserInput): Promise<boolean> {
+    async create(
+        input: CreateUserInput | CreateUserWithRoleInput,
+    ): Promise<boolean> {
         try {
             const { email, username, password } = input
 
@@ -109,6 +156,16 @@ export class AccountService {
                 .values(newUser)
                 .returning()
 
+            const role: RoleModel =
+                input instanceof CreateUserWithRoleInput
+                    ? await this.rbacService.getRoleByName(input.role)
+                    : await this.rbacService.getRoleByName(Role.USER)
+
+            await this.rbacService.assignRole({
+                userId: user[0].id,
+                roleId: role.id,
+            })
+
             await this.verificationService.sendVerificationToken(user[0])
 
             return true
@@ -116,6 +173,7 @@ export class AccountService {
             if (error instanceof ConflictException) {
                 throw error
             }
+            this.logger.error('Error creating user', error.stack)
             throw new DatabaseException(error)
         }
     }
@@ -136,6 +194,10 @@ export class AccountService {
 
             return true
         } catch (error) {
+            this.logger.error(
+                `Error enabling TOTP for user: ${user.id}`,
+                error.stack,
+            )
             throw new DatabaseException(error)
         }
     }
@@ -154,25 +216,47 @@ export class AccountService {
 
             return true
         } catch (error) {
+            this.logger.error(
+                `Error disabling TOTP for user: ${user.id}`,
+                error.stack,
+            )
             throw new DatabaseException(error)
         }
     }
 
+    // TODO: validate if email is real
     async changeEmail(user: User, input: ChangeEmailInput): Promise<boolean> {
         try {
             const { email } = input
 
-            const userEmailUpdate: Partial<DbUser> = {
-                email,
+            const isEmailExists = await this.isEmailExists(email)
+            if (isEmailExists) {
+                throw new ConflictException('Email already exists')
             }
 
-            await this.db
+            const userEmailUpdate: Partial<DbUser> = {
+                email,
+                isVerified: false,
+                emailVerifiedAt: null,
+            }
+
+            const [updatedUser] = await this.db
                 .update(users)
                 .set(userEmailUpdate)
                 .where(eq(users.id, user.id))
+                .returning()
+
+            await this.verificationService.sendVerificationToken(updatedUser)
 
             return true
         } catch (error) {
+            if (error instanceof ConflictException) {
+                throw error
+            }
+            this.logger.error(
+                `Error changing email for user: ${user.id}`,
+                error.stack,
+            )
             throw new DatabaseException(error)
         }
     }
@@ -190,6 +274,12 @@ export class AccountService {
                 throw new UnauthorizedException('The old password is invalid')
             }
 
+            if (oldPassword === newPassword) {
+                throw new ConflictException(
+                    'New password must be different from old password',
+                )
+            }
+
             const userPasswordUpdate: Partial<DbUser> = {
                 password: await hash(newPassword),
             }
@@ -201,12 +291,29 @@ export class AccountService {
 
             return true
         } catch (error) {
+            if (
+                error instanceof UnauthorizedException ||
+                error instanceof ConflictException
+            ) {
+                throw error
+            }
+            this.logger.error(
+                `Error changing password for user: ${user.id}`,
+                error.stack,
+            )
             throw new DatabaseException(error)
         }
     }
 
     async connectTelegram(userId: string, chatId: string): Promise<boolean> {
         try {
+            const existingUser = await this.findByTelegramId(chatId)
+            if (existingUser && existingUser.id !== userId) {
+                throw new ConflictException(
+                    'This Telegram account is already connected to another user',
+                )
+            }
+
             await this.db
                 .update(users)
                 .set({ telegramId: chatId } as Partial<DbUser>)
@@ -214,6 +321,41 @@ export class AccountService {
 
             return true
         } catch (error) {
+            if (error instanceof ConflictException) {
+                throw error
+            }
+            this.logger.error(
+                `Error connecting Telegram for user: ${userId}`,
+                error.stack,
+            )
+            throw new DatabaseException(error)
+        }
+    }
+
+    async delete(req: FastifyRequest, userId: string): Promise<boolean> {
+        try {
+            const user = await this.findById(userId)
+
+            if (!user) {
+                throw new NotFoundException('User not found')
+            }
+
+            if (req.session.get('userId') === user.id) {
+                throw new ConflictException('Cannot delete your own account')
+            }
+
+            req.session.set('userId', user.id)
+            destroySession(req)
+
+            return await this.accountDeletionService.deleteSingle(user)
+        } catch (error) {
+            if (
+                error instanceof NotFoundException ||
+                error instanceof ConflictException
+            ) {
+                throw error
+            }
+            this.logger.error(`Error deleting user: ${userId}`, error.stack)
             throw new DatabaseException(error)
         }
     }

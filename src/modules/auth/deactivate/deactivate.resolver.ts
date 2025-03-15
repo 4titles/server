@@ -1,10 +1,12 @@
-import { Authorization } from '@/shared/decorators/auth.decorator'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { UserAgent } from '@/shared/decorators/user-agent.decorator'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { GqlContext } from '@/shared/types/gql-context.types'
 import { Args, Context, Mutation, Resolver } from '@nestjs/graphql'
 import { AuthModel } from '../account/models/auth.model'
 import { User } from '../account/models/user.model'
+import { Action } from '../rbac/enums/actions.enum'
+import { Resource } from '../rbac/enums/resources.enum'
 import { DeactivateService } from './deactivate.service'
 import { DeactivateAccountInput } from './inputs/deactivate-account.input'
 
@@ -12,7 +14,11 @@ import { DeactivateAccountInput } from './inputs/deactivate-account.input'
 export class DeactivateResolver {
     constructor(private readonly deactivateService: DeactivateService) {}
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.USER,
+        action: Action.DELETE,
+        possession: 'own',
+    })
     @Mutation(() => AuthModel, { description: 'Deactivate an account' })
     async deactivate(
         @Context() { req }: GqlContext,

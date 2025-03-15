@@ -1,11 +1,19 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql'
+import { Action } from '@/modules/auth/rbac/enums/actions.enum'
+import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
+import { Args, Int, Query, Resolver } from '@nestjs/graphql'
+import { TitleCategory } from '../enums/title-category.enum'
 import { Movie } from '../models/movie.model'
 import { MovieService } from '../services/movie.service'
-import { TitleCategory } from '../enums/title-category.enum'
 @Resolver(() => Movie)
 export class MoviesResolver {
     constructor(private readonly movieService: MovieService) {}
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description:
             'Get a list of movies with optional category filter and limit',
@@ -18,6 +26,11 @@ export class MoviesResolver {
         return await this.movieService.getMoviesByCategory(limit, category)
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description: 'Get a list of popular movies with an optional limit',
     })
@@ -30,6 +43,11 @@ export class MoviesResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description: 'Get a list of top-rated movies with an optional limit',
     })
@@ -42,6 +60,11 @@ export class MoviesResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description: 'Get a list of trending movies with an optional limit',
     })
@@ -54,6 +77,11 @@ export class MoviesResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description: 'Get a list of searched movies with an optional limit',
     })
@@ -66,6 +94,11 @@ export class MoviesResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description: 'Get a list of upcoming movies with an optional limit',
     })
@@ -78,6 +111,11 @@ export class MoviesResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => Movie, {
         nullable: true,
         description: 'Get a movie by TMDB ID',
@@ -88,6 +126,11 @@ export class MoviesResolver {
         return await this.movieService.getMovieByTmdbId(tmdbId)
     }
 
+    @RbacProtected({
+        resource: Resource.TITLE,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Movie], {
         description: 'Search for movies by query with an optional limit',
     })

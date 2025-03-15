@@ -7,9 +7,11 @@ import {
     timestamp,
     uuid,
 } from 'drizzle-orm/pg-core'
+import { timestamps } from '../helpers/column.helpers'
 import { feedbacks } from './feedbacks.schema'
 import { follows } from './follows.schema'
 import { notifications, notificationSettings } from './notifications.schema'
+import { userRoles } from './roles-permissions.schema'
 import { socialLinks } from './social-links.schema'
 import { tokens } from './tokens.schema'
 
@@ -34,12 +36,7 @@ export const users = pgTable(
         emailVerifiedAt: timestamp('email_verified_at', {
             withTimezone: true,
         }).default(null),
-        createdAt: timestamp('created_at', { withTimezone: true })
-            .defaultNow()
-            .notNull(),
-        updatedAt: timestamp('updated_at', { withTimezone: true })
-            .defaultNow()
-            .notNull(),
+        ...timestamps,
     },
     (table) => {
         return {
@@ -63,6 +60,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     }),
     followings: many(follows, { relationName: 'follower' }),
     followers: many(follows, { relationName: 'following' }),
+    roles: many(userRoles),
 }))
 
 export type DbUser = typeof users.$inferSelect

@@ -1,6 +1,8 @@
-import { Authorization } from '@/shared/decorators/auth.decorator'
+import { Action } from '@/modules/auth/rbac/enums/actions.enum'
+import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { UserAgent } from '@/shared/decorators/user-agent.decorator'
+import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { GqlContext } from '@/shared/types/gql-context.types'
 import { getSessionMetadata } from '@/shared/utils/seesion/session-metadata.util'
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql'
@@ -18,7 +20,11 @@ import { Feedback } from './models/feedback.model'
 export class FeedbackResolver {
     constructor(private readonly feedbackService: FeedbackService) {}
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.CREATE,
+        possession: 'own',
+    })
     @Mutation(() => FeedbackSubmitResponse)
     async submitFeedback(
         @Args('data') input: CreateFeedbackInput,
@@ -41,14 +47,21 @@ export class FeedbackResolver {
         )
     }
 
-    @Authorization()
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.READ,
+        possession: 'own',
+    })
     @Query(() => [Feedback])
     async findMyFeedbacks(@Authorized() user: User): Promise<Feedback[]> {
         return await this.feedbackService.findByUser(user.id)
     }
 
-    @Authorization()
-    // @Roles(UserRole.ADMIN)
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => [Feedback])
     async findAllFeedbacks(
         @Args('filters', { nullable: true }) filters?: FilterFeedbackInput,
@@ -56,15 +69,21 @@ export class FeedbackResolver {
         return await this.feedbackService.findAll(filters)
     }
 
-    @Authorization()
-    // @Roles(UserRole.ADMIN)
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => Feedback)
     async findFeedbackById(@Args('id') id: string): Promise<Feedback> {
         return await this.feedbackService.findById(id)
     }
 
-    @Authorization()
-    // @Roles(UserRole.ADMIN)
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.UPDATE,
+        possession: 'any',
+    })
     @Mutation(() => Feedback)
     async updateFeedbackStatus(
         @Args('data') input: UpdateFeedbackStatusInput,
@@ -72,11 +91,26 @@ export class FeedbackResolver {
         return await this.feedbackService.updateStatus(input)
     }
 
-    @Authorization()
-    // @Roles(UserRole.ADMIN)
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.READ,
+        possession: 'any',
+    })
     @Query(() => FeedbackStats)
     async getFeedbackStats(
         @Args('filters', { nullable: true }) filters?: FilterFeedbackInput,
+    ): Promise<FeedbackStats> {
+        return await this.feedbackService.getStats(filters)
+    }
+
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.READ,
+        possession: 'own',
+    })
+    @Query(() => FeedbackStats)
+    async getOwnFeedbacksStats(
+        @Args('filters') filters: FilterFeedbackInput,
     ): Promise<FeedbackStats> {
         return await this.feedbackService.getStats(filters)
     }

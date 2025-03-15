@@ -60,6 +60,22 @@ export class SeedUsersCommand {
         totp?: number,
 
         @Option({
+            name: 'adminPercentage',
+            describe: 'Percentage of users with ADMIN role (0-100)',
+            type: 'number',
+            default: 5,
+        })
+        admin?: number,
+
+        @Option({
+            name: 'moderatorPercentage',
+            describe: 'Percentage of users with MODERATOR role (0-100)',
+            type: 'number',
+            default: 10,
+        })
+        moderator?: number,
+
+        @Option({
             name: 'test-users',
             describe: 'Number of test users to create',
             type: 'number',
@@ -97,6 +113,8 @@ export class SeedUsersCommand {
                     deactivatedPercentage: deactivated,
                     withTelegramPercentage: telegram,
                     withTotpPercentage: totp,
+                    adminPercentage: admin,
+                    moderatorPercentage: moderator,
                 })
 
                 console.log(`Successfully seeded ${userIds.length} users`)
