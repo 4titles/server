@@ -1,38 +1,33 @@
-import { NotificationType } from '@/modules/infrastructure/notification/enums/notification-type.enum'
 import { relations } from 'drizzle-orm'
-import {
-    boolean,
-    pgEnum,
-    pgTable,
-    text,
-    timestamp,
-    uuid,
-} from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { timestamps } from '../helpers/column.helpers'
+import { notificationTypeEnum } from './enums.schema'
 import { users } from './users.schema'
 
-export const notificationTypeEnum = pgEnum('notification_type_enum', [
-    NotificationType.ENABLE_TWO_FACTOR,
-    NotificationType.NEW_FOLLOWER,
-    NotificationType.NEW_FAVORITE_TITLE_LOCATION,
-    NotificationType.INFO,
-] as const)
-
-export const notifications = pgTable('notifications', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    message: text('message').notNull(),
-    type: notificationTypeEnum('type').notNull(),
-    isRead: boolean('is_read').default(false),
-    isGlobal: boolean('is_global').default(false),
-    userId: uuid('user_id').references(() => users.id, {
-        onDelete: 'cascade',
-    }),
-    createdAt: timestamp('created_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
-})
+export const notifications = pgTable(
+    'notifications',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        message: text('message').notNull(),
+        type: notificationTypeEnum('type').notNull(),
+        isRead: boolean('is_read').default(false),
+        isGlobal: boolean('is_global').default(false),
+        userId: uuid('user_id').references(() => users.id, {
+            onDelete: 'cascade',
+        }),
+        ...timestamps,
+    },
+    (table) => {
+        return {
+            userIdIdx: index('notifications_user_id_idx').on(table.userId),
+            typeIdx: index('notifications_type_idx').on(table.type),
+            isReadIdx: index('notifications_is_read_idx').on(table.isRead),
+            isGlobalIdx: index('notifications_is_global_idx').on(
+                table.isGlobal,
+            ),
+        }
+    },
+)
 
 export const notificationSettings = pgTable('notification_settings', {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -46,12 +41,7 @@ export const notificationSettings = pgTable('notification_settings', {
     isTelegramNotificationsEnabled: boolean(
         'is_telegram_notifications_enabled',
     ).default(true),
-    createdAt: timestamp('created_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
+    ...timestamps,
 })
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({

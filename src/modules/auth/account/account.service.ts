@@ -224,7 +224,6 @@ export class AccountService {
         }
     }
 
-    // TODO: validate if email is real
     async changeEmail(user: User, input: ChangeEmailInput): Promise<boolean> {
         try {
             const { email } = input

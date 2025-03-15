@@ -81,7 +81,7 @@ export class GenreSeeder {
 
             const genresToInsert = Array.from(uniqueGenres.values()).map(
                 (genre) => ({
-                    tmdbId: BigInt(genre.id),
+                    tmdbId: String(genre.id),
                     names: genre.names,
                     updatedAt: new Date(),
                 }),

@@ -1,9 +1,9 @@
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
 import { TmdbCountry } from '@/modules/infrastructure/tmdb/types/country.type'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { TmdbService } from '../../tmdb/tmdb.service'
-import { countries } from '../schema/countries.schema'
+import { countries, DbCountryInsert } from '../schema/countries.schema'
 import { DrizzleDB } from '../types/drizzle'
 
 @Injectable()
@@ -24,23 +24,22 @@ export class CountrySeeder {
                 `Fetched countries: ${JSON.stringify(tmdbCountries)}`,
             )
 
-            const countriesToInsert = tmdbCountries.map((c) => ({
-                englishName: c.english_name,
-                iso: c.iso_3166_1,
-                nativeName: c?.native_name,
-            }))
+            const countriesToInsert: DbCountryInsert[] = tmdbCountries.map(
+                (c) => ({
+                    englishName: c.english_name,
+                    iso: c.iso_3166_1,
+                    nativeName: c?.native_name,
+                }),
+            )
 
-            await this.db
-                .insert(countries)
-                .values(countriesToInsert)
-                .onConflictDoUpdate({
-                    target: countries.id,
-                    set: {
-                        englishName: sql`EXCLUDED.english_name`,
-                        nativeName: sql`EXCLUDED.native_name`,
-                        iso: sql`EXCLUDED.iso`,
-                    },
+            for (const country of countriesToInsert) {
+                const exists = await this.db.query.countries.findFirst({
+                    where: eq(countries.iso, country.iso),
                 })
+                if (!exists) {
+                    await this.db.insert(countries).values(country)
+                }
+            }
 
             this.logger.log(
                 `Successfully seeded ${countriesToInsert.length} countries`,
