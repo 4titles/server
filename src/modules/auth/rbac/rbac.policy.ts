@@ -22,6 +22,8 @@ RBAC_POLICY.grant(Role.USER)
     .readAny(Resource.GENRE)
     // Languages
     .readAny(Resource.LANGUAGE)
+    // Countries
+    .readAny(Resource.COUNTRY)
     // Content
     .createOwn(Resource.CONTENT)
     .readOwn(Resource.CONTENT)
@@ -51,6 +53,12 @@ RBAC_POLICY.grant(Role.MODERATOR)
     .createAny(Resource.LANGUAGE)
     .updateAny(Resource.LANGUAGE)
     .deleteAny(Resource.LANGUAGE)
+    // Countries
+    .createAny(Resource.COUNTRY)
+    .updateAny(Resource.COUNTRY)
+    .deleteAny(Resource.COUNTRY)
+    // Geocoding
+    .readAny(Resource.GEOCODING)
 
 RBAC_POLICY.grant(Role.ADMIN)
     .extend(Role.MODERATOR)
@@ -80,3 +88,6 @@ RBAC_POLICY.grant(Role.ADMIN)
     .deleteAny(Resource.PERMISSION)
     // Titles
     .createAny(Resource.TITLE)
+    // TMDB
+    .readAny(Resource.TMDB)
+    .createAny(Resource.TMDB)

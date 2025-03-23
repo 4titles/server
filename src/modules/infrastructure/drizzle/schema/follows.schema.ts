@@ -31,7 +31,7 @@ export const follows = pgTable(
     },
     (table) => {
         return {
-            followerIdx: index('followr_idx').on(table.followerId),
+            followerIdx: index('follower_idx').on(table.followerId),
             followingIdx: index('following_idx').on(table.followingId),
             followersUniqueIdx: uniqueIndex('followers_unique_idx').on(
                 table.followerId,

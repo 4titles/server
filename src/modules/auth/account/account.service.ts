@@ -1,12 +1,11 @@
 import { ContentModerationService } from '@/modules/content/content-moderation/services/content-moderation.service'
-import { DatabaseException } from '@/modules/content/titles/exceptions/database.exception'
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
 import {
     DbUser,
     users,
 } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
-import { destroySession } from '@/shared/utils/seesion/session.utils'
+import { destroySession } from '@/shared/utils/session/session.utils'
 import {
     ConflictException,
     forwardRef,
@@ -29,7 +28,6 @@ import { ChangeEmailInput } from './inputs/change-email.input'
 import { ChangePasswordInput } from './inputs/change-password.input'
 import { CreateUserWithRoleInput } from './inputs/create-user-with-role.input'
 import { CreateUserInput } from './inputs/create-user.input'
-import { UserMapper } from './mappers/user.mapper'
 import { User } from './models/user.model'
 
 @Injectable()
@@ -84,7 +82,7 @@ export class AccountService {
                 })),
             }
         } catch (error) {
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -106,14 +104,9 @@ export class AccountService {
     }
 
     async findAll(): Promise<User[]> {
-        try {
-            const dbUsers: DbUser[] = await this.db.query.users.findMany({
-                orderBy: [asc(users.createdAt)],
-            })
-            return UserMapper.toGraphQLList(dbUsers)
-        } catch (error) {
-            throw new DatabaseException(error)
-        }
+        return await this.db.query.users.findMany({
+            orderBy: [asc(users.createdAt)],
+        })
     }
 
     async create(
@@ -170,11 +163,8 @@ export class AccountService {
 
             return true
         } catch (error) {
-            if (error instanceof ConflictException) {
-                throw error
-            }
             this.logger.error('Error creating user', error.stack)
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -198,7 +188,7 @@ export class AccountService {
                 `Error enabling TOTP for user: ${user.id}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -220,11 +210,10 @@ export class AccountService {
                 `Error disabling TOTP for user: ${user.id}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
-    // TODO: validate if email is real
     async changeEmail(user: User, input: ChangeEmailInput): Promise<boolean> {
         try {
             const { email } = input
@@ -250,14 +239,11 @@ export class AccountService {
 
             return true
         } catch (error) {
-            if (error instanceof ConflictException) {
-                throw error
-            }
             this.logger.error(
                 `Error changing email for user: ${user.id}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -291,17 +277,11 @@ export class AccountService {
 
             return true
         } catch (error) {
-            if (
-                error instanceof UnauthorizedException ||
-                error instanceof ConflictException
-            ) {
-                throw error
-            }
             this.logger.error(
                 `Error changing password for user: ${user.id}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -321,14 +301,11 @@ export class AccountService {
 
             return true
         } catch (error) {
-            if (error instanceof ConflictException) {
-                throw error
-            }
             this.logger.error(
                 `Error connecting Telegram for user: ${userId}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -349,14 +326,8 @@ export class AccountService {
 
             return await this.accountDeletionService.deleteSingle(user)
         } catch (error) {
-            if (
-                error instanceof NotFoundException ||
-                error instanceof ConflictException
-            ) {
-                throw error
-            }
             this.logger.error(`Error deleting user: ${userId}`, error.stack)
-            throw new DatabaseException(error)
+            throw error
         }
     }
 

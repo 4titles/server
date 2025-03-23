@@ -1,81 +1,62 @@
+import { relations } from 'drizzle-orm'
 import {
-    bigint,
+    boolean,
     index,
     pgTable,
     point,
     text,
-    unique,
+    timestamp,
+    uuid,
 } from 'drizzle-orm/pg-core'
-import { movies } from './movies.schema'
-import { series } from './series.schema'
 import { timestamps } from '../helpers/column.helpers'
-import { relations } from 'drizzle-orm'
-
-export const locations = pgTable(
-    'locations',
-    {
-        id: bigint('id', { mode: 'bigint' })
-            .primaryKey()
-            .generatedAlwaysAsIdentity(),
-        address: text('address').notNull(),
-        coordinates: point('coordinates', { mode: 'xy' }),
-        formattedAddress: text('formatted_address'),
-        ...timestamps,
-    },
-    (table) => ({
-        addressIdx: index('locations_address_idx').on(table.address),
-    }),
-)
+import { countries } from './countries.schema'
+import { titleFilmingLocations } from './title-filming-locations.schema'
+import { users } from './users.schema'
 
 export const filmingLocations = pgTable(
     'filming_locations',
     {
-        id: bigint('id', { mode: 'bigint' })
-            .primaryKey()
-            .generatedAlwaysAsIdentity(),
-        locationId: bigint('location_id', { mode: 'bigint' })
-            .notNull()
-            .references(() => locations.id),
-        movieId: bigint('movie_id', { mode: 'bigint' }).references(
-            () => movies.id,
-        ),
-        seriesId: bigint('series_id', { mode: 'bigint' }).references(
-            () => series.id,
-        ),
+        id: uuid('id').primaryKey().defaultRandom(),
+        address: text('address').notNull(),
+        coordinates: point('coordinates', { mode: 'xy' }).notNull(),
+        formattedAddress: text('formatted_address'),
+        placeId: text('place_id').unique(),
+        countryId: uuid('country_id')
+            .references(() => countries.id, {
+                onDelete: 'set null',
+            })
+            .notNull(),
+        city: text('city'),
+        state: text('state'),
         description: text('description'),
+        enhancedDescription: text('enhanced_description'),
+        isVerified: boolean('is_verified').default(false),
+        verifiedAt: timestamp('verified_at', { withTimezone: true }),
+        userId: uuid('user_id').references(() => users.id, {
+            onDelete: 'set null',
+        }),
+        lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
         ...timestamps,
     },
     (table) => ({
-        locationIdIdx: index('filming_locations_location_id_idx').on(
-            table.locationId,
-        ),
-        movieIdIdx: index('filming_locations_movie_id_idx').on(table.movieId),
-        seriesIdIdx: index('filming_locations_series_id_idx').on(
-            table.seriesId,
-        ),
-        movieLocationUnique: unique().on(table.movieId, table.locationId),
-        seriesLocationUnique: unique().on(table.seriesId, table.locationId),
+        addressIdx: index('filming_locations_address_idx').on(table.address),
     }),
 )
-
-export const locationsRelations = relations(locations, ({ many }) => ({
-    filmingLocations: many(filmingLocations),
-}))
 
 export const filmingLocationsRelations = relations(
     filmingLocations,
-    ({ one }) => ({
-        location: one(locations, {
-            fields: [filmingLocations.locationId],
-            references: [locations.id],
+    ({ one, many }) => ({
+        titleFilmingLocations: many(titleFilmingLocations),
+        country: one(countries, {
+            fields: [filmingLocations.countryId],
+            references: [countries.id],
         }),
-        movie: one(movies, {
-            fields: [filmingLocations.movieId],
-            references: [movies.id],
-        }),
-        tvShow: one(series, {
-            fields: [filmingLocations.seriesId],
-            references: [series.id],
+        user: one(users, {
+            fields: [filmingLocations.userId],
+            references: [users.id],
         }),
     }),
 )
+
+export type DbFilmingLocation = typeof filmingLocations.$inferSelect
+export type DbFilmingLocationInsert = typeof filmingLocations.$inferInsert

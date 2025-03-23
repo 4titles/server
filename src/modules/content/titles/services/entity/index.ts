@@ -1,5 +1,0 @@
-export { MovieEntityService } from './movie-entity.service'
-export { TitleEntityService } from './title-entity.service'
-export { TvShowEntityService } from './tv-show-entity.service'
-export { GenreEntityService } from './genre-entity.service'
-export { LanguageEntityService } from './language-entity.service'

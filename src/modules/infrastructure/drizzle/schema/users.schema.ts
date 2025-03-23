@@ -8,7 +8,10 @@ import {
     uuid,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
+import { comments } from './comments.schema'
+import { favorites } from './favorites.schema'
 import { feedbacks } from './feedbacks.schema'
+import { filmingLocations } from './filming-locations.schema'
 import { follows } from './follows.schema'
 import { notifications, notificationSettings } from './notifications.schema'
 import { userRoles } from './roles-permissions.schema'
@@ -29,7 +32,7 @@ export const users = pgTable(
         isVerified: boolean('is_verified').default(false),
         isTotpEnabled: boolean('is_totp_enabled').default(false),
         totpSecret: text('totp_secret'),
-        isDeactivated: boolean('is_deactived').default(false),
+        isDeactivated: boolean('is_deactivated').default(false),
         deactivatedAt: timestamp('deactivated_at', {
             withTimezone: true,
         }).default(null),
@@ -41,10 +44,9 @@ export const users = pgTable(
     (table) => {
         return {
             emailIdx: index('email_idx').on(table.email),
-            emailPasswordIdx: index('email_password_idx').on(
-                table.email,
-                table.password,
-            ),
+            usernameIdx: index('username_idx').on(table.username),
+            telegramIdIdx: index('telegram_id_idx').on(table.telegramId),
+            isVerifiedIdx: index('is_verified_idx').on(table.isVerified),
         }
     },
 )
@@ -61,6 +63,10 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     followings: many(follows, { relationName: 'follower' }),
     followers: many(follows, { relationName: 'following' }),
     roles: many(userRoles),
+    addedFilmingLocations: many(filmingLocations),
+    comments: many(comments),
+    favorites: many(favorites),
 }))
 
 export type DbUser = typeof users.$inferSelect
+export type DbUserInsert = typeof users.$inferInsert

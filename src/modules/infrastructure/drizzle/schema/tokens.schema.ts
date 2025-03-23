@@ -1,21 +1,8 @@
-import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { relations } from 'drizzle-orm'
-import {
-    index,
-    pgEnum,
-    pgTable,
-    text,
-    timestamp,
-    uuid,
-} from 'drizzle-orm/pg-core'
+import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { timestamps } from '../helpers/column.helpers'
+import { tokenTypeEnum } from './enums.schema'
 import { users } from './users.schema'
-
-export const tokenTypeEnum = pgEnum('token_type_enum', [
-    TokenType.EMAIL_VERIFY,
-    TokenType.PASSWORD_RESET,
-    TokenType.DEACTIVATE_ACCOUNT,
-    TokenType.TELEGRAM_AUTH,
-] as const)
 
 export const tokens = pgTable(
     'tokens',
@@ -27,19 +14,13 @@ export const tokens = pgTable(
             onDelete: 'cascade',
         }),
         expiresAt: timestamp('expires_at', { withTimezone: true }),
-        createdAt: timestamp('created_at', { withTimezone: true })
-            .defaultNow()
-            .notNull(),
-        updatedAt: timestamp('updated_at', { withTimezone: true })
-            .defaultNow()
-            .notNull(),
+        ...timestamps,
     },
     (table) => {
         return {
             tokenIdx: index('token_idx').on(table.token),
             userTypeIdx: index('user_type_idx').on(table.userId, table.type),
             expiresAtIdx: index('expires_at_idx').on(table.expiresAt),
-            userIdIdx: index('user_id_idx').on(table.userId),
         }
     },
 )

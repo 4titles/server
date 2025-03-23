@@ -1,14 +1,18 @@
 export * from './enums.schema'
 
+export * from './title-countries.schema'
+export * from './title-filming-locations.schema'
+export * from './title-genres.schema'
+export * from './title-languages.schema'
+export * from './titles.schema'
+
+export * from './comments.schema'
 export * from './countries.schema'
+export * from './feedbacks.schema'
 export * from './filming-locations.schema'
+export * from './follows.schema'
 export * from './genres.schema'
 export * from './languages.schema'
-export * from './movies.schema'
-export * from './series.schema'
-
-export * from './feedbacks.schema'
-export * from './follows.schema'
 export * from './notifications.schema'
 export * from './roles-permissions.schema'
 export * from './social-links.schema'

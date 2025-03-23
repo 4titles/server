@@ -1,14 +1,14 @@
-import { Role } from '@/modules/auth/rbac/enums/roles.enum'
 import { relations } from 'drizzle-orm'
-import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+    index,
+    pgTable,
+    text,
+    timestamp,
+    unique,
+    uuid,
+} from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
 import { users } from './users.schema'
-
-export const userRoleEnum = pgEnum('user_role', [
-    Role.USER,
-    Role.MODERATOR,
-    Role.ADMIN,
-] as const)
 
 export const roles = pgTable('roles', {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -17,41 +17,77 @@ export const roles = pgTable('roles', {
     ...timestamps,
 })
 
-export const userRoles = pgTable('user_roles', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
-        .references(() => users.id, { onDelete: 'cascade' })
-        .notNull(),
-    roleId: uuid('role_id')
-        .references(() => roles.id, { onDelete: 'cascade' })
-        .notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
-})
+export const userRoles = pgTable(
+    'user_roles',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        userId: uuid('user_id')
+            .references(() => users.id, { onDelete: 'cascade' })
+            .notNull(),
+        roleId: uuid('role_id')
+            .references(() => roles.id, { onDelete: 'cascade' })
+            .notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => {
+        return {
+            userIdIdx: index('user_roles_user_id_idx').on(table.userId),
+            roleIdIdx: index('user_roles_role_id_idx').on(table.roleId),
+            userRoleIdx: unique('user_role_idx').on(table.userId, table.roleId),
+        }
+    },
+)
 
-export const permissions = pgTable('permissions', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    resource: text('resource').notNull(),
-    action: text('action').notNull(),
-    description: text('description'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
-})
+export const permissions = pgTable(
+    'permissions',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        resource: text('resource').notNull(),
+        action: text('action').notNull(),
+        description: text('description'),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => {
+        return {
+            resourceActionIdx: unique('resource_action_idx').on(
+                table.resource,
+                table.action,
+            ),
+        }
+    },
+)
 
-export const rolePermissions = pgTable('role_permissions', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    roleId: uuid('role_id')
-        .references(() => roles.id, { onDelete: 'cascade' })
-        .notNull(),
-    permissionId: uuid('permission_id')
-        .references(() => permissions.id, { onDelete: 'cascade' })
-        .notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-        .defaultNow()
-        .notNull(),
-})
+export const rolePermissions = pgTable(
+    'role_permissions',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        roleId: uuid('role_id')
+            .references(() => roles.id, { onDelete: 'cascade' })
+            .notNull(),
+        permissionId: uuid('permission_id')
+            .references(() => permissions.id, { onDelete: 'cascade' })
+            .notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => {
+        return {
+            roleIdIdx: index('role_permissions_role_id_idx').on(table.roleId),
+            permissionIdIdx: index('role_permissions_permission_id_idx').on(
+                table.permissionId,
+            ),
+            rolePermissionIdx: unique('role_permission_idx').on(
+                table.roleId,
+                table.permissionId,
+            ),
+        }
+    },
+)
 
 export const rolesRelations = relations(roles, ({ many }) => ({
     userRoles: many(userRoles),

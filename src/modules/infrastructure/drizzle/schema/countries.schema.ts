@@ -1,18 +1,31 @@
-import { bigint, pgTable, unique, varchar, index } from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
+import { index, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { timestamps } from '../helpers/column.helpers'
+import { filmingLocations } from './filming-locations.schema'
+import { titleCountries } from './title-countries.schema'
 
 export const countries = pgTable(
     'countries',
     {
-        id: bigint('id', { mode: 'bigint' })
-            .primaryKey()
-            .generatedAlwaysAsIdentity(),
-        iso: varchar('iso', { length: 2 }).notNull(),
-        englishName: varchar('english_name').notNull(),
-        nativeName: varchar('native_name').notNull(),
+        id: uuid('id').primaryKey().defaultRandom(),
+        iso: text('iso').notNull().unique(),
+        name: text('name'),
+        englishName: text('english_name').notNull(),
+        ...timestamps,
     },
     (table) => ({
-        iso: unique('iso_unique_idx'),
-        englishNameIndex: index('english_name_idx').on(table.englishName),
-        nativeNameIndex: index('native_name_idx').on(table.nativeName),
+        isoIdx: index('countries_iso_idx').on(table.iso),
+        nameIdx: index('countries_name_idx').on(table.name),
+        englishNameIdx: index('countries_english_name_idx').on(
+            table.englishName,
+        ),
     }),
 )
+
+export const countriesRelations = relations(countries, ({ many }) => ({
+    titles: many(titleCountries),
+    filmingLocations: many(filmingLocations),
+}))
+
+export type DbCountry = typeof countries.$inferSelect
+export type DbCountryInsert = typeof countries.$inferInsert

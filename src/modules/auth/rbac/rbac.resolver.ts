@@ -1,3 +1,4 @@
+import { SeedRolePermissionCommand } from '@/modules/cli/commands'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
@@ -16,7 +17,10 @@ import { RbacService } from './rbac.service'
 
 @Resolver(() => Role)
 export class RbacResolver {
-    constructor(private readonly rbacService: RbacService) {}
+    constructor(
+        private readonly rbacService: RbacService,
+        private readonly seedRolePermissionCommand: SeedRolePermissionCommand,
+    ) {}
 
     @RbacProtected({
         resource: Resource.ROLE,
@@ -143,5 +147,11 @@ export class RbacResolver {
         @Args('roleId') roleId: string,
     ): Promise<Permission[]> {
         return await this.rbacService.getRolePermissions(roleId)
+    }
+
+    @Mutation(() => Boolean)
+    async seedRolesAndPermissions(): Promise<boolean> {
+        await this.seedRolePermissionCommand.run()
+        return true
     }
 }

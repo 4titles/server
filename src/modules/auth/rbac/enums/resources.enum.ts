@@ -8,4 +8,7 @@ export enum Resource {
     TITLE = 'title',
     GENRE = 'genre',
     LANGUAGE = 'language',
+    COUNTRY = 'country',
+    TMDB = 'tmdb',
+    GEOCODING = 'geocoding',
 }
