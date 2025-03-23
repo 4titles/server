@@ -61,3 +61,6 @@ graphql.ts
 
 # Drizzle
 /drizzle
+
+# Cursor
+.cursor

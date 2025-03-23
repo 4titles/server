@@ -3,12 +3,12 @@ import { Role } from '@/modules/auth/rbac/enums/roles.enum'
 import { FeedbackSource } from '@/modules/content/feedback/enums/feedback-source.enum'
 import { FeedbackStatus } from '@/modules/content/feedback/enums/feedback-status.enum'
 import { FeedbackType } from '@/modules/content/feedback/enums/feedback-type.enum'
-import { CommentableType } from '@/modules/content/titles/enums/commentable-type.enum'
-import { CountryRelation } from '@/modules/content/titles/enums/country-relation.enum'
-import { TitleCategory } from '@/modules/content/titles/enums/title-category.enum'
-import { TitleLanguageType } from '@/modules/content/titles/enums/title-language-type.enum'
-import { TitleStatus } from '@/modules/content/titles/enums/title-status.enum'
-import { TitleType } from '@/modules/content/titles/enums/title-type.enum'
+import { CommentableType } from '@/modules/content/title/enums/commentable-type.enum'
+import { TitleCategory } from '@/modules/content/title/enums/title-category.enum'
+import { TitleLanguageType } from '@/modules/content/title/enums/title-language-type.enum'
+import { TitleStatus } from '@/modules/content/title/enums/title-status.enum'
+import { TitleType } from '@/modules/content/title/enums/title-type.enum'
+import { CountryRelation } from '@/modules/content/title/modules/country/enums/country-relation.enum'
 import { pgEnum } from 'drizzle-orm/pg-core'
 import { NotificationType } from '../../notification/enums/notification-type.enum'
 
@@ -16,14 +16,14 @@ export const titleCategoryEnum = pgEnum('title_category', [
     TitleCategory.POPULAR,
     TitleCategory.TOP_RATED,
     TitleCategory.TRENDING,
-    TitleCategory.SEARCH,
     TitleCategory.UPCOMING,
     TitleCategory.AIRING,
+    TitleCategory.REGULAR,
 ])
 
 export const titleTypeEnum = pgEnum('title_type', [
     TitleType.MOVIE,
-    TitleType.SERIES,
+    TitleType.TV,
 ])
 
 export const titleStatusEnum = pgEnum('title_status', [
@@ -40,11 +40,6 @@ export const titleLanguageTypeEnum = pgEnum('title_language_type', [
     TitleLanguageType.ORIGINAL,
     TitleLanguageType.SPOKEN,
     TitleLanguageType.AVAILABLE,
-])
-
-export const countryRelationTypeEnum = pgEnum('country_relation_type', [
-    CountryRelation.PRODUCTION,
-    CountryRelation.ORIGIN,
 ])
 
 export const commentableTypeEnum = pgEnum('commentable_type', [
@@ -93,4 +88,9 @@ export const feedbackStatusEnum = pgEnum('feedback_status_enum', [
     FeedbackStatus.RESOLVED,
     FeedbackStatus.CLOSED,
     FeedbackStatus.REJECTED,
+])
+
+export const countryRelationTypeEnum = pgEnum('country_relation_type', [
+    CountryRelation.PRODUCTION,
+    CountryRelation.ORIGIN,
 ])

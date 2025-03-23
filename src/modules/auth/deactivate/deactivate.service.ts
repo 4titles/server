@@ -11,8 +11,8 @@ import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { MailService } from '@/modules/infrastructure/mail/mail.service'
 import { TelegramService } from '@/modules/infrastructure/telegram/telegram.service'
 import { generateToken } from '@/shared/utils/common/generate-token.util'
-import { getSessionMetadata } from '@/shared/utils/seesion/session-metadata.util'
-import { destroySession } from '@/shared/utils/seesion/session.utils'
+import { getSessionMetadata } from '@/shared/utils/session/session-metadata.util'
+import { destroySession } from '@/shared/utils/session/session.utils'
 import {
     BadRequestException,
     Inject,

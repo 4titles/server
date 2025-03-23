@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
-import { GeocodingModule } from '../content/titles/modules/geocoding/geocoding.module'
-import { TmdbModule } from '../content/titles/modules/tmdb/tmdb.module'
+import { GeocodingModule } from '../content/title/modules/geocoding/geocoding.module'
+import { TmdbModule } from '../content/title/modules/tmdb/tmdb.module'
 import { CacheModule } from './cache/cache.module'
 import { CronModule } from './cron/cron.module'
 import { DrizzleModule } from './drizzle/drizzle.module'

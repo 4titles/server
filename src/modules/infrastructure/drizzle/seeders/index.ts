@@ -1,6 +1,4 @@
-export { CountrySeeder } from './country.seeder'
 export { DatabaseSeeder } from './database.seeder'
-export { GenreSeeder } from './genre.seeder'
-export { LanguageSeeder } from './language.seeder'
-export { RolesPermissionsSeeder } from './roles-permissions.seeder'
+export { RolePermissionSeeder } from './role-permission.seeder'
+export { TitleConfigSeeder } from './title-config.seeder'
 export { UserSeeder } from './user.seeder'

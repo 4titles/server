@@ -1,28 +1,30 @@
 import { relations } from 'drizzle-orm'
-import { index, pgTable, unique, uuid, varchar } from 'drizzle-orm/pg-core'
-import { networks } from './networks.schema'
-import { productionCompanies } from './production-companies.schema'
+import { index, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { timestamps } from '../helpers/column.helpers'
+import { filmingLocations } from './filming-locations.schema'
 import { titleCountries } from './title-countries.schema'
 
 export const countries = pgTable(
     'countries',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        iso: varchar('iso', { length: 2 }).notNull(),
-        englishName: varchar('english_name').notNull(),
-        nativeName: varchar('native_name'),
+        iso: text('iso').notNull().unique(),
+        name: text('name'),
+        englishName: text('english_name').notNull(),
+        ...timestamps,
     },
     (table) => ({
-        isoUnique: unique('iso_unique_idx'),
-        englishNameIndex: index('english_name_idx').on(table.englishName),
-        nativeNameIndex: index('native_name_idx').on(table.nativeName),
+        isoIdx: index('countries_iso_idx').on(table.iso),
+        nameIdx: index('countries_name_idx').on(table.name),
+        englishNameIdx: index('countries_english_name_idx').on(
+            table.englishName,
+        ),
     }),
 )
 
 export const countriesRelations = relations(countries, ({ many }) => ({
     titles: many(titleCountries),
-    networks: many(networks),
-    productionCompanies: many(productionCompanies),
+    filmingLocations: many(filmingLocations),
 }))
 
 export type DbCountry = typeof countries.$inferSelect

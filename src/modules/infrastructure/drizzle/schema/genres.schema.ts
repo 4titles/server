@@ -1,6 +1,5 @@
-import { GenreTranslations } from '@/modules/content/titles/models/title-genre.model'
 import { relations } from 'drizzle-orm'
-import { index, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { index, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { titleGenres } from './title-genres.schema'
 
 export const genres = pgTable(
@@ -8,10 +7,15 @@ export const genres = pgTable(
     {
         id: uuid('id').primaryKey().defaultRandom(),
         tmdbId: text('tmdb_id').notNull().unique(),
-        names: jsonb('names').$type<GenreTranslations>().notNull(),
+        name: text('name').unique(),
+        englishName: text('english_name').unique(),
     },
     (table) => ({
         tmdbIdIdx: index('genres_tmdb_id_idx').on(table.tmdbId),
+        nameIndex: index('genres_native_name_idx').on(table.name),
+        englishNameIndex: index('genres_english_name_idx').on(
+            table.englishName,
+        ),
     }),
 )
 

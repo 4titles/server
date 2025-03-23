@@ -1,4 +1,3 @@
-import { DatabaseException } from '@/modules/content/titles/exceptions/database.exception'
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
 import {
     DbUser,
@@ -43,7 +42,7 @@ export class AccountDeletionService {
                 `Failed to find deactivated accounts: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 
@@ -114,7 +113,7 @@ export class AccountDeletionService {
                 `Failed to delete deactivated accounts: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseException(error)
+            throw error
         }
     }
 

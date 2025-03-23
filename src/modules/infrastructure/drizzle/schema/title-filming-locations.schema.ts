@@ -1,9 +1,8 @@
 import { relations } from 'drizzle-orm'
-import { index, pgTable, text, unique, uuid } from 'drizzle-orm/pg-core'
+import { index, pgTable, unique, uuid } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
-import { locations } from './locations.schema'
+import { filmingLocations } from './filming-locations.schema'
 import { titles } from './titles.schema'
-import { users } from './users.schema'
 
 export const titleFilmingLocations = pgTable(
     'title_filming_locations',
@@ -14,47 +13,37 @@ export const titleFilmingLocations = pgTable(
                 onDelete: 'cascade',
             })
             .notNull(),
-        locationId: uuid('location_id')
-            .references(() => locations.id, {
+        filmingLocationId: uuid('filming_location_id')
+            .references(() => filmingLocations.id, {
                 onDelete: 'cascade',
             })
             .notNull(),
-        userId: uuid('user_id')
-            .references(() => users.id, {
-                onDelete: 'set null',
-            })
-            .notNull(),
-        description: text('description'),
         ...timestamps,
     },
     (table) => ({
-        uniqueTitleLocation: unique().on(table.titleId, table.locationId),
+        uniqueTitleLocation: unique().on(
+            table.titleId,
+            table.filmingLocationId,
+        ),
         titleIdIdx: index('title_filming_locations_title_id_idx').on(
             table.titleId,
         ),
-        locationIdIdx: index('title_filming_locations_location_id_idx').on(
-            table.locationId,
-        ),
-        userIdIdx: index('title_filming_locations_user_id_idx').on(
-            table.userId,
-        ),
+        filmingLocationIdIdx: index(
+            'title_filming_locations_filming_location_id_idx',
+        ).on(table.filmingLocationId),
     }),
 )
 
 export const titleFilmingLocationsRelations = relations(
     titleFilmingLocations,
     ({ one }) => ({
-        location: one(locations, {
-            fields: [titleFilmingLocations.locationId],
-            references: [locations.id],
-        }),
-        user: one(users, {
-            fields: [titleFilmingLocations.userId],
-            references: [users.id],
-        }),
         title: one(titles, {
             fields: [titleFilmingLocations.titleId],
             references: [titles.id],
+        }),
+        filmingLocation: one(filmingLocations, {
+            fields: [titleFilmingLocations.filmingLocationId],
+            references: [filmingLocations.id],
         }),
     }),
 )

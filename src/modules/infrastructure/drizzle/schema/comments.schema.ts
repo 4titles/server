@@ -34,7 +34,6 @@ export const comments = pgTable(
         titleIdIdx: index('comments_title_id_idx').on(table.titleId),
         locationIdIdx: index('comments_location_id_idx').on(table.locationId),
         parentIdIdx: index('comments_parent_id_idx').on(table.parentId),
-        typeIdx: index('comments_type_idx').on(table.type),
     }),
 )
 

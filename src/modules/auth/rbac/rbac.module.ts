@@ -1,3 +1,4 @@
+import { CliModule } from '@/modules/cli/cli.module'
 import { Global, Module } from '@nestjs/common'
 import { AccessControlModule } from 'nest-access-control'
 import { RBAC_POLICY } from './rbac.policy'
@@ -6,7 +7,7 @@ import { RbacService } from './rbac.service'
 
 @Global()
 @Module({
-    imports: [AccessControlModule.forRoles(RBAC_POLICY)],
+    imports: [AccessControlModule.forRoles(RBAC_POLICY), CliModule],
     providers: [RbacResolver, RbacService],
     exports: [RbacService],
 })
