@@ -1,27 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { Cron, CronExpression } from '@nestjs/schedule'
+import { Cron } from '@nestjs/schedule'
+import {
+    defaultTitleSyncConfig,
+    TitleSyncConfig,
+} from '../../config/title-sync.config'
+import { TmdbTitleDataDTO } from '../../dto/tmdb-title-data.dto'
 import { TitleCategory } from '../../enums/title-category.enum'
+import { TitleSyncStatus } from '../../enums/title-sync-status.enum'
 import { TitleType } from '../../enums/title-type.enum'
+import { TitleSyncResult } from '../../models/title-sync-result.model'
 import { TmdbTitleResponse } from '../../modules/tmdb/types/tmdb.interface'
 import { TitleCacheService } from '../cache/title-cache.service'
 import { TitleService } from '../title.service'
-import { TitleChangeDetectorService } from '../utils/title-change-detector.service'
+import { TitleElasticsearchSyncService } from '../utils/title-elasticsearch-sync.service'
 import { TitleFetcherService } from '../utils/title-fetcher.service'
 import { TitleRelationService } from '../utils/title-relation.service'
+import { TitleTransformService } from '../utils/title-transform.service'
 import { TitleSyncQueueService } from './title-sync-queue.service'
 
 @Injectable()
 export class TitleSyncService {
     private readonly logger = new Logger(TitleSyncService.name)
-    private readonly categoryConfigs: Record<
-        TitleCategory,
-        {
-            maxPages: number
-            syncInterval: number
-            cronExpression: string
-        }
-    >
+    private readonly titleSyncConfig: TitleSyncConfig = defaultTitleSyncConfig
 
     constructor(
         private readonly titleSyncQueueService: TitleSyncQueueService,
@@ -29,291 +29,370 @@ export class TitleSyncService {
         private readonly titleRelationService: TitleRelationService,
         private readonly titleFetcherService: TitleFetcherService,
         private readonly titleService: TitleService,
-        private readonly titleChangeDetectorService: TitleChangeDetectorService,
-        private readonly configService: ConfigService,
-    ) {
-        this.categoryConfigs = {
-            [TitleCategory.POPULAR]: {
-                maxPages: 1,
-                syncInterval:
-                    this.configService.get<number>('sync.popularInterval') ||
-                    24,
-                cronExpression: CronExpression.EVERY_DAY_AT_MIDNIGHT,
-            },
-            [TitleCategory.TRENDING]: {
-                maxPages:
-                    this.configService.get<number>('tmdb.maxTrendingPages') ||
-                    3,
-                syncInterval:
-                    this.configService.get<number>('sync.trendingInterval') ||
-                    12,
-                cronExpression: CronExpression.EVERY_12_HOURS,
-            },
-            [TitleCategory.TOP_RATED]: {
-                maxPages:
-                    this.configService.get<number>('tmdb.maxTopRatedPages') ||
-                    30,
-                syncInterval:
-                    this.configService.get<number>('sync.topRatedInterval') ||
-                    96,
-                cronExpression: CronExpression.EVERY_QUARTER,
-            },
-            [TitleCategory.AIRING]: {
-                maxPages:
-                    this.configService.get<number>('tmdb.maxAiringPages') || 5,
-                syncInterval:
-                    this.configService.get<number>('sync.airingInterval') || 12,
-                cronExpression: CronExpression.EVERY_12_HOURS,
-            },
-            [TitleCategory.UPCOMING]: {
-                maxPages:
-                    this.configService.get<number>('tmdb.maxUpcomingPages') ||
-                    3,
-                syncInterval:
-                    this.configService.get<number>('sync.upcomingInterval') ||
-                    24,
-                cronExpression: CronExpression.EVERY_DAY_AT_MIDNIGHT,
-            },
-            [TitleCategory.REGULAR]: {
-                maxPages: 1,
-                syncInterval:
-                    this.configService.get<number>('sync.regularInterval') ||
-                    24,
-                cronExpression: CronExpression.EVERY_DAY_AT_MIDNIGHT,
-            },
+        private readonly titleTransformService: TitleTransformService,
+        private readonly titleElasticsearchSyncService: TitleElasticsearchSyncService,
+    ) {}
+
+    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.POPULAR])
+    async syncPopularTitles(): Promise<TitleSyncResult> {
+        try {
+            this.logger.warn('Starting popular titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.POPULAR,
+            )
+            return await this.titleCacheService.getCategorySyncResult(
+                TitleCategory.POPULAR,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start popular titles sync: ', error)
+            throw error
         }
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-    async syncPopularTitles(): Promise<boolean> {
-        if (await this.shouldSyncCategory(TitleCategory.POPULAR)) {
-            await this.titleSyncQueueService.addSyncJob(TitleCategory.POPULAR)
-            return true
+    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.TOP_RATED])
+    async syncTopRatedTitles(): Promise<TitleSyncResult> {
+        try {
+            this.logger.warn('Starting top rated titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.TOP_RATED,
+            )
+            return await this.titleCacheService.getCategorySyncResult(
+                TitleCategory.TOP_RATED,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start top rated titles sync: ', error)
+            throw error
         }
-        return false
     }
 
-    @Cron(CronExpression.EVERY_12_HOURS)
-    async syncAiringTitles(): Promise<boolean> {
-        if (await this.shouldSyncCategory(TitleCategory.AIRING)) {
-            await this.titleSyncQueueService.addSyncJob(TitleCategory.AIRING)
-            return true
+    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.TRENDING])
+    async syncTrendingTitles(): Promise<TitleSyncResult> {
+        try {
+            this.logger.warn('Starting trending titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.TRENDING,
+            )
+            return await this.titleCacheService.getCategorySyncResult(
+                TitleCategory.TRENDING,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start trending titles sync: ', error)
+            throw error
         }
-        return false
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-    async syncTopRatedTitles(): Promise<boolean> {
-        if (await this.shouldSyncCategory(TitleCategory.TOP_RATED)) {
-            await this.titleSyncQueueService.addSyncJob(TitleCategory.TOP_RATED)
-            return true
+    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.UPCOMING])
+    async syncUpcomingTitles(): Promise<TitleSyncResult> {
+        try {
+            this.logger.warn('Starting upcoming titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.UPCOMING,
+            )
+            return await this.titleCacheService.getCategorySyncResult(
+                TitleCategory.UPCOMING,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start upcoming titles sync: ', error)
+            throw error
         }
-        return false
     }
 
-    async syncTitlesByCategory(
+    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.AIRING])
+    async syncAiringTitles(): Promise<TitleSyncResult> {
+        try {
+            this.logger.warn('Starting airing titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.AIRING,
+            )
+            return await this.titleCacheService.getCategorySyncResult(
+                TitleCategory.AIRING,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start airing titles sync: ', error)
+            throw error
+        }
+    }
+
+    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.REGULAR])
+    async checkRegularTitlesChanges(): Promise<void> {
+        try {
+            this.logger.log('Starting regular titles changes check')
+            const regularTitles = await this.titleService.findAll({
+                category: TitleCategory.REGULAR,
+            })
+
+            for (const title of regularTitles) {
+                await this.checkTitleChanges(title.tmdbId, title.type)
+            }
+        } catch (error) {
+            this.logger.error('Failed to check regular titles changes:', error)
+            throw error
+        }
+    }
+
+    async syncAll(): Promise<Record<TitleCategory, TitleSyncResult>> {
+        try {
+            this.logger.warn('Starting sync for all categories')
+            const categories = Object.values(TitleCategory)
+
+            for (const category of categories) {
+                if (category === TitleCategory.REGULAR) continue
+                this.logger.debug(`Adding sync job for category: ${category}`)
+                await this.titleSyncQueueService.addCategorySyncJob(category, 1)
+            }
+
+            this.logger.warn('All category sync jobs have been added to queue')
+            return await this.titleCacheService.getSyncResults()
+        } catch (error) {
+            this.logger.fatal('Failed to start sync for all categories:', error)
+            throw error
+        }
+    }
+
+    async syncCategory(
         category: TitleCategory,
         page: number = 1,
-    ): Promise<number> {
-        this.logger.log(
-            `Starting sync for category: ${category}, page: ${page}`,
-        )
-
+    ): Promise<TitleSyncResult> {
         try {
+            this.logger.log(
+                `Starting sync for category: ${category}, page: ${page}`,
+            )
+            const limit = this.titleSyncConfig.limits[category]
+
             const { movieData, tvData } =
                 await this.titleFetcherService.fetchByCategory(category, page)
 
-            if (
-                (!movieData?.results?.length && !tvData?.results?.length) ||
-                (movieData?.total_pages === 0 && tvData?.total_pages === 0)
-            ) {
+            if (!movieData?.results?.length && !tvData?.results?.length) {
                 this.logger.warn(
                     `No results found for category: ${category}, page: ${page}`,
                 )
-                return 0
+                return {
+                    status: TitleSyncStatus.SUCCESS,
+                    timestamp: new Date(),
+                    total: 0,
+                    processed: 0,
+                    failed: [],
+                }
             }
 
-            const processedMovies = await this.processTmdbResults(
-                movieData?.results || [],
-                TitleType.MOVIE,
+            const previousResult =
+                await this.titleCacheService.getCategorySyncResult(category)
+            const previousProcessed = previousResult?.processed || 0
+            const remainingLimit = limit - previousProcessed
+
+            if (remainingLimit <= 0) {
+                this.logger.log(
+                    `Limit reached for category: ${category}, stopping sync`,
+                )
+                return previousResult
+            }
+
+            const total =
+                (movieData?.results?.length || 0) +
+                (tvData?.results?.length || 0)
+            const failed: string[] = []
+            let processedCount = 0
+
+            for (const movie of movieData.results) {
+                if (processedCount >= remainingLimit) break
+                try {
+                    await this.syncTitle(movie, TitleType.MOVIE, category)
+                    processedCount++
+                } catch (error) {
+                    failed.push(String(movie.id))
+                    this.logger.error(
+                        `Failed to sync movie ${movie.id}:`,
+                        error.stack,
+                    )
+                }
+            }
+
+            for (const tv of tvData.results) {
+                if (processedCount >= remainingLimit) break
+                try {
+                    await this.syncTitle(tv, TitleType.TV, category)
+                    processedCount++
+                } catch (error) {
+                    failed.push(String(tv.id))
+                    this.logger.error(
+                        `Failed to sync tv show ${tv.id}:`,
+                        error.stack,
+                    )
+                }
+            }
+
+            const newProcessed = previousProcessed + processedCount
+
+            const result: TitleSyncResult = {
+                status:
+                    failed.length === 0
+                        ? TitleSyncStatus.SUCCESS
+                        : failed.length === total
+                          ? TitleSyncStatus.FAILED
+                          : TitleSyncStatus.PARTIAL,
+                timestamp: new Date(),
+                total: newProcessed,
+                processed: newProcessed,
+                failed: [...(previousResult?.failed || []), ...failed],
+            }
+
+            await this.titleCacheService.storeCategorySyncResult(
                 category,
-            )
-            const processedTvShows = await this.processTmdbResults(
-                tvData?.results || [],
-                TitleType.TV,
-                category,
+                result,
             )
 
-            const totalProcessed =
-                processedMovies.length + processedTvShows.length
-
-            const maxPages = this.categoryConfigs[category].maxPages
             const hasMorePages =
-                (movieData?.total_pages > page || tvData?.total_pages > page) &&
-                page < maxPages
+                newProcessed < limit &&
+                (movieData?.total_pages > page || tvData?.total_pages > page)
 
             if (hasMorePages) {
-                await this.titleSyncQueueService.addSyncJob(
-                    category,
-                    page + 1,
-                    5000,
+                const remainingToProcess = limit - newProcessed
+
+                if (remainingToProcess > 0) {
+                    this.logger.log(
+                        `Adding next page for category: ${category}, remaining to process: ${remainingToProcess}`,
+                    )
+                    await this.titleSyncQueueService.addCategorySyncJob(
+                        category,
+                        page + 1,
+                        3000,
+                    )
+                } else {
+                    this.logger.log(
+                        `Limit reached for category: ${category}, stopping sync`,
+                    )
+                }
+            }
+
+            return result
+        } catch (error) {
+            this.logger.fatal(`Failed to sync category ${category}:`, error)
+            const failedResult: TitleSyncResult = {
+                status: TitleSyncStatus.FAILED,
+                timestamp: new Date(),
+                total: 0,
+                processed: 0,
+                failed: [],
+                error: error.message,
+            }
+            await this.titleCacheService.storeCategorySyncResult(
+                category,
+                failedResult,
+            )
+            return failedResult
+        }
+    }
+
+    async syncTitle(
+        titleToSync: TmdbTitleResponse,
+        type: TitleType,
+        category: TitleCategory,
+    ): Promise<void> {
+        try {
+            const tmdbId = String(titleToSync.id)
+            const titleDetails =
+                await this.titleFetcherService.fetchTitleDetails(tmdbId, type)
+            const imdbId = titleDetails.external_ids.imdb_id
+
+            const existingTitle = await this.titleService.findByTmdbId(tmdbId)
+            const titleData: TmdbTitleDataDTO = {
+                title: titleToSync,
+                titleDetails,
+                type,
+                category,
+                imdbId,
+                existingTitle,
+            }
+
+            let titleId: string
+            if (existingTitle) {
+                const titleUpdate =
+                    this.titleTransformService.createTitleUpdateDataFromTmdbResults(
+                        titleData,
+                    )
+
+                await this.titleService.updateFromTmdb(titleUpdate)
+                titleId = existingTitle.id
+
+                await this.titleRelationService.updateTitleRelations(
+                    titleId,
+                    titleDetails,
+                )
+
+                await this.titleElasticsearchSyncService.updateTitleInElasticsearch(
+                    titleId,
+                    titleData,
+                )
+            } else {
+                const newTitleData =
+                    this.titleTransformService.createTitleDataFromTmdbResults(
+                        titleData,
+                    )
+
+                const newTitle =
+                    await this.titleService.createFromTmdb(newTitleData)
+                titleId = newTitle.id
+
+                await this.titleRelationService.createTitleRelations(
+                    titleId,
+                    titleDetails,
+                )
+
+                await this.titleElasticsearchSyncService.syncTitleWithElasticsearch(
+                    titleId,
+                    titleData,
                 )
             }
 
-            return totalProcessed
+            if (imdbId) {
+                await this.titleSyncQueueService.addLocationSyncJob(
+                    titleId,
+                    imdbId,
+                    category,
+                )
+            }
         } catch (error) {
-            this.logger.warn(
-                `Failed to sync titles for category ${category}: ${error.message}`,
+            this.logger.error(
+                `Failed to sync title ${titleToSync.id}:`,
+                error.stack,
             )
             throw error
         }
     }
 
-    private async shouldSyncCategory(
-        category: TitleCategory,
-    ): Promise<boolean> {
-        const config = this.categoryConfigs[category]
-        const lastSync =
-            await this.titleCacheService.getCategoryLastSync(category)
-
-        if (!lastSync) return true
-
-        const hoursSinceLastSync =
-            (Date.now() - lastSync.getTime()) / (1000 * 60 * 60)
-        return hoursSinceLastSync >= config.syncInterval
-    }
-
-    private async processTmdbResults(
-        results: TmdbTitleResponse[],
+    private async checkTitleChanges(
+        tmdbId: string,
         type: TitleType,
-        category: TitleCategory,
-    ): Promise<string[]> {
-        const tasks = results.map(async (result) => {
-            try {
-                const existingTitle = await this.titleService.findByTmdbId(
-                    String(result.id),
-                )
+    ): Promise<void> {
+        try {
+            const changes = await this.titleFetcherService.getTitleChanges(
+                tmdbId,
+                type,
+            )
+            if (!changes || Array(changes).length === 0) return
 
-                if (existingTitle) {
-                    const detailedInfo =
-                        await this.titleFetcherService.fetchTitleDetails(
-                            String(result.id),
-                            type,
-                        )
+            const title = await this.titleService.findByTmdbId(tmdbId)
+            if (!title) return
 
-                    if (!detailedInfo) return existingTitle.id
+            await this.titleService.updateFromTmdb({
+                tmdbId,
+                lastChangesCheck: new Date(),
+            })
 
-                    const imdbId = detailedInfo.external_ids.imdb_id
-
-                    const cachedDetails =
-                        await this.titleCacheService.getDetails(
-                            existingTitle.id,
-                            category,
-                        )
-
-                    const titleChanged =
-                        this.titleChangeDetectorService.isTitleChanged(
-                            cachedDetails,
-                            detailedInfo,
-                        )
-
-                    if (titleChanged) {
-                        await this.titleService.updateTitleFromTmdb(
-                            existingTitle,
-                            result,
-                            detailedInfo,
-                            type,
-                            category,
-                            imdbId,
-                        )
-
-                        await Promise.all([
-                            this.titleRelationService.updateTitleRelations(
-                                existingTitle.id,
-                                detailedInfo,
-                            ),
-                            this.titleCacheService.storeDetailedInfoInRedis(
-                                existingTitle.id,
-                                detailedInfo,
-                                category,
-                            ),
-                        ])
-                    } else {
-                        await this.titleCacheService.extendTitleTTL(
-                            existingTitle.id,
-                            category,
-                        )
-                    }
-
-                    if (imdbId) {
-                        await this.titleSyncQueueService.addLocationSyncJob(
-                            existingTitle.id,
-                            imdbId,
-                            category,
-                        )
-                    }
-
-                    return existingTitle.id
-                } else {
-                    const detailedInfo =
-                        await this.titleFetcherService.fetchTitleDetails(
-                            String(result.id),
-                            type,
-                        )
-
-                    if (!detailedInfo) return null
-
-                    const imdbId = detailedInfo.external_ids.imdb_id ?? null
-
-                    const titleId = await this.titleService.createTitleFromTmdb(
-                        result,
-                        detailedInfo,
-                        type,
-                        category,
-                        imdbId,
-                    )
-
-                    if (titleId) {
-                        await Promise.all([
-                            this.titleRelationService.createTitleRelations(
-                                titleId,
-                                detailedInfo,
-                            ),
-                            this.titleCacheService.storeDetailedInfoInRedis(
-                                titleId,
-                                detailedInfo,
-                                category,
-                            ),
-                            imdbId
-                                ? this.titleSyncQueueService.addLocationSyncJob(
-                                      titleId,
-                                      imdbId,
-                                      category,
-                                  )
-                                : Promise.resolve(),
-                        ])
-                    }
-
-                    return titleId
-                }
-            } catch (error) {
-                this.logger.warn(
-                    `Failed to process TMDB result ID ${result.id}: ${error.message}`,
-                )
-                return null
-            }
-        })
-
-        const processedIds = (await Promise.all(tasks)).filter(
-            (id) => id !== null && id !== undefined,
-        )
-
-        return processedIds
+            const titleDetails =
+                await this.titleFetcherService.fetchTitleDetails(tmdbId, type)
+            await this.syncTitle(titleDetails, type, title.category)
+        } catch (error) {
+            this.logger.error(
+                `Failed to check changes for title ${tmdbId}:`,
+                error,
+            )
+        }
     }
 
     async cleanup(): Promise<boolean> {
         this.logger.warn(
-            'Starting cleanup process: deleting all titles and relations, and clearing Redis.',
+            'Starting cleanup process: deleting all titles and relations, and clearing Redis and ElasticSearch.',
         )
 
         try {
@@ -321,9 +400,24 @@ export class TitleSyncService {
             await this.titleRelationService.deleteAllRelations()
             this.logger.debug('Title relations deleted.')
 
-            this.logger.debug('Deleting all titles...')
+            // Получаем все ID тайтлов для удаления из ElasticSearch
+            this.logger.debug(
+                'Getting all title IDs for ElasticSearch cleanup...',
+            )
+            const allTitles = await this.titleService.findAll()
+
+            this.logger.debug('Deleting all titles from PostgreSQL...')
             await this.titleService.deleteAllTitles()
-            this.logger.debug('All titles deleted.')
+            this.logger.debug('All titles deleted from PostgreSQL.')
+
+            // Удаляем тайтлы из ElasticSearch
+            this.logger.debug('Deleting titles from ElasticSearch...')
+            for (const title of allTitles) {
+                await this.titleElasticsearchSyncService.deleteTitleFromElasticsearch(
+                    title.id,
+                )
+            }
+            this.logger.debug('Titles deleted from ElasticSearch.')
 
             this.logger.debug('Clearing Redis...')
             await this.titleCacheService.clearAllTitlesCache()

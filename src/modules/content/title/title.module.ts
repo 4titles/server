@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq'
 import { Module } from '@nestjs/common'
 import { CountryModule } from './modules/country/country.module'
+import { TitleElasticsearchModule } from './modules/elasticsearch/title-elasticsearch.module'
 import { FilmingLocationModule } from './modules/filming-location/filming-location.module'
 import { GenreModule } from './modules/genre/genre.module'
 import { GeocodingModule } from './modules/geocoding/geocoding.module'
@@ -14,8 +15,10 @@ import { TitleLocationSyncService } from './services/sync/title-location-sync.se
 import { TitleSyncQueueService } from './services/sync/title-sync-queue.service'
 import { TitleSyncProcessor } from './services/sync/title-sync.processor'
 import { TitleSyncService } from './services/sync/title-sync.service'
+import { TitleQueryService } from './services/title-query.service'
 import { TitleService } from './services/title.service'
 import { TitleChangeDetectorService } from './services/utils/title-change-detector.service'
+import { TitleElasticsearchSyncService } from './services/utils/title-elasticsearch-sync.service'
 import { TitleFetcherService } from './services/utils/title-fetcher.service'
 import { TitleRelationService } from './services/utils/title-relation.service'
 import { TitleTransformService } from './services/utils/title-transform.service'
@@ -29,6 +32,7 @@ import { TitleResolver } from './title.resolver'
         LanguageModule,
         FilmingLocationModule,
         TmdbModule,
+        TitleElasticsearchModule,
         BullModule.registerQueue(
             {
                 name: 'title-sync',
@@ -53,12 +57,15 @@ import { TitleResolver } from './title.resolver'
         TitleSyncQueueService,
         TitleLocationSyncService,
         TitleChangeDetectorService,
+        TitleElasticsearchSyncService,
+        TitleQueryService,
     ],
     exports: [
         TitleService,
         TitleSyncService,
         TitleConfigSyncService,
         TitleLocationSyncService,
+        TitleQueryService,
     ],
 })
 export class TitleModule {}

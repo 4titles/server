@@ -3,12 +3,14 @@ import {
     CreditsResponse,
     KeywordResponse,
     MovieAlternativeTitlesResponse,
+    MovieChangesResponse,
     MovieExternalIdsResponse,
     MovieImagesResponse,
     MovieRecommendationsResponse,
     MovieResponse,
     MovieResultsResponse,
     ShowAlternativeTitlesResponse,
+    ShowChangesResponse,
     ShowResponse,
     SimilarMovieResponse,
     TrendingResponse,
@@ -41,6 +43,10 @@ export type TmdbTitleAlternativeTitlesResponse =
     | MovieAlternativeTitlesResponse
     | ShowAlternativeTitlesResponse
 
+export type TmdbTitleChangesResponse =
+    | MovieChangesResponse
+    | ShowChangesResponse
+
 export interface TmdbResponse {
     results: TmdbTitleResponse[]
     total_pages: number
@@ -55,8 +61,8 @@ export interface ExtendedMovieResponse extends MovieResponse {
     credits: CreditsResponse
     recommendations: MovieRecommendationsResponse
     similar: SimilarMovieResponse
-    keywords: KeywordResponse
-    alternative_titles: TmdbTitleAlternativeTitlesResponse
+    keywords: KeywordResponse[]
+    alternative_titles: MovieAlternativeTitlesResponse
     translations: CollectionTranslationsResponse
     external_ids: TmdbExternalIds
     images: MovieImagesResponse
@@ -66,8 +72,8 @@ export interface ExtendedShowResponse extends ShowResponse {
     credits: CreditsResponse
     recommendations: TvResultsResponse
     similar: TvSimilarShowsResponse
-    keywords: KeywordResponse
-    alternative_titles: TmdbTitleAlternativeTitlesResponse
+    keywords: KeywordResponse[]
+    alternative_titles: ShowAlternativeTitlesResponse
     translations: CollectionTranslationsResponse
     external_ids: TmdbExternalIds
     images: TvImagesResponse

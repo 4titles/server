@@ -4,10 +4,14 @@ import { Job, JobsOptions, Queue } from 'bullmq'
 import { TitleCategory } from '../../enums/title-category.enum'
 
 interface JobData {
-    category?: TitleCategory
+    category: TitleCategory
     page?: number
-    titleId?: string
-    imdbId?: string
+}
+
+interface LocationJobData {
+    titleId: string
+    imdbId: string
+    category: TitleCategory
 }
 
 @Injectable()
@@ -22,6 +26,7 @@ export class TitleSyncQueueService {
             delay: 60000, // 1 minute in ms
         },
     }
+
     private LOCATION_SYNC_OPTIONS: JobsOptions = {
         ...this.DEFAULT_QUEUE_OPTIONS,
         priority: 5,
@@ -33,19 +38,19 @@ export class TitleSyncQueueService {
         private readonly locationSyncQueue: Queue,
     ) {}
 
-    async addSyncJob(
+    async addCategorySyncJob(
         category: TitleCategory,
         page: number = 1,
         delay: number = 0,
     ): Promise<void> {
         await this.addJob(
             this.titleSyncQueue,
-            'sync-titles',
+            'sync-category',
             { category, page },
             { ...this.DEFAULT_QUEUE_OPTIONS, delay },
         )
         this.logger.debug(
-            `Added sync job for category: ${category}, page: ${page}`,
+            `Added category sync job for category: ${category}, page: ${page}`,
         )
     }
 
@@ -57,7 +62,7 @@ export class TitleSyncQueueService {
         await this.addJob(
             this.locationSyncQueue,
             'sync-locations',
-            { titleId, imdbId, category },
+            { titleId, imdbId, category } as LocationJobData,
             this.LOCATION_SYNC_OPTIONS,
         )
         this.logger.debug(

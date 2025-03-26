@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
     MovieResultsResponse,
@@ -11,17 +11,24 @@ import { TmdbService } from '../../modules/tmdb/tmdb.service'
 import {
     ExtendedMovieResponse,
     ExtendedShowResponse,
+    TmdbTitleChangesResponse,
     TmdbTitleRecommendationsResponse,
     TmdbTitleSimilarResponse,
 } from '../../modules/tmdb/types/tmdb.interface'
 
-interface CategoryResponse {
+export interface CategoryResponse {
     movieData: MovieResultsResponse | TrendingResponse
     tvData: TvResultsResponse | TrendingResponse
 }
 
+export interface CategoryResponseWithLimit extends CategoryResponse {
+    totalPages: number
+    hasMore: boolean
+}
+
 @Injectable()
 export class TitleFetcherService {
+    private readonly logger = new Logger(TitleFetcherService.name)
     private readonly TMDB_ADDITIONAL_FIELDS: string
     private readonly defaultLanguage: string
 
@@ -31,12 +38,12 @@ export class TitleFetcherService {
     ) {
         this.TMDB_ADDITIONAL_FIELDS = [
             'images',
-            'recommendations',
             'translations',
             'external_ids',
             'keywords',
             'credits',
-            'similar',
+            // 'similar',
+            // 'recommendations',
             'alternative_titles',
         ].join(',')
 
@@ -63,7 +70,7 @@ export class TitleFetcherService {
     }
 
     async fetchTitleDetails(
-        tmdbId: string,
+        tmdbId: string | number,
         type: TitleType,
     ): Promise<ExtendedMovieResponse | ExtendedShowResponse> {
         try {
@@ -191,6 +198,38 @@ export class TitleFetcherService {
             }
         } catch {
             return { results: [], total_pages: 0 }
+        }
+    }
+
+    async getTitleChanges(
+        tmdbId: string,
+        type: TitleType,
+    ): Promise<TmdbTitleChangesResponse | null> {
+        try {
+            const endDate = new Date()
+            const startDate = new Date()
+            startDate.setDate(startDate.getDate() - 1)
+
+            if (type === TitleType.MOVIE) {
+                return await this.tmdbService.getMovieChanges(
+                    tmdbId,
+                    startDate.toISOString().split('T')[0],
+                    endDate.toISOString().split('T')[0],
+                )
+            } else {
+                return await this.tmdbService.getTvShowChanges(
+                    tmdbId,
+                    startDate.toISOString().split('T')[0],
+                    endDate.toISOString().split('T')[0],
+                )
+            }
+        } catch (error) {
+            this.logger.error(
+                `Failed to get changes for title ${tmdbId}:`,
+                error,
+            )
+
+            return null
         }
     }
 }

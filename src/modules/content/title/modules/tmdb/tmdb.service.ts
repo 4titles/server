@@ -6,10 +6,12 @@ import {
     CreditsResponse,
     ExternalId,
     Language,
+    MovieChangesResponse,
     MovieDb,
     MovieImagesResponse,
     MovieRecommendationsResponse,
     MovieResultsResponse,
+    ShowChangesResponse,
     SimilarMovieResponse,
     TrendingResponse,
     TvImagesResponse,
@@ -465,6 +467,50 @@ export class TmdbService {
             )
             throw new TmdbException(
                 `Failed to find title by IMDb ID: ${error.message}`,
+            )
+        }
+    }
+
+    async getMovieChanges(
+        tmdbId: string,
+        startDate: string,
+        endDate: string,
+    ): Promise<MovieChangesResponse> {
+        try {
+            return await this.moviedb.movieChanges({
+                id: tmdbId,
+                start_date: startDate,
+                end_date: endDate,
+            })
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch movie changes for ID ${tmdbId}:`,
+                error,
+            )
+            throw new TmdbException(
+                `Failed to fetch movie changes: ${error.message}`,
+            )
+        }
+    }
+
+    async getTvShowChanges(
+        tmdbId: string,
+        startDate: string,
+        endDate: string,
+    ): Promise<ShowChangesResponse> {
+        try {
+            return await this.moviedb.tvChanges({
+                id: tmdbId,
+                start_date: startDate,
+                end_date: endDate,
+            })
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch TV show changes for ID ${tmdbId}:`,
+                error,
+            )
+            throw new TmdbException(
+                `Failed to fetch TV show changes: ${error.message}`,
             )
         }
     }

@@ -1,25 +1,16 @@
 import { CacheService } from '@/modules/infrastructure/cache/cache.service'
 import { Injectable, Logger } from '@nestjs/common'
-import {
-    CreditsResponse,
-    MovieRecommendationsResponse,
-    SimilarMovieResponse,
-    TvExternalIdsResponse,
-    TvResultsResponse,
-    TvSimilarShowsResponse,
-} from 'moviedb-promise'
+import { defaultTitleSyncConfig } from '../../config/title-sync.config'
 import { TitleCategory } from '../../enums/title-category.enum'
+import { TitleSyncResult } from '../../models/title-sync-result.model'
 import { RawLocation } from '../../modules/filming-location/interfaces/raw-location.interface'
-import {
-    TmdbImages,
-    TmdbTitleExtendedResponse,
-} from '../../modules/tmdb/types/tmdb.interface'
 
 @Injectable()
 export class TitleCacheService {
     private readonly logger = new Logger(TitleCacheService.name)
     private readonly REDIS_KEY_PREFIX = 'title:'
     private readonly REDIS_EXPIRE_TIME = 60 * 60 * 24 * 7 // 1 week
+    private readonly titleSyncConfig = defaultTitleSyncConfig
 
     constructor(private readonly cacheService: CacheService) {}
 
@@ -45,170 +36,14 @@ export class TitleCacheService {
         }
     }
 
-    async storeDetailedInfoInRedis(
-        titleId: string,
-        detailedInfo: TmdbTitleExtendedResponse,
-        category: TitleCategory,
-    ): Promise<void> {
-        try {
-            const redisData = {
-                ...detailedInfo,
-                _cached_at: new Date().toISOString(),
-            }
-
-            await this.cacheService.set(
-                this.getDetailsKey(titleId, category),
-                JSON.stringify(redisData),
-                this.REDIS_EXPIRE_TIME,
-            )
-
-            const additionalData = [
-                {
-                    key: this.getCreditsKey(titleId, category),
-                    data: detailedInfo.credits,
-                },
-                {
-                    key: this.getKeywordsKey(titleId, category),
-                    data: detailedInfo.keywords,
-                },
-                {
-                    key: this.getAlternativeTitlesKey(titleId, category),
-                    data: detailedInfo.alternative_titles,
-                },
-                {
-                    key: this.getExternalIdsKey(titleId, category),
-                    data: detailedInfo.external_ids,
-                },
-                {
-                    key: this.getImagesKey(titleId, category),
-                    data: detailedInfo.images,
-                },
-                {
-                    key: this.getRecommendationsKey(titleId, category, 1),
-                    data: detailedInfo.recommendations,
-                },
-                {
-                    key: this.getSimilarKey(titleId, category, 1),
-                    data: detailedInfo.similar,
-                },
-            ]
-
-            await Promise.all(
-                additionalData
-                    .filter(({ data }) => data)
-                    .map(({ key, data }) =>
-                        this.cacheService.set(
-                            key,
-                            JSON.stringify(data),
-                            this.REDIS_EXPIRE_TIME,
-                        ),
-                    ),
-            )
-        } catch (error) {
-            this.logger.error(
-                `Failed to store detailed info in Redis for title ${titleId}: ${error.message}`,
-            )
-            throw error
-        }
-    }
-
-    async getDetails(
+    async getFilmingLocations(
         titleId: string,
         category: TitleCategory,
-    ): Promise<TmdbTitleExtendedResponse | null> {
+    ): Promise<RawLocation[] | null> {
         const data = await this.cacheService.get<string>(
-            this.getDetailsKey(titleId, category),
+            this.getFilmingLocationsKey(titleId, category),
         )
         return data ? JSON.parse(data) : null
-    }
-
-    async getCredits(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<CreditsResponse | null> {
-        const data = await this.cacheService.get<string>(
-            this.getCreditsKey(titleId, category),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getImages(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<TmdbImages | null> {
-        const data = await this.cacheService.get<string>(
-            this.getImagesKey(titleId, category),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getKeywords(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<any | null> {
-        const data = await this.cacheService.get<string>(
-            this.getKeywordsKey(titleId, category),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getAlternativeTitles(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<any | null> {
-        const data = await this.cacheService.get<string>(
-            this.getAlternativeTitlesKey(titleId, category),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getRecommendations(
-        titleId: string,
-        category: TitleCategory,
-        page: number,
-    ): Promise<MovieRecommendationsResponse | TvResultsResponse | null> {
-        const data = await this.cacheService.get<string>(
-            this.getRecommendationsKey(titleId, category, page),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getSimilar(
-        titleId: string,
-        category: TitleCategory,
-        page: number,
-    ): Promise<SimilarMovieResponse | TvSimilarShowsResponse | null> {
-        const data = await this.cacheService.get<string>(
-            this.getSimilarKey(titleId, category, page),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getExternalIds(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<TvExternalIdsResponse | null> {
-        const data = await this.cacheService.get<string>(
-            this.getExternalIdsKey(titleId, category),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
-    async getCategoryLastSync(category: TitleCategory): Promise<Date | null> {
-        const client = await this.cacheService.getClient()
-        const keys = await client.keys(
-            `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:*:details`,
-        )
-
-        if (keys.length === 0) return null
-
-        const firstKey = keys[0]
-        const data = await this.cacheService.get<string>(firstKey)
-
-        if (!data) return null
-
-        const parsedData = JSON.parse(data)
-        return new Date(parsedData._cached_at)
     }
 
     async storeFilmingLocations(
@@ -223,16 +58,6 @@ export class TitleCacheService {
         )
     }
 
-    async getFilmingLocations(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<RawLocation[] | null> {
-        const data = await this.cacheService.get<string>(
-            this.getFilmingLocationsKey(titleId, category),
-        )
-        return data ? JSON.parse(data) : null
-    }
-
     async extendFilmingLocationsTTL(
         titleId: string,
         category: TitleCategory,
@@ -245,79 +70,6 @@ export class TitleCacheService {
         )
     }
 
-    async extendTitleTTL(
-        titleId: string,
-        category: TitleCategory,
-    ): Promise<void> {
-        const keys = [
-            this.getDetailsKey(titleId, category),
-            this.getCreditsKey(titleId, category),
-            this.getImagesKey(titleId, category),
-            this.getKeywordsKey(titleId, category),
-            this.getAlternativeTitlesKey(titleId, category),
-            this.getExternalIdsKey(titleId, category),
-        ]
-
-        await Promise.all(
-            keys.map(async (key) => {
-                const data = await this.cacheService.get(key)
-                if (data) {
-                    await this.cacheService.set(
-                        key,
-                        data,
-                        this.REDIS_EXPIRE_TIME,
-                    )
-                }
-            }),
-        )
-    }
-
-    private getDetailsKey(titleId: string, category: TitleCategory): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:details`
-    }
-
-    private getCreditsKey(titleId: string, category: TitleCategory): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:credits`
-    }
-
-    private getImagesKey(titleId: string, category: TitleCategory): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:images`
-    }
-
-    private getKeywordsKey(titleId: string, category: TitleCategory): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:keywords`
-    }
-
-    private getAlternativeTitlesKey(
-        titleId: string,
-        category: TitleCategory,
-    ): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:alternative_titles`
-    }
-
-    private getExternalIdsKey(
-        titleId: string,
-        category: TitleCategory,
-    ): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:external_ids`
-    }
-
-    private getRecommendationsKey(
-        titleId: string,
-        category: TitleCategory,
-        page: number,
-    ): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:recommendations:${page}`
-    }
-
-    private getSimilarKey(
-        titleId: string,
-        category: TitleCategory,
-        page: number,
-    ): string {
-        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:similar:${page}`
-    }
-
     private getFilmingLocationsKey(
         titleId: string,
         category: TitleCategory,
@@ -325,30 +77,93 @@ export class TitleCacheService {
         return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:filming_locations`
     }
 
-    private filterImagesByLanguages(
-        images: TmdbImages,
-        supportedLanguages: string[],
-    ): TmdbImages {
-        if (!images) return images
+    async storeSyncResult(
+        titleId: string,
+        category: TitleCategory,
+        result: TitleSyncResult,
+    ): Promise<void> {
+        const key = this.getSyncResultKey(titleId, category)
+        await this.cacheService.set(
+            key,
+            JSON.stringify(result),
+            this.REDIS_EXPIRE_TIME,
+        )
+    }
 
-        const filtered = { ...images }
+    async getSyncResult(
+        titleId: string,
+        category: TitleCategory,
+    ): Promise<TitleSyncResult | null> {
+        const data = await this.cacheService.get<string>(
+            this.getSyncResultKey(titleId, category),
+        )
+        return data ? JSON.parse(data) : null
+    }
 
-        if (filtered.posters) {
-            filtered.posters = filtered.posters.filter(
-                (poster) =>
-                    !poster.iso_639_1 ||
-                    supportedLanguages.includes(poster.iso_639_1),
-            )
+    async extendSyncResultTTL(
+        titleId: string,
+        category: TitleCategory,
+    ): Promise<void> {
+        const key = this.getSyncResultKey(titleId, category)
+        const data = await this.cacheService.get(key)
+        if (data) {
+            await this.cacheService.set(key, data, this.REDIS_EXPIRE_TIME)
+        }
+    }
+
+    private getSyncResultKey(titleId: string, category: TitleCategory): string {
+        return `${this.REDIS_KEY_PREFIX}${category.toLowerCase()}:${titleId}:sync_result`
+    }
+
+    async storeCategorySyncResult(
+        category: TitleCategory,
+        result: TitleSyncResult,
+    ): Promise<void> {
+        const key = `sync:category:${category}`
+        const previousResult = await this.getCategorySyncResult(category)
+
+        if (previousResult) {
+            result = {
+                ...result,
+                total: Math.min(
+                    result.total,
+                    this.titleSyncConfig.limits[category],
+                ),
+                processed: Math.min(
+                    result.processed,
+                    this.titleSyncConfig.limits[category],
+                ),
+                failed: [...previousResult.failed, ...result.failed],
+            }
         }
 
-        if (filtered.backdrops) {
-            filtered.backdrops = filtered.backdrops.filter(
-                (backdrop) =>
-                    !backdrop.iso_639_1 ||
-                    supportedLanguages.includes(backdrop.iso_639_1),
-            )
+        await this.cacheService.set(key, JSON.stringify(result), 86400)
+    }
+
+    async getCategorySyncResult(
+        category: TitleCategory,
+    ): Promise<TitleSyncResult | null> {
+        const key = `sync:category:${category}`
+        const result = await this.cacheService.get<string>(key)
+        return result ? JSON.parse(result) : null
+    }
+
+    async getSyncResults(): Promise<Record<TitleCategory, TitleSyncResult>> {
+        const categories = Object.values(TitleCategory)
+        const results: Record<TitleCategory, TitleSyncResult> = {} as Record<
+            TitleCategory,
+            TitleSyncResult
+        >
+
+        for (const category of categories) {
+            results[category] = await this.getCategorySyncResult(category)
         }
 
-        return filtered
+        return results
+    }
+
+    async getCategoryProcessedCount(category: TitleCategory): Promise<number> {
+        const result = await this.getCategorySyncResult(category)
+        return result?.processed || 0
     }
 }

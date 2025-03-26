@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job } from 'bullmq'
 import { TitleCategory } from '../../enums/title-category.enum'
+import { TitleSyncResult } from '../../models/title-sync-result.model'
 import { TitleSyncService } from './title-sync.service'
 
 @Processor('title-sync', {
@@ -15,19 +16,25 @@ export class TitleSyncProcessor extends WorkerHost {
         super()
     }
 
-    async process(job: Job<{ category: TitleCategory; page?: number }>) {
+    async process(
+        job: Job<{ category: TitleCategory; page?: number }>,
+    ): Promise<TitleSyncResult> {
         const { category, page = 1 } = job.data
         this.logger.debug(
             `Processing sync for category: ${category}, page: ${page}`,
         )
 
         try {
-            const processedCount =
-                await this.titleSyncService.syncTitlesByCategory(category, page)
-            this.logger.debug(
-                `Completed sync for category: ${category}, page: ${page}, processed: ${processedCount}`,
+            const result = await this.titleSyncService.syncCategory(
+                category,
+                page,
             )
-            return { processedCount }
+
+            this.logger.debug(
+                `Completed sync for category: ${category}, page: ${page}, status: ${result.status}, processed: ${result.processed}/${result.total}`,
+            )
+
+            return result
         } catch (error) {
             this.logger.error(
                 `Failed to process sync for category: ${category}, page: ${page}`,

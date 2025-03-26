@@ -1,25 +1,23 @@
 import { Field, ObjectType } from '@nestjs/graphql'
-
-@ObjectType()
-export class TitleSyncStats {
-    @Field(() => Number)
-    totalProcessed: number
-
-    @Field(() => Number)
-    totalFailed: number
-
-    @Field(() => Number)
-    totalLocationsSynced: number
-}
+import { TitleSyncStatus } from '../enums/title-sync-status.enum'
 
 @ObjectType()
 export class TitleSyncResult {
-    @Field(() => Boolean)
-    success: boolean
+    @Field(() => TitleSyncStatus)
+    status: TitleSyncStatus
 
     @Field(() => String)
-    message: string
+    timestamp: Date
 
-    @Field(() => TitleSyncStats)
-    stats: TitleSyncStats
+    @Field(() => Number)
+    total: number
+
+    @Field(() => Number)
+    processed: number
+
+    @Field(() => [String])
+    failed: string[]
+
+    @Field(() => String, { nullable: true })
+    error?: string
 }

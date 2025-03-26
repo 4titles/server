@@ -1,9 +1,6 @@
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
-import { DbFilmingLocation } from '@/modules/infrastructure/drizzle/schema/filming-locations.schema'
-import { titleFilmingLocations } from '@/modules/infrastructure/drizzle/schema/title-filming-locations.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
 import { TitleCategory } from '../../enums/title-category.enum'
 import { FilmingLocationParserService } from '../../modules/filming-location/services/filming-location-parser.service'
 import { FilmingLocationService } from '../../modules/filming-location/services/filming-location.service'
@@ -56,11 +53,6 @@ export class TitleLocationSyncService {
                     )
                 }
 
-                await this.titleService.updateNeedsLocationUpdate(
-                    titleId,
-                    false,
-                )
-
                 return
             }
 
@@ -75,10 +67,7 @@ export class TitleLocationSyncService {
                     titleId,
                     category,
                 )
-                await this.titleService.updateNeedsLocationUpdate(
-                    titleId,
-                    false,
-                )
+
                 return
             }
 
@@ -130,9 +119,9 @@ export class TitleLocationSyncService {
                     category,
                     rawLocations,
                 )
-            }
 
-            await this.titleService.updateNeedsLocationUpdate(titleId, false)
+                await this.titleService.updateHasLocations(titleId, true)
+            }
         } catch (error) {
             this.logger.error(
                 `Failed to sync locations for title ${titleId}`,
@@ -140,14 +129,5 @@ export class TitleLocationSyncService {
             )
             throw error
         }
-    }
-
-    async getTitleLocations(titleId: string): Promise<DbFilmingLocation[]> {
-        const relations = await this.db.query.titleFilmingLocations.findMany({
-            where: eq(titleFilmingLocations.titleId, titleId),
-            with: { filmingLocation: true },
-        })
-
-        return relations.map((relation) => relation.filmingLocation)
     }
 }

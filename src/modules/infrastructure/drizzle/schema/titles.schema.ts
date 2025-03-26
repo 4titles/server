@@ -1,4 +1,3 @@
-import { TitleDetails } from '@/modules/content/title/models/title-details.model'
 import { TitleOverview } from '@/modules/content/title/models/title.model'
 import { relations } from 'drizzle-orm'
 import {
@@ -40,9 +39,10 @@ export const titles = pgTable(
         backdropPath: text('backdrop_path'),
         popularity: real('popularity').default(0),
         overview: jsonb('overview').$type<TitleOverview>(),
-        details: jsonb('details').$type<TitleDetails>().notNull(),
-        needsLocationUpdate: boolean('needs_location_update').default(false),
-        lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+        hasLocations: boolean('has_locations').default(false),
+        lastChangesCheck: timestamp('last_changes_check', {
+            withTimezone: true,
+        }),
         ...timestamps,
     },
     (table) => ({
