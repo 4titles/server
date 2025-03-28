@@ -59,8 +59,6 @@ export type TmdbExternalIds = MovieExternalIdsResponse | TvExternalIdsResponse
 
 export interface ExtendedMovieResponse extends MovieResponse {
     credits: CreditsResponse
-    recommendations: MovieRecommendationsResponse
-    similar: SimilarMovieResponse
     keywords: KeywordResponse[]
     alternative_titles: MovieAlternativeTitlesResponse
     translations: CollectionTranslationsResponse
@@ -70,11 +68,22 @@ export interface ExtendedMovieResponse extends MovieResponse {
 
 export interface ExtendedShowResponse extends ShowResponse {
     credits: CreditsResponse
-    recommendations: TvResultsResponse
-    similar: TvSimilarShowsResponse
     keywords: KeywordResponse[]
     alternative_titles: ShowAlternativeTitlesResponse
     translations: CollectionTranslationsResponse
     external_ids: TmdbExternalIds
     images: TvImagesResponse
+}
+
+export interface TmdbTranslation {
+    iso_3166_1?: string
+    iso_639_1?: string
+    name?: string
+    english_name?: string
+    data?: {
+        title?: string
+        overview?: string
+        homepage?: string
+        tagline?: string
+    }
 }

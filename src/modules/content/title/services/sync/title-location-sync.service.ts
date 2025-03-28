@@ -5,9 +5,9 @@ import { TitleCategory } from '../../enums/title-category.enum'
 import { FilmingLocationParserService } from '../../modules/filming-location/services/filming-location-parser.service'
 import { FilmingLocationService } from '../../modules/filming-location/services/filming-location.service'
 import { TitleCacheService } from '../cache/title-cache.service'
+import { TitleRelationService } from '../relations/title-relation.service'
 import { TitleService } from '../title.service'
 import { TitleChangeDetectorService } from '../utils/title-change-detector.service'
-import { TitleRelationService } from '../utils/title-relation.service'
 
 @Injectable()
 export class TitleLocationSyncService {

@@ -1,3 +1,4 @@
+import getElasticSearchConfig from '@/config/elasticsearch.config'
 import { Client } from '@elastic/elasticsearch'
 import {
     BulkResponse,
@@ -5,6 +6,7 @@ import {
     IndexResponse,
     IndicesCreateResponse,
     IndicesDeleteResponse,
+    IndicesExistsResponse,
     SearchResponse,
     UpdateResponse,
 } from '@elastic/elasticsearch/lib/api/types'
@@ -16,89 +18,138 @@ export class ElasticsearchService implements OnModuleInit {
     private readonly logger = new Logger(ElasticsearchService.name)
     private client: Client
 
-    constructor(private configService: ConfigService) {
-        this.client = new Client({
-            node: this.configService.get('ELASTICSEARCH_NODE'),
-            auth: {
-                username: this.configService.get('ELASTICSEARCH_USERNAME'),
-                password: this.configService.get('ELASTICSEARCH_PASSWORD'),
-            },
-        })
+    constructor(private readonly configService: ConfigService) {
+        const config = getElasticSearchConfig(configService)
+        this.client = new Client(config)
     }
 
     async onModuleInit() {
         try {
-            await this.client.ping()
-            this.logger.log('Elasticsearch connection successful')
+            const info = await this.client.info()
+            this.logger.log(
+                `Connected to Elasticsearch cluster: ${info.cluster_name} [${info.version.number}]`,
+            )
         } catch (error) {
             this.logger.error('Elasticsearch connection failed:', error)
             throw error
         }
     }
 
+    async indexExists(index: string): Promise<boolean> {
+        try {
+            const response: IndicesExistsResponse =
+                await this.client.indices.exists({ index })
+            return response
+        } catch (error) {
+            this.logger.error(`Index exists check failed for ${index}:`, error)
+            return false
+        }
+    }
+
     async createIndex(
         index: string,
-        settings?: any,
-        mappings?: any,
+        settings?: Record<string, any>,
+        mappings?: Record<string, any>,
     ): Promise<IndicesCreateResponse> {
-        const exists = await this.client.indices.exists({ index })
-        if (!exists) {
-            return await this.client.indices.create({
+        try {
+            const exists = await this.indexExists(index)
+            if (exists) {
+                this.logger.log(`Index ${index} already exists`)
+                return { acknowledged: true, index, shards_acknowledged: true }
+            }
+
+            const response = await this.client.indices.create({
                 index,
-                body: {
-                    settings,
-                    mappings,
-                },
+                body: { settings, mappings },
             })
-        }
-        return {
-            acknowledged: true,
-            index,
-            shards_acknowledged: true,
+
+            this.logger.log(`Index ${index} created successfully`)
+            return response
+        } catch (error) {
+            this.logger.error(`Index creation failed for ${index}:`, error)
+            throw error
         }
     }
 
     async deleteIndex(index: string): Promise<IndicesDeleteResponse> {
-        const exists = await this.client.indices.exists({ index })
-        if (exists) {
-            return await this.client.indices.delete({ index })
+        try {
+            const exists = await this.indexExists(index)
+            if (!exists) {
+                this.logger.log(`Index ${index} does not exist`)
+                return { acknowledged: true }
+            }
+
+            const response = await this.client.indices.delete({ index })
+            this.logger.log(`Index ${index} deleted successfully`)
+            return response
+        } catch (error) {
+            this.logger.error(`Index deletion failed for ${index}:`, error)
+            throw error
         }
-        return { acknowledged: true }
     }
 
     async indexDocument<T>(
         index: string,
         id: string,
         document: T,
+        refresh: boolean = false,
     ): Promise<IndexResponse> {
-        return await this.client.index({
-            index,
-            id,
-            document,
-        })
+        try {
+            const response = await this.client.index({
+                index,
+                id,
+                document,
+                refresh,
+            })
+            this.logger.debug(`Document ${id} indexed in ${index}`)
+            return response
+        } catch (error) {
+            this.logger.error(`Indexing failed for document ${id}:`, error)
+            throw error
+        }
     }
 
     async bulkIndex<T>(
         index: string,
         items: Array<{ id: string; data: T }>,
+        refresh: boolean = false,
     ): Promise<BulkResponse> {
-        const body = items.flatMap((item) => [
-            { index: { _index: index, _id: item.id } },
-            item.data,
-        ])
+        try {
+            const body = items.flatMap(({ id, data }) => [
+                { index: { _index: index, _id: id } },
+                data,
+            ])
 
-        return await this.client.bulk({ body })
+            const response = await this.client.bulk({
+                body,
+                refresh,
+            })
+
+            if (response.errors) {
+                this.logger.error(
+                    `Bulk indexing errors: ${response.items.length} failed items`,
+                )
+            } else {
+                this.logger.log(
+                    `Bulk indexed ${items.length} documents to ${index}`,
+                )
+            }
+
+            return response
+        } catch (error) {
+            this.logger.error('Bulk indexing failed:', error)
+            throw error
+        }
     }
 
     async getDocument<T>(index: string, id: string): Promise<T | null> {
         try {
-            const response = await this.client.get<T>({
-                index,
-                id,
-            })
+            const response = await this.client.get<T>({ index, id })
             return response._source ?? null
-        } catch {
-            return null
+        } catch (error) {
+            if (error.meta?.statusCode === 404) return null
+            this.logger.error(`Failed to get document ${id}:`, error)
+            throw error
         }
     }
 
@@ -106,25 +157,82 @@ export class ElasticsearchService implements OnModuleInit {
         index: string,
         id: string,
         document: Partial<T>,
+        refresh: boolean = false,
     ): Promise<UpdateResponse> {
-        return await this.client.update({
-            index,
-            id,
-            doc: document,
-        })
+        try {
+            const response = await this.client.update({
+                index,
+                id,
+                doc: document,
+                refresh,
+            })
+            this.logger.debug(`Document ${id} updated in ${index}`)
+            return response
+        } catch (error) {
+            this.logger.error(`Update failed for document ${id}:`, error)
+            throw error
+        }
     }
 
-    async deleteDocument(index: string, id: string): Promise<DeleteResponse> {
-        return await this.client.delete({
-            index,
-            id,
-        })
+    async deleteDocument(
+        index: string,
+        id: string,
+        refresh: boolean = false,
+    ): Promise<DeleteResponse> {
+        try {
+            const response = await this.client.delete({
+                index,
+                id,
+                refresh,
+            })
+
+            this.logger.debug(`Document ${id} deleted from ${index}`)
+            return response
+        } catch (error) {
+            this.logger.error(`Delete failed for document ${id}:`, error)
+            throw error
+        }
     }
 
     async search<T>(index: string, query: any): Promise<SearchResponse<T>> {
-        return await this.client.search({
-            index,
-            ...query,
-        })
+        try {
+            const response = await this.client.search<T>({
+                index,
+                ...query,
+            })
+            this.logger.debug(
+                `Search executed on ${index} [${response.took}ms]`,
+            )
+            return response
+        } catch (error) {
+            this.logger.error(`Search failed on ${index}:`, error)
+            throw error
+        }
+    }
+
+    async refreshIndex(index: string): Promise<void> {
+        try {
+            await this.client.indices.refresh({ index })
+            this.logger.debug(`Index ${index} refreshed`)
+        } catch (error) {
+            this.logger.error(`Index refresh failed for ${index}:`, error)
+            throw error
+        }
+    }
+
+    async updateIndexSettings(
+        index: string,
+        settings: Record<string, any>,
+    ): Promise<void> {
+        try {
+            await this.client.indices.putSettings({
+                index,
+                body: settings,
+            })
+            this.logger.log(`Settings updated for index ${index}`)
+        } catch (error) {
+            this.logger.error(`Failed to update settings for ${index}:`, error)
+            throw error
+        }
     }
 }

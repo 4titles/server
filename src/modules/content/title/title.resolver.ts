@@ -41,6 +41,11 @@ export class TitleResolver {
         return await this.titleSyncService.syncPopularTitles()
     }
 
+    @Mutation(() => TitleSyncResult, { name: 'syncTopRatedTitles' })
+    async syncTopRated(): Promise<TitleSyncResult> {
+        return await this.titleSyncService.syncTopRatedTitles()
+    }
+
     @Mutation(() => Boolean, { name: 'cleanUpTitleSyncData' })
     async cleanup(): Promise<boolean> {
         return await this.titleSyncService.cleanup()

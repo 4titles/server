@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { pgTable, text, unique, uuid } from 'drizzle-orm/pg-core'
+import { index, pgTable, text, unique, uuid } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
 import { languages } from './languages.schema'
 import { titles } from './titles.schema'
@@ -24,6 +24,13 @@ export const titleTranslations = pgTable(
         titleLanguageIdx: unique('title_translations_title_language_idx').on(
             table.titleId,
             table.languageId,
+        ),
+        languageIdx: index('title_translations_language_idx').on(
+            table.languageId,
+        ),
+        titleIdx: index('title_translations_title_idx').on(table.title),
+        homepageIdx: index('title_translations_homepage_idx').on(
+            table.homepage,
         ),
     }),
 )

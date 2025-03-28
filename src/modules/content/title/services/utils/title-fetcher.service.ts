@@ -5,13 +5,14 @@ import {
     TrendingResponse,
     TvResultsResponse,
 } from 'moviedb-promise'
+import { TitleSupportedLanguagesConfig } from '../../config/title-supported-languages.config'
 import { TitleCategory } from '../../enums/title-category.enum'
 import { TitleType } from '../../enums/title-type.enum'
 import { TmdbService } from '../../modules/tmdb/tmdb.service'
 import {
-    ExtendedMovieResponse,
-    ExtendedShowResponse,
+    TmdbImages,
     TmdbTitleChangesResponse,
+    TmdbTitleExtendedResponse,
     TmdbTitleRecommendationsResponse,
     TmdbTitleSimilarResponse,
 } from '../../modules/tmdb/types/tmdb.interface'
@@ -35,6 +36,7 @@ export class TitleFetcherService {
     constructor(
         private readonly tmdbService: TmdbService,
         private readonly configService: ConfigService,
+        private readonly supportedLanguagesConfig: TitleSupportedLanguagesConfig,
     ) {
         this.TMDB_ADDITIONAL_FIELDS = [
             'images',
@@ -42,8 +44,6 @@ export class TitleFetcherService {
             'external_ids',
             'keywords',
             'credits',
-            // 'similar',
-            // 'recommendations',
             'alternative_titles',
         ].join(',')
 
@@ -66,29 +66,6 @@ export class TitleFetcherService {
             return { movieData, tvData }
         } catch (error) {
             throw error
-        }
-    }
-
-    async fetchTitleDetails(
-        tmdbId: string | number,
-        type: TitleType,
-    ): Promise<ExtendedMovieResponse | ExtendedShowResponse> {
-        try {
-            if (type === TitleType.MOVIE) {
-                return await this.tmdbService.getMovieDetails(
-                    tmdbId,
-                    this.defaultLanguage,
-                    this.TMDB_ADDITIONAL_FIELDS,
-                )
-            } else {
-                return await this.tmdbService.getTvShowDetails(
-                    tmdbId,
-                    this.defaultLanguage,
-                    this.TMDB_ADDITIONAL_FIELDS,
-                )
-            }
-        } catch {
-            return null
         }
     }
 
@@ -154,6 +131,93 @@ export class TitleFetcherService {
             return null
         } catch {
             return null
+        }
+    }
+
+    async fetchTitleDetails(
+        tmdbId: string | number,
+        type: TitleType,
+    ): Promise<TmdbTitleExtendedResponse> {
+        try {
+            let titleDetails: TmdbTitleExtendedResponse
+
+            if (type === TitleType.MOVIE) {
+                titleDetails = await this.tmdbService.getMovieDetails(
+                    tmdbId,
+                    this.defaultLanguage,
+                    this.TMDB_ADDITIONAL_FIELDS,
+                )
+            } else {
+                titleDetails = await this.tmdbService.getTvShowDetails(
+                    tmdbId,
+                    this.defaultLanguage,
+                    this.TMDB_ADDITIONAL_FIELDS,
+                )
+            }
+
+            const supportedLanguages = this.supportedLanguagesConfig
+                .getAllLanguages()
+                .map((lang) => lang.iso)
+            const includeImageLanguages = [...supportedLanguages, 'null'].join(
+                ',',
+            )
+
+            let images: TmdbImages
+            if (type === TitleType.MOVIE) {
+                images = await this.tmdbService.getMovieImages(
+                    tmdbId,
+                    includeImageLanguages,
+                )
+            } else {
+                images = await this.tmdbService.getTvShowImages(
+                    tmdbId,
+                    includeImageLanguages,
+                )
+            }
+
+            const processedImages = this.processImages(
+                images,
+                supportedLanguages,
+            )
+            titleDetails.images = processedImages
+
+            return titleDetails
+        } catch {
+            return null
+        }
+    }
+
+    private processImages(
+        images: TmdbImages,
+        supportedLanguages: string[],
+    ): TmdbImages {
+        const processType = (items: any[]) => {
+            const langMap = new Map<string, any>()
+            const generalItems: any[] = []
+
+            for (const lang of supportedLanguages) {
+                const item = items.find((i) => i.iso_639_1 === lang)
+                if (item) langMap.set(lang, item)
+            }
+
+            items.forEach((item) => {
+                if (!item.iso_639_1 && !langMap.has('null')) {
+                    generalItems.push(item)
+                }
+            })
+
+            return [
+                ...supportedLanguages
+                    .map((lang) => langMap.get(lang))
+                    .filter(Boolean),
+                ...generalItems,
+            ]
+        }
+
+        return {
+            backdrops: processType(images.backdrops || []),
+            posters: processType(images.posters || []),
+            logos: processType(images.logos || []),
         }
     }
 

@@ -11,11 +11,11 @@ import { TitleType } from '../../enums/title-type.enum'
 import { TitleSyncResult } from '../../models/title-sync-result.model'
 import { TmdbTitleResponse } from '../../modules/tmdb/types/tmdb.interface'
 import { TitleCacheService } from '../cache/title-cache.service'
+import { TitleRelationService } from '../relations/title-relation.service'
 import { TitleService } from '../title.service'
-import { TitleElasticsearchSyncService } from '../utils/title-elasticsearch-sync.service'
 import { TitleFetcherService } from '../utils/title-fetcher.service'
-import { TitleRelationService } from '../utils/title-relation.service'
 import { TitleTransformService } from '../utils/title-transform.service'
+import { TitleElasticsearchSyncService } from './title-elasticsearch-sync.service'
 import { TitleSyncQueueService } from './title-sync-queue.service'
 
 @Injectable()
@@ -292,6 +292,9 @@ export class TitleSyncService {
             const tmdbId = String(titleToSync.id)
             const titleDetails =
                 await this.titleFetcherService.fetchTitleDetails(tmdbId, type)
+
+            if (!titleDetails) throw new Error('No title details retrived')
+
             const imdbId = titleDetails.external_ids.imdb_id
 
             const existingTitle = await this.titleService.findByTmdbId(tmdbId)
@@ -352,7 +355,7 @@ export class TitleSyncService {
                 )
             }
         } catch (error) {
-            this.logger.error(
+            this.logger.warn(
                 `Failed to sync title ${titleToSync.id}:`,
                 error.stack,
             )
@@ -400,7 +403,6 @@ export class TitleSyncService {
             await this.titleRelationService.deleteAllRelations()
             this.logger.debug('Title relations deleted.')
 
-            // Получаем все ID тайтлов для удаления из ElasticSearch
             this.logger.debug(
                 'Getting all title IDs for ElasticSearch cleanup...',
             )
@@ -410,7 +412,6 @@ export class TitleSyncService {
             await this.titleService.deleteAllTitles()
             this.logger.debug('All titles deleted from PostgreSQL.')
 
-            // Удаляем тайтлы из ElasticSearch
             this.logger.debug('Deleting titles from ElasticSearch...')
             for (const title of allTitles) {
                 await this.titleElasticsearchSyncService.deleteTitleFromElasticsearch(
@@ -426,11 +427,11 @@ export class TitleSyncService {
             this.logger.debug('Cleaning up queues...')
             await this.titleSyncQueueService.cleanUpQueues()
 
-            this.logger.warn('Cleanup process completed successfully.')
+            this.logger.log('Cleanup process completed successfully.')
 
             return true
         } catch (error) {
-            this.logger.warn(`Cleanup process failed: ${error.message}`)
+            this.logger.error(`Cleanup process failed: ${error.message}`)
             throw error
         }
     }

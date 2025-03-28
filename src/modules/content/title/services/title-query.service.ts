@@ -1,9 +1,9 @@
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { Title } from '../models/title.model'
-import { TitleDocumentES } from '../modules/elasticsearch/title-elasticsearch.service'
+import { TitleDocumentES } from '../modules/elasticsearch/types/title-elasticsearch-document.interface'
+import { TitleElasticsearchSyncService } from './sync/title-elasticsearch-sync.service'
 import { TitleService } from './title.service'
-import { TitleElasticsearchSyncService } from './utils/title-elasticsearch-sync.service'
 import { TitleTransformService } from './utils/title-transform.service'
 
 @Injectable()

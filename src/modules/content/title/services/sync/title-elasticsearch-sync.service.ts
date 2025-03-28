@@ -1,9 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { TmdbTitleDataDTO } from '../../dto/tmdb-title-data.dto'
-import {
-    TitleDocumentES,
-    TitleElasticsearchService,
-} from '../../modules/elasticsearch/title-elasticsearch.service'
+import { TitleElasticsearchService } from '../../modules/elasticsearch/title-elasticsearch.service'
+import { TitleDocumentES } from '../../modules/elasticsearch/types/title-elasticsearch-document.interface'
 
 @Injectable()
 export class TitleElasticsearchSyncService {
@@ -20,14 +18,9 @@ export class TitleElasticsearchSyncService {
         try {
             const { titleDetails } = tmdbData
 
-            const elasticData: TitleDocumentES = {
-                tmdbId: String(titleDetails.id),
-                details: titleDetails,
-            }
-
             const result = await this.titleElasticsearchService.indexTitle(
                 titleId,
-                elasticData,
+                titleDetails,
             )
 
             if (result) {
@@ -66,14 +59,9 @@ export class TitleElasticsearchSyncService {
                 return await this.syncTitleWithElasticsearch(titleId, tmdbData)
             }
 
-            const elasticData: Partial<TitleDocumentES> = {
-                tmdbId: String(titleDetails.id),
-                details: titleDetails,
-            }
-
             const result = await this.titleElasticsearchService.updateTitle(
                 titleId,
-                elasticData,
+                titleDetails,
             )
 
             if (result) {
@@ -96,7 +84,7 @@ export class TitleElasticsearchSyncService {
         }
     }
 
-    // ??? should be moved from this service to TitleElasticSearchService?
+    // ???
     async deleteTitleFromElasticsearch(titleId: string): Promise<boolean> {
         try {
             const result =
@@ -122,7 +110,7 @@ export class TitleElasticsearchSyncService {
         }
     }
 
-    // ??? should be moved from this service to TitleElasticSearchService?
+    // ???
     async getTitleDetailsFromElasticsearch(
         titleId: string,
     ): Promise<TitleDocumentES | null> {

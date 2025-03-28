@@ -259,13 +259,19 @@ export class TmdbService {
 
     async getMovieImages(
         tmdbId: number | string,
-        language: string = 'en',
+        includeImageLanguages: string,
     ): Promise<MovieImagesResponse> {
         try {
-            return await this.moviedb.movieImages({
-                id: tmdbId,
-                language,
-            })
+            const response = await firstValueFrom(
+                this.httpService.get(
+                    `${this.moviedb.baseUrl}/movie/${tmdbId}/images?include_image_language=${includeImageLanguages}`,
+                    {
+                        headers: this.configService.get('tmdb.headers'),
+                    },
+                ),
+            )
+
+            return response.data
         } catch (error) {
             this.logger.error(
                 `Failed to fetch movie images for ID ${tmdbId}:`,
@@ -279,13 +285,19 @@ export class TmdbService {
 
     async getTvShowImages(
         tmdbId: number | string,
-        language: string = 'en',
+        includeImageLanguages: string,
     ): Promise<TvImagesResponse> {
         try {
-            return await this.moviedb.tvImages({
-                id: tmdbId,
-                language,
-            })
+            const response = await firstValueFrom(
+                this.httpService.get(
+                    `${this.moviedb.baseUrl}/tv/${tmdbId}/images?include_image_language=${includeImageLanguages}`,
+                    {
+                        headers: this.configService.get('tmdb.headers'),
+                    },
+                ),
+            )
+
+            return response.data
         } catch (error) {
             this.logger.error(
                 `Failed to fetch TV show images for ID ${tmdbId}:`,

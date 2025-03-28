@@ -1,20 +1,15 @@
+import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import {
-    CollectionTranslationsResponse,
-    MovieAlternativeTitlesResponse,
-    MovieResponse,
-    ShowAlternativeTitlesResponse,
-    ShowResponse,
-} from 'moviedb-promise'
-import { DbTitle } from '../../../../../../dist/src/modules/titles/types/title.type'
 import { TmdbTitleDataDTO } from '../../dto/tmdb-title-data.dto'
 import { TitleStatus } from '../../enums/title-status.enum'
-import { TitleType } from '../../enums/title-type.enum'
 import {
     Title,
     TitleAlternativeTitle,
+    TitleCredits,
     TitleDetails,
+    TitleExternalIds,
+    TitleImages,
+    TitleKeyword,
 } from '../../models/title.model'
 import {
     ExtendedMovieResponse,
@@ -26,97 +21,42 @@ import {
 
 @Injectable()
 export class TitleTransformService {
-    private readonly defaultTmdbLanguage: string
-
-    constructor(private readonly configService: ConfigService) {
-        this.defaultTmdbLanguage =
-            this.configService.get<string>('tmdb.defaultLanguage') || 'ru'
-    }
-
     createTitleDataFromTmdbResults(data: TmdbTitleDataDTO): Partial<Title> {
-        const isMovie = data.type === TitleType.MOVIE
-        const movieInfo = data.titleDetails as MovieResponse
-        const showInfo = data.titleDetails as ShowResponse
-
-        return {
-            tmdbId: String(data.title.id),
-            imdbId: data.imdbId || null,
-            name: isMovie ? movieInfo.title : (data.title as ShowResponse).name,
-            originalName: isMovie
-                ? movieInfo.original_title
-                : showInfo.original_name,
-            type: data.type,
-            category: data.category,
-            status: this.mapTitleStatus(data.titleDetails.status),
-            isAdult: movieInfo.adult || false,
-            posterPath: data.title.poster_path,
-            backdropPath: data.title.backdrop_path,
-            popularity: data.title.popularity,
-            overview: this.processOverview(
-                data.titleDetails.overview,
-                data.titleDetails.translations,
-                this.defaultTmdbLanguage,
-            ),
-            details: this.extractBasicDetails(data.titleDetails),
-            images: data.titleDetails.images,
-            keywords: data.titleDetails.keywords,
-            credits: data.titleDetails.credits,
-            alternativeTitles: this.extractAlternativeTitles(
-                data.titleDetails.alternative_titles,
-            ),
-            externalIds: data.titleDetails.external_ids,
-        }
+        return this.createBaseTitleData(data)
     }
 
     createTitleUpdateDataFromTmdbResults(
         data: TmdbTitleDataDTO,
     ): Partial<Title> {
-        const isMovie = data.type === TitleType.MOVIE
-        const movieInfo = data.titleDetails as MovieResponse
-        const showInfo = data.titleDetails as ShowResponse
-
+        const baseData = this.createBaseTitleData(data)
         return {
-            name: isMovie ? movieInfo.title : showInfo.name,
-            originalName: isMovie
-                ? movieInfo.original_title
-                : showInfo.original_name,
-            imdbId: data.imdbId || data.existingTitle.imdbId,
-            category: data.category,
-            status: this.mapTitleStatus(data.titleDetails.status),
-            isAdult: movieInfo.adult || false,
-            posterPath: data.title.poster_path,
-            backdropPath: data.title.backdrop_path,
-            popularity: data.title.popularity,
-            overview: this.processOverview(
-                data.titleDetails.overview,
-                data.titleDetails.translations,
-                this.defaultTmdbLanguage,
-            ),
-            details: this.extractBasicDetails(data.titleDetails),
-            images: data.titleDetails.images,
-            keywords: data.titleDetails.keywords,
-            credits: data.titleDetails.credits,
-            alternativeTitles: this.extractAlternativeTitles(
-                data.titleDetails.alternative_titles,
-            ),
-            externalIds: data.titleDetails.external_ids,
+            ...baseData,
+            updatedAt: new Date(),
         }
     }
 
     extractBasicTitleInfo(
         titleDetails: TmdbTitleExtendedResponse,
     ): Partial<TmdbTitleResponse> {
-        const isMovie = 'budget' in titleDetails
-        const movieInfo = titleDetails as ExtendedMovieResponse
-        const showInfo = titleDetails as ExtendedShowResponse
+        const isMovie = this.isTitleMovie(titleDetails)
 
         return {
             id: titleDetails.id,
-            title: isMovie ? movieInfo.title : undefined,
-            name: isMovie ? undefined : showInfo.name,
-            original_title: isMovie ? movieInfo.original_title : undefined,
-            original_name: isMovie ? undefined : showInfo.original_name,
-            adult: isMovie ? movieInfo.adult : false,
+            title: isMovie
+                ? (titleDetails as ExtendedMovieResponse).title
+                : undefined,
+            name: isMovie
+                ? undefined
+                : (titleDetails as ExtendedShowResponse).name,
+            original_title: isMovie
+                ? (titleDetails as ExtendedMovieResponse).original_title
+                : undefined,
+            original_name: isMovie
+                ? undefined
+                : (titleDetails as ExtendedShowResponse).original_name,
+            adult: isMovie
+                ? (titleDetails as ExtendedMovieResponse).adult
+                : false,
             poster_path: titleDetails.poster_path,
             backdrop_path: titleDetails.backdrop_path,
             popularity: titleDetails.popularity,
@@ -124,72 +64,103 @@ export class TitleTransformService {
     }
 
     extractBasicDetails(titleDetails: TmdbTitleExtendedResponse): TitleDetails {
-        const isMovie = 'budget' in titleDetails
+        const isMovie = this.isTitleMovie(titleDetails)
         const movieInfo = titleDetails as ExtendedMovieResponse
         const showInfo = titleDetails as ExtendedShowResponse
 
         return {
-            budget: isMovie ? movieInfo.budget : null,
-            revenue: isMovie ? movieInfo.revenue : null,
-            runtime: isMovie ? movieInfo.runtime : showInfo.episode_run_time[0],
-            tagline: titleDetails.tagline,
-            homepage: titleDetails.homepage,
-            vote_average: titleDetails.vote_average,
-            vote_count: titleDetails.vote_count,
+            budget: isMovie ? movieInfo.budget || null : null,
+            revenue: isMovie ? movieInfo.revenue || null : null,
+            runtime: isMovie
+                ? movieInfo.runtime || null
+                : showInfo.episode_run_time &&
+                    showInfo.episode_run_time.length > 0
+                  ? showInfo.episode_run_time[0]
+                  : null,
+            vote_average: titleDetails.vote_average || 0,
+            vote_count: titleDetails.vote_count || 0,
             release_date: isMovie
-                ? movieInfo.release_date
-                : showInfo.first_air_date,
-        }
-    }
-
-    extractFullTitle(
-        existingTitle: DbTitle,
-        titleDetails: TmdbTitleExtendedResponse,
-    ): Title {
-        const basicTitleInfo = this.extractBasicTitleInfo(titleDetails)
-        const basicTitleDetails = this.extractBasicDetails(titleDetails)
-        const isMovie = 'budget' in titleDetails
-
-        return {
-            ...basicTitleInfo,
-            ...basicTitleDetails,
-            ...existingTitle,
-            images: titleDetails.images,
-            keywords: titleDetails.keywords,
-            credits: {
-                cast: titleDetails.credits.cast,
-                crew: titleDetails.credits.crew,
-            },
-            alternativeTitles: isMovie
-                ? (
-                      titleDetails.alternative_titles as MovieAlternativeTitlesResponse
-                  ).titles
-                : (
-                      titleDetails.alternative_titles as ShowAlternativeTitlesResponse
-                  ).results,
-            externalIds: titleDetails.external_ids,
+                ? movieInfo.release_date || null
+                : showInfo.first_air_date || null,
         }
     }
 
     extractAlternativeTitles(
         alternativeTitles: TmdbTitleAlternativeTitlesResponse,
     ): TitleAlternativeTitle[] {
-        const movieTitles = alternativeTitles as MovieAlternativeTitlesResponse
-        const showTitles = alternativeTitles as ShowAlternativeTitlesResponse
-        if (movieTitles?.titles) {
-            return movieTitles.titles.map((t) => ({
-                iso_3166_1: t.iso_3166_1,
-                title: t.title,
-                type: t.type,
-            }))
-        } else if (showTitles?.results) {
-            return showTitles.results.map((t) => ({
-                iso_3166_1: t.iso_3166_1,
-                title: t.title,
-                type: t.type,
-            }))
+        if (!alternativeTitles) return []
+
+        const sourceTitles =
+            'titles' in alternativeTitles
+                ? alternativeTitles.titles
+                : 'results' in alternativeTitles
+                  ? alternativeTitles.results
+                  : null
+
+        if (!sourceTitles || !Array.isArray(sourceTitles)) return []
+
+        return sourceTitles.map((item) => ({
+            iso_3166_1: item.iso_3166_1 || '',
+            title: 'title' in item ? item.title || '' : '',
+            type: 'type' in item ? item.type || null : null,
+        }))
+    }
+
+    extractFullTitle(
+        existingTitle: DbTitle,
+        titleDetails: TmdbTitleExtendedResponse,
+    ): Title {
+        const existingDetails = existingTitle.details || {}
+        const basicTitleInfo = this.extractBasicTitleInfo(titleDetails)
+        const basicDetails = this.extractBasicDetails(titleDetails)
+
+        const titleImages: TitleImages | null = titleDetails.images || null
+        const titleKeywords: TitleKeyword[] = titleDetails.keywords || []
+        const titleCredits: TitleCredits = {
+            cast: titleDetails.credits?.cast || [],
+            crew: titleDetails.credits?.crew || [],
         }
-        return []
+        const titleExternalIds: TitleExternalIds | null =
+            titleDetails.external_ids || null
+        const titleAlternativeTitles: TitleAlternativeTitle[] =
+            this.extractAlternativeTitles(titleDetails.alternative_titles)
+
+        return {
+            id: existingTitle.id,
+            tmdbId: existingTitle.tmdbId,
+            imdbId: existingTitle.imdbId || null,
+            originalName: existingTitle.originalName || '',
+            type: existingTitle.type,
+            category: existingTitle.category,
+            status: existingTitle.status,
+            isAdult: existingTitle.isAdult || false,
+            posterPath:
+                existingTitle.posterPath || basicTitleInfo.poster_path || null,
+            backdropPath:
+                existingTitle.backdropPath ||
+                basicTitleInfo.backdrop_path ||
+                null,
+            popularity:
+                existingTitle.popularity || basicTitleInfo.popularity || 0,
+            hasLocations: existingTitle.hasLocations || false,
+            createdAt: existingTitle.createdAt,
+            updatedAt: existingTitle.updatedAt,
+            details: {
+                ...existingDetails,
+                ...basicDetails,
+            },
+            images: titleImages,
+            keywords: titleKeywords,
+            credits: titleCredits,
+            alternativeTitles: titleAlternativeTitles,
+            externalIds: titleExternalIds,
+            translations: [],
+            filmingLocations: [],
+            comments: [],
+            genres: [],
+            languages: [],
+            countries: [],
+        }
     }
 
     mapTitleStatus(status: string): TitleStatus {
@@ -214,30 +185,41 @@ export class TitleTransformService {
         }
     }
 
-    processOverview(
-        overview: string,
-        translations: CollectionTranslationsResponse,
-        defaultLanguage: string,
-    ): any {
-        if (!translations || !translations.translations) {
-            return { [defaultLanguage.substring(0, 2)]: overview }
+    private isTitleMovie(details: TmdbTitleExtendedResponse): boolean {
+        return 'budget' in details || 'release_date' in details
+    }
+
+    private createBaseTitleData(data: TmdbTitleDataDTO): Partial<Title> {
+        const { title, titleDetails, type, category, imdbId } = data
+        const isMovie = this.isTitleMovie(titleDetails)
+        const details = this.extractBasicDetails(titleDetails)
+
+        return {
+            tmdbId: String(title.id),
+            imdbId: imdbId || null,
+            originalName: isMovie
+                ? (titleDetails as ExtendedMovieResponse).original_title
+                : (titleDetails as ExtendedShowResponse).original_name,
+            type,
+            category,
+            status: this.mapTitleStatus(titleDetails.status),
+            isAdult: isMovie
+                ? (titleDetails as ExtendedMovieResponse).adult || false
+                : false,
+            posterPath: title.poster_path || null,
+            backdropPath: title.backdrop_path || null,
+            popularity: title.popularity || 0,
+            details,
+            images: titleDetails.images || null,
+            keywords: titleDetails.keywords || [],
+            credits: {
+                cast: titleDetails.credits?.cast || [],
+                crew: titleDetails.credits?.crew || [],
+            },
+            alternativeTitles: this.extractAlternativeTitles(
+                titleDetails.alternative_titles,
+            ),
+            externalIds: titleDetails.external_ids || null,
         }
-
-        const result = {}
-        const supportedLanguages = ['en', 'ru']
-
-        result[defaultLanguage.substring(0, 2)] = overview
-
-        for (const translation of translations.translations) {
-            const langCode = translation.iso_639_1
-            if (
-                supportedLanguages.includes(langCode) &&
-                translation.data?.overview
-            ) {
-                result[langCode] = translation.data.overview
-            }
-        }
-
-        return result
     }
 }
