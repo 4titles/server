@@ -1,4 +1,4 @@
-import { TitleOverview } from '@/modules/content/title/models/title.model'
+import { TitleDetails } from '@/modules/content/title/models/title.model'
 import { relations } from 'drizzle-orm'
 import {
     boolean,
@@ -22,6 +22,7 @@ import { titleCountries } from './title-countries.schema'
 import { titleFilmingLocations } from './title-filming-locations.schema'
 import { titleGenres } from './title-genres.schema'
 import { titleLanguages } from './title-languages.schema'
+import { titleTranslations } from './title-translations.schema'
 
 export const titles = pgTable(
     'titles',
@@ -29,7 +30,6 @@ export const titles = pgTable(
         id: uuid('id').primaryKey().defaultRandom(),
         tmdbId: text('tmdb_id').notNull().unique(),
         imdbId: text('imdb_id').unique(),
-        name: text('name').notNull(),
         originalName: text('original_name'),
         type: titleTypeEnum('type').notNull(),
         category: titleCategoryEnum('category').notNull(),
@@ -38,8 +38,8 @@ export const titles = pgTable(
         posterPath: text('poster_path'),
         backdropPath: text('backdrop_path'),
         popularity: real('popularity').default(0),
-        overview: jsonb('overview').$type<TitleOverview>(),
         hasLocations: boolean('has_locations').default(false),
+        details: jsonb('details').$type<TitleDetails>(),
         lastChangesCheck: timestamp('last_changes_check', {
             withTimezone: true,
         }),
@@ -50,7 +50,6 @@ export const titles = pgTable(
         imdbIdIdx: index('titles_imdb_id_idx').on(table.imdbId),
         categoryIdx: index('titles_category_idx').on(table.category),
         popularityIdx: index('titles_popularity_idx').on(table.popularity),
-        nameIdx: index('titles_name_idx').on(table.name),
     }),
 )
 
@@ -61,6 +60,7 @@ export const titleRelations = relations(titles, ({ many }) => ({
     countries: many(titleCountries),
     comments: many(comments),
     favorites: many(favorites),
+    translations: many(titleTranslations),
 }))
 
 export type DbTitle = typeof titles.$inferSelect

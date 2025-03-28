@@ -19,12 +19,6 @@ export class TitleDetails {
     @Field(() => Number, { nullable: true })
     runtime?: number
 
-    @Field(() => String, { nullable: true })
-    tagline?: string
-
-    @Field(() => String, { nullable: true })
-    homepage?: string
-
     @Field(() => Number, { nullable: true })
     vote_average?: number
 
@@ -33,15 +27,6 @@ export class TitleDetails {
 
     @Field(() => String, { nullable: true })
     release_date?: string
-}
-
-@ObjectType()
-export class TitleOverview {
-    @Field(() => String)
-    en: string
-
-    @Field(() => String, { nullable: true })
-    ru?: string
 }
 
 @ObjectType()
@@ -173,6 +158,30 @@ export class TitleExternalIds {
 }
 
 @ObjectType()
+export class TitleTranslation {
+    @Field(() => String)
+    id: string
+
+    @Field(() => String)
+    titleId: string
+
+    @Field(() => String)
+    languageId: string
+
+    @Field(() => String)
+    title: string
+
+    @Field(() => String, { nullable: true })
+    overview?: string
+
+    @Field(() => String, { nullable: true })
+    tagline?: string
+
+    @Field(() => String, { nullable: true })
+    homepage?: string
+}
+
+@ObjectType()
 export class Title {
     @Field(() => String)
     id: string
@@ -182,9 +191,6 @@ export class Title {
 
     @Field(() => String, { nullable: true })
     imdbId?: string
-
-    @Field(() => String)
-    name: string
 
     @Field(() => String, { nullable: true })
     originalName?: string
@@ -206,9 +212,6 @@ export class Title {
 
     @Field(() => String, { nullable: true })
     backdropPath?: string
-
-    @Field(() => TitleOverview)
-    overview: TitleOverview
 
     @Field(() => Number)
     popularity: number
@@ -254,4 +257,7 @@ export class Title {
 
     @Field(() => [TitleCountry])
     countries: TitleCountry[]
+
+    @Field(() => [TitleTranslation])
+    translations: TitleTranslation[]
 }

@@ -4,6 +4,7 @@ export * from './title-countries.schema'
 export * from './title-filming-locations.schema'
 export * from './title-genres.schema'
 export * from './title-languages.schema'
+export * from './title-translations.schema'
 export * from './titles.schema'
 
 export * from './comments.schema'

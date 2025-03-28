@@ -6,7 +6,7 @@ import {
 import { titles } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { MovieDb } from 'moviedb-promise'
 import { TmdbService } from '../tmdb/tmdb.service'
 import { CreateGenreInput } from './inputs/create-genre.input'
@@ -52,6 +52,14 @@ export class GenreService {
             orderBy: [asc(genres.name)],
             with: { titles: { orderBy: [asc(titles.popularity)] } },
         })
+    }
+
+    async getIdsByTmdbIds(tmdbIds: string[]): Promise<string[]> {
+        const dbGenres = await this.db.query.genres.findMany({
+            where: inArray(genres.tmdbId, tmdbIds),
+        })
+
+        return dbGenres.map((g) => g.id)
     }
 
     async getGenresListFromTmdb(): Promise<GenresByLanguage> {

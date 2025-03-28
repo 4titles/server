@@ -1,8 +1,8 @@
-import { IRedisConfig } from '@/config/redis/redis-config.interface'
+import getRedisConfig from '@/config/redis.config'
 import { bigIntSerializer } from '@/shared/utils/common/json.utils'
 import { Global, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Redis } from 'ioredis'
+import { Redis, RedisOptions } from 'ioredis'
 
 @Global()
 @Injectable()
@@ -14,7 +14,7 @@ export class CacheService implements OnModuleInit {
     constructor(private readonly configService: ConfigService) {}
 
     async onModuleInit() {
-        const config = this.configService.get('redis')
+        const config = getRedisConfig(this.configService)
         if (!config) {
             throw new Error('Redis configuration is not loaded')
         }
@@ -22,15 +22,8 @@ export class CacheService implements OnModuleInit {
         this.redis = await this.initializeRedis(config)
     }
 
-    private async initializeRedis(config: IRedisConfig): Promise<Redis> {
-        const redis = new Redis({
-            ...config,
-            retryStrategy: (times) => {
-                const delay = Math.min(times * 50, config.retryDelay)
-                this.logger.log(`Retrying Redis connection in ${delay}ms...`)
-                return delay
-            },
-        })
+    private async initializeRedis(config: RedisOptions): Promise<Redis> {
+        const redis = new Redis(config)
 
         redis.on('error', (err) => {
             this.logger.error('Redis connection error:', err)
