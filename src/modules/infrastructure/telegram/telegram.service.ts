@@ -36,7 +36,7 @@ export class TelegramService extends Telegraf {
         private readonly userContextService: TelegramUserContextService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {
-        super(configService.getOrThrow<string>('telegraf.token'))
+        super(configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN'))
     }
 
     @Start()

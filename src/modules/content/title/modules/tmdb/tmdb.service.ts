@@ -36,7 +36,7 @@ export class TmdbService {
         private readonly configService: ConfigService,
         private readonly httpService: HttpService,
     ) {
-        const apiKey = this.configService.get<string>('tmdb.apiKey')
+        const apiKey = this.configService.get<string>('TMDB_API_KEY')
         if (!apiKey) {
             throw new Error('TMDB_API_KEY is not defined')
         }
