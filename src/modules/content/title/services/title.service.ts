@@ -6,7 +6,7 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TitleType } from '../enums/title-type.enum'
 import { TitleTransformService } from './utils/title-transform.service'
@@ -137,12 +137,42 @@ export class TitleService {
     ): Promise<boolean> {
         await this.db
             .update(titles)
-            .set({
-                hasLocations,
-            } as Partial<DbTitle>)
+            .set({ hasLocations, updatedAt: new Date() } as Partial<DbTitle>)
             .where(eq(titles.id, titleId))
 
         return true
+    }
+
+    async updateCategoryForTitles(
+        titleIds: string[],
+        newCategory: TitleCategory,
+    ): Promise<number> {
+        if (!titleIds || titleIds.length === 0) {
+            this.logger.debug('No title IDs provided for category update.')
+            return 0
+        }
+
+        try {
+            this.logger.log(
+                `Updating category to ${newCategory} for ${titleIds.length} titles.`,
+            )
+            const result = await this.db
+                .update(titles)
+                .set({ category: newCategory })
+                .where(inArray(titles.id, titleIds))
+
+            const updatedCount = result.rowCount ?? titleIds.length
+            this.logger.log(
+                `Successfully updated category for ${updatedCount} titles.`,
+            )
+            return updatedCount
+        } catch (error) {
+            this.logger.error(
+                `Failed to bulk update category to ${newCategory} for title IDs: ${titleIds.join(', ')}`,
+                error.stack,
+            )
+            throw error
+        }
     }
 
     async deleteAllTitles(): Promise<void> {

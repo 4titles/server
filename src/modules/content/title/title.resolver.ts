@@ -1,5 +1,4 @@
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql'
-import { TitleSyncResult } from './models/title-sync-result.model'
 import { Title } from './models/title.model'
 import { TitleConfigSyncService } from './services/sync/title-config-sync.service'
 import { TitleSyncService } from './services/sync/title-sync.service'
@@ -36,14 +35,40 @@ export class TitleResolver {
         return true
     }
 
-    @Mutation(() => TitleSyncResult, { name: 'syncPopularTitles' })
-    async syncPopular(): Promise<TitleSyncResult> {
-        return await this.titleSyncService.syncPopularTitles()
+    @Mutation(() => Boolean, { name: 'syncPopularTitles' })
+    async syncPopular(): Promise<boolean> {
+        await this.titleSyncService.syncPopularTitles()
+        return true
     }
 
-    @Mutation(() => TitleSyncResult, { name: 'syncTopRatedTitles' })
-    async syncTopRated(): Promise<TitleSyncResult> {
-        return await this.titleSyncService.syncTopRatedTitles()
+    @Mutation(() => Boolean, { name: 'syncTopRatedTitles' })
+    async syncTopRated(): Promise<boolean> {
+        await this.titleSyncService.syncTopRatedTitles()
+        return true
+    }
+
+    @Mutation(() => Boolean, { name: 'syncTrendingTitles' })
+    async syncTrending(): Promise<boolean> {
+        await this.titleSyncService.syncTrendingTitles()
+        return true
+    }
+
+    @Mutation(() => Boolean, { name: 'syncUpcomingTitles' })
+    async syncUpcoming(): Promise<boolean> {
+        await this.titleSyncService.syncUpcomingTitles()
+        return true
+    }
+
+    @Mutation(() => Boolean, { name: 'syncAiringTitles' })
+    async syncAiring(): Promise<boolean> {
+        await this.titleSyncService.syncAiringTitles()
+        return true
+    }
+
+    @Mutation(() => Boolean, { name: 'syncAllTitles' })
+    async syncAll(): Promise<boolean> {
+        await this.titleSyncService.syncAll()
+        return true
     }
 
     @Mutation(() => Boolean, { name: 'cleanUpTitleSyncData' })

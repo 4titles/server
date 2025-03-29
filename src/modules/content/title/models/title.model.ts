@@ -243,6 +243,9 @@ export class Title {
     @Field(() => Date)
     updatedAt: Date
 
+    @Field(() => Date, { nullable: true })
+    lastSyncedAt?: Date
+
     @Field(() => [TitleFilmingLocation])
     filmingLocations?: TitleFilmingLocation[]
 

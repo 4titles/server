@@ -1,6 +1,5 @@
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { Injectable } from '@nestjs/common'
-import { TmdbTitleDataDTO } from '../../dto/tmdb-title-data.dto'
 import { TitleStatus } from '../../enums/title-status.enum'
 import {
     Title,
@@ -18,20 +17,20 @@ import {
     TmdbTitleExtendedResponse,
     TmdbTitleResponse,
 } from '../../modules/tmdb/types/tmdb.interface'
+import { TitleSyncData } from '../../types/title-sync-data.interface'
 
 @Injectable()
 export class TitleTransformService {
-    createTitleDataFromTmdbResults(data: TmdbTitleDataDTO): Partial<Title> {
+    createTitleDataFromTmdbResults(data: TitleSyncData): Partial<Title> {
         return this.createBaseTitleData(data)
     }
 
-    createTitleUpdateDataFromTmdbResults(
-        data: TmdbTitleDataDTO,
-    ): Partial<Title> {
+    createTitleUpdateDataFromTmdbResults(data: TitleSyncData): Partial<Title> {
         const baseData = this.createBaseTitleData(data)
         return {
             ...baseData,
             updatedAt: new Date(),
+            lastSyncedAt: new Date(),
         }
     }
 
@@ -145,6 +144,7 @@ export class TitleTransformService {
             hasLocations: existingTitle.hasLocations || false,
             createdAt: existingTitle.createdAt,
             updatedAt: existingTitle.updatedAt,
+            lastSyncedAt: existingTitle.lastSyncedAt,
             details: {
                 ...existingDetails,
                 ...basicDetails,
@@ -189,7 +189,7 @@ export class TitleTransformService {
         return 'budget' in details || 'release_date' in details
     }
 
-    private createBaseTitleData(data: TmdbTitleDataDTO): Partial<Title> {
+    private createBaseTitleData(data: TitleSyncData): Partial<Title> {
         const { title, titleDetails, type, category, imdbId } = data
         const isMovie = this.isTitleMovie(titleDetails)
         const details = this.extractBasicDetails(titleDetails)

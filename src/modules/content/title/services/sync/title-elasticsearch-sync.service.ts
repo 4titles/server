@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { TmdbTitleDataDTO } from '../../dto/tmdb-title-data.dto'
 import { TitleElasticsearchService } from '../../modules/elasticsearch/title-elasticsearch.service'
 import { TitleDocumentES } from '../../modules/elasticsearch/types/title-elasticsearch-document.interface'
+import { TitleSyncData } from '../../types/title-sync-data.interface'
 
 @Injectable()
 export class TitleElasticsearchSyncService {
@@ -13,10 +13,10 @@ export class TitleElasticsearchSyncService {
 
     async syncTitleWithElasticsearch(
         titleId: string,
-        tmdbData: TmdbTitleDataDTO,
+        syncData: TitleSyncData,
     ): Promise<boolean> {
         try {
-            const { titleDetails } = tmdbData
+            const { titleDetails } = syncData
 
             const result = await this.titleElasticsearchService.indexTitle(
                 titleId,
@@ -45,10 +45,10 @@ export class TitleElasticsearchSyncService {
 
     async updateTitleInElasticsearch(
         titleId: string,
-        tmdbData: TmdbTitleDataDTO,
+        syncData: TitleSyncData,
     ): Promise<boolean> {
         try {
-            const { titleDetails } = tmdbData
+            const { titleDetails } = syncData
 
             const existingTitle =
                 await this.titleElasticsearchService.getTitle(titleId)
@@ -56,7 +56,7 @@ export class TitleElasticsearchSyncService {
                 this.logger.warn(
                     `Title ${titleId} (TMDB ID: ${titleDetails.id}) not found in ElasticSearch, creating new document`,
                 )
-                return await this.syncTitleWithElasticsearch(titleId, tmdbData)
+                return await this.syncTitleWithElasticsearch(titleId, syncData)
             }
 
             const result = await this.titleElasticsearchService.updateTitle(
@@ -84,7 +84,6 @@ export class TitleElasticsearchSyncService {
         }
     }
 
-    // ???
     async deleteTitleFromElasticsearch(titleId: string): Promise<boolean> {
         try {
             return await this.titleElasticsearchService.deleteTitle(titleId)
@@ -97,7 +96,6 @@ export class TitleElasticsearchSyncService {
         }
     }
 
-    // ???
     async getTitleDetailsFromElasticsearch(
         titleId: string,
     ): Promise<TitleDocumentES | null> {

@@ -41,7 +41,7 @@ export const titles = pgTable(
         popularity: real('popularity').default(0),
         hasLocations: boolean('has_locations').default(false),
         details: jsonb('details').$type<TitleDetails>(),
-        lastChangesCheck: timestamp('last_changes_check', {
+        lastSyncedAt: timestamp('last_synced_at', {
             withTimezone: true,
         }),
         ...timestamps,
