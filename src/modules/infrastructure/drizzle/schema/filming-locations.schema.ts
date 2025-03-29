@@ -1,13 +1,5 @@
 import { relations } from 'drizzle-orm'
-import {
-    boolean,
-    index,
-    pgTable,
-    point,
-    text,
-    timestamp,
-    uuid,
-} from 'drizzle-orm/pg-core'
+import { index, pgTable, point, text, uuid } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
 import { countries } from './countries.schema'
 import { titleFilmingLocations } from './title-filming-locations.schema'
@@ -30,12 +22,9 @@ export const filmingLocations = pgTable(
         state: text('state'),
         description: text('description'),
         enhancedDescription: text('enhanced_description'),
-        isVerified: boolean('is_verified').default(false),
-        verifiedAt: timestamp('verified_at', { withTimezone: true }),
         userId: uuid('user_id').references(() => users.id, {
             onDelete: 'set null',
         }),
-        lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
         ...timestamps,
     },
     (table) => ({

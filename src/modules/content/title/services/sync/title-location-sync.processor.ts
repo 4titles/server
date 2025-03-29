@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job } from 'bullmq'
-import { TitleCategory } from '../../enums/title-category.enum'
+import { LocationSyncJobData } from '../../types/sync-job.interface'
 import { TitleLocationSyncService } from './title-location-sync.service'
 
 @Processor('title-location-sync', {
@@ -17,9 +17,7 @@ export class TitleLocationSyncProcessor extends WorkerHost {
         super()
     }
 
-    async process(
-        job: Job<{ titleId: string; imdbId: string; category: TitleCategory }>,
-    ) {
+    async process(job: Job<LocationSyncJobData>) {
         const { titleId, imdbId, category } = job.data
         this.logger.debug(
             `Processing location sync for titleId: ${titleId}, imdbId: ${imdbId}`,

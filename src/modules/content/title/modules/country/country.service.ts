@@ -6,7 +6,7 @@ import {
 import { titles } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { TmdbCountry } from '../tmdb/models/tmdb-country.model'
 import { TmdbService } from '../tmdb/tmdb.service'
 import { CreateCountryInput } from './inputs/create-country.input'
@@ -42,6 +42,12 @@ export class CountryService {
     async findByName(name: string): Promise<Country> {
         return await this.db.query.countries.findFirst({
             where: eq(countries.name, name),
+        })
+    }
+
+    async findManyByISO(iso: string[]): Promise<Country[]> {
+        return await this.db.query.countries.findMany({
+            where: inArray(countries.iso, iso),
         })
     }
 

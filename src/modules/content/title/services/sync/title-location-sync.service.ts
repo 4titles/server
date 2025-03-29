@@ -1,29 +1,27 @@
-import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
-import { DbFilmingLocation } from '@/modules/infrastructure/drizzle/schema/filming-locations.schema'
-import { titleFilmingLocations } from '@/modules/infrastructure/drizzle/schema/title-filming-locations.schema'
-import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { Injectable, Logger } from '@nestjs/common'
+import { TitleRelationsConfigService } from '../../config/title-relations.config'
 import { TitleCategory } from '../../enums/title-category.enum'
 import { FilmingLocationParserService } from '../../modules/filming-location/services/filming-location-parser.service'
 import { FilmingLocationService } from '../../modules/filming-location/services/filming-location.service'
 import { TitleCacheService } from '../cache/title-cache.service'
+import { TitleRelationService } from '../relations/title-relation.service'
 import { TitleService } from '../title.service'
 import { TitleChangeDetectorService } from '../utils/title-change-detector.service'
-import { TitleRelationService } from '../utils/title-relation.service'
+import { TitleElasticsearchLocationSyncService } from './title-elasticsearch-location-sync.service'
 
 @Injectable()
 export class TitleLocationSyncService {
     private readonly logger = new Logger(TitleLocationSyncService.name)
 
     constructor(
-        @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly titleService: TitleService,
         private readonly filmingLocationService: FilmingLocationService,
         private readonly filmingLocationParserService: FilmingLocationParserService,
         private readonly titleRelationService: TitleRelationService,
         private readonly titleCacheService: TitleCacheService,
         private readonly titleChangeDetectorService: TitleChangeDetectorService,
+        private readonly titleEsLocationSyncService: TitleElasticsearchLocationSyncService,
+        private readonly titleRelationsConfig: TitleRelationsConfigService,
     ) {}
 
     async syncTitleLocations(
@@ -56,11 +54,6 @@ export class TitleLocationSyncService {
                     )
                 }
 
-                await this.titleService.updateNeedsLocationUpdate(
-                    titleId,
-                    false,
-                )
-
                 return
             }
 
@@ -75,10 +68,7 @@ export class TitleLocationSyncService {
                     titleId,
                     category,
                 )
-                await this.titleService.updateNeedsLocationUpdate(
-                    titleId,
-                    false,
-                )
+
                 return
             }
 
@@ -99,9 +89,7 @@ export class TitleLocationSyncService {
                                 loc.placeId,
                             )
 
-                        if (existingLocation) {
-                            return existingLocation.id
-                        }
+                        if (existingLocation) return existingLocation.id
 
                         await this.filmingLocationService.createFilmingLocation(
                             loc,
@@ -112,6 +100,7 @@ export class TitleLocationSyncService {
                             await this.filmingLocationService.findByPlaceId(
                                 loc.placeId,
                             )
+
                         return newLocation.id
                     }),
                 )
@@ -125,14 +114,29 @@ export class TitleLocationSyncService {
                     locationIds,
                 )
 
+                const title = await this.titleService.findById(titleId, {
+                    customRelations:
+                        this.titleRelationsConfig.FILMING_LOCATIONS_ONLY,
+                })
+
+                if (title) {
+                    const titleWithLocations = title as any
+                    if (titleWithLocations.filmingLocations) {
+                        await this.titleEsLocationSyncService.updateTitleFilmingLocations(
+                            titleId,
+                            titleWithLocations.filmingLocations,
+                        )
+                    }
+                }
+
                 await this.titleCacheService.storeFilmingLocations(
                     titleId,
                     category,
                     rawLocations,
                 )
-            }
 
-            await this.titleService.updateNeedsLocationUpdate(titleId, false)
+                await this.titleService.updateHasLocations(titleId, true)
+            }
         } catch (error) {
             this.logger.error(
                 `Failed to sync locations for title ${titleId}`,
@@ -140,14 +144,5 @@ export class TitleLocationSyncService {
             )
             throw error
         }
-    }
-
-    async getTitleLocations(titleId: string): Promise<DbFilmingLocation[]> {
-        const relations = await this.db.query.titleFilmingLocations.findMany({
-            where: eq(titleFilmingLocations.titleId, titleId),
-            with: { filmingLocation: true },
-        })
-
-        return relations.map((relation) => relation.filmingLocation)
     }
 }

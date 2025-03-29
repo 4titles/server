@@ -6,7 +6,7 @@ import {
 import { titles } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { TmdbLanguage } from '../tmdb/models/tmdb-language.model'
 import { TmdbService } from '../tmdb/tmdb.service'
 import { CreateLanguageInput } from './inputs/create-language.input'
@@ -61,6 +61,14 @@ export class LanguageService {
                 },
             },
         })
+    }
+
+    async getIdsByISO(isoList: string[]): Promise<string[]> {
+        const dbLanguages = await this.db.query.languages.findMany({
+            where: inArray(languages.iso, isoList),
+        })
+
+        return dbLanguages.map((g) => g.id)
     }
 
     async getLanguagesListFromTmdb(): Promise<TmdbLanguage[]> {

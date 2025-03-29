@@ -2,13 +2,13 @@ import { InjectQueue } from '@nestjs/bullmq'
 import { Injectable, Logger } from '@nestjs/common'
 import { Job, JobsOptions, Queue } from 'bullmq'
 import { TitleCategory } from '../../enums/title-category.enum'
-
-interface JobData {
-    category?: TitleCategory
-    page?: number
-    titleId?: string
-    imdbId?: string
-}
+import { TitleSyncSource } from '../../enums/title-sync-source.enum'
+import { TitleType } from '../../enums/title-type.enum'
+import {
+    CategorySyncJobData,
+    LocationSyncJobData,
+    TitleSyncJobData,
+} from '../../types/sync-job.interface'
 
 @Injectable()
 export class TitleSyncQueueService {
@@ -22,30 +22,59 @@ export class TitleSyncQueueService {
             delay: 60000, // 1 minute in ms
         },
     }
+
+    private TITLE_SYNC_OPTIONS: JobsOptions = {
+        ...this.DEFAULT_QUEUE_OPTIONS,
+        priority: 10,
+    }
+
     private LOCATION_SYNC_OPTIONS: JobsOptions = {
         ...this.DEFAULT_QUEUE_OPTIONS,
         priority: 5,
     }
 
     constructor(
-        @InjectQueue('title-sync') private readonly titleSyncQueue: Queue,
+        @InjectQueue('title-sync')
+        private readonly titleSyncQueue: Queue,
         @InjectQueue('title-location-sync')
-        private readonly locationSyncQueue: Queue,
+        private readonly titleLocationSyncQueue: Queue,
     ) {}
 
-    async addSyncJob(
+    async addCategorySyncJob(
         category: TitleCategory,
         page: number = 1,
         delay: number = 0,
     ): Promise<void> {
-        await this.addJob(
-            this.titleSyncQueue,
-            'sync-titles',
-            { category, page },
-            { ...this.DEFAULT_QUEUE_OPTIONS, delay },
-        )
+        const jobData: CategorySyncJobData = { category, page }
+        const jobId = `category-${category}-page-${page}`
+        await this.titleSyncQueue.add('sync-category', jobData, {
+            jobId,
+            delay,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 },
+        })
         this.logger.debug(
-            `Added sync job for category: ${category}, page: ${page}`,
+            `Added category sync job [${jobId}] for category: ${category}, page: ${page}`,
+        )
+    }
+
+    async addTitleSyncJob(
+        tmdbId: string,
+        type: TitleType,
+        category?: TitleCategory,
+        source: TitleSyncSource = TitleSyncSource.CATEGORY,
+    ): Promise<void> {
+        const jobData: TitleSyncJobData = { tmdbId, type, category, source }
+        const jobId = `title-${type}-${tmdbId}`
+        await this.titleSyncQueue.add('sync-title', jobData, {
+            jobId,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 },
+            removeOnComplete: true,
+            removeOnFail: 50,
+        })
+        this.logger.debug(
+            `Added title sync job [${jobId}] for tmdbId: ${tmdbId}, type: ${type}, source: ${source}, category: ${category}`,
         )
     }
 
@@ -54,14 +83,17 @@ export class TitleSyncQueueService {
         imdbId: string,
         category: TitleCategory,
     ): Promise<void> {
-        await this.addJob(
-            this.locationSyncQueue,
-            'sync-locations',
-            { titleId, imdbId, category },
-            this.LOCATION_SYNC_OPTIONS,
-        )
+        const jobData: LocationSyncJobData = { titleId, imdbId, category }
+        const jobId = `location-${titleId}`
+        await this.titleLocationSyncQueue.add('sync-location', jobData, {
+            jobId,
+            attempts: 2,
+            backoff: { type: 'exponential', delay: 10000 },
+            removeOnComplete: true,
+            removeOnFail: 50,
+        })
         this.logger.debug(
-            `Added location sync job for titleId: ${titleId}, imdbId: ${imdbId}`,
+            `Added location sync job [${jobId}] for titleId: ${titleId}, imdbId: ${imdbId}`,
         )
     }
 
@@ -73,22 +105,22 @@ export class TitleSyncQueueService {
         completed: number
         failed: number
         delayed: number
+        paused: number
     }> {
         const queue =
             queueName === 'title-sync'
                 ? this.titleSyncQueue
-                : this.locationSyncQueue
-        const [waiting, active, completed, failed, delayed] = await Promise.all(
-            [
-                queue.getWaitingCount(),
-                queue.getActiveCount(),
-                queue.getCompletedCount(),
-                queue.getFailedCount(),
-                queue.getDelayedCount(),
-            ],
-        )
+                : this.titleLocationSyncQueue
+        const counts = await queue.getJobCounts()
 
-        return { waiting, active, completed, failed, delayed }
+        return {
+            waiting: counts.waiting,
+            active: counts.active,
+            completed: counts.completed,
+            failed: counts.failed,
+            delayed: counts.delayed,
+            paused: counts.paused,
+        }
     }
 
     async getFailedJobs(
@@ -97,79 +129,18 @@ export class TitleSyncQueueService {
         const queue =
             queueName === 'title-sync'
                 ? this.titleSyncQueue
-                : this.locationSyncQueue
-        return queue.getFailed()
+                : this.titleLocationSyncQueue
+        return queue.getFailed(0, 1000)
     }
 
-    async cleanUpQueues(category?: TitleCategory): Promise<void> {
+    async cleanUpQueues(): Promise<void> {
+        this.logger.log(
+            'Cleaning up title-sync and title-location-sync queues...',
+        )
         await Promise.all([
-            this.cleanUpQueue(this.titleSyncQueue, category),
-            this.cleanUpQueue(this.locationSyncQueue, category),
+            this.titleSyncQueue.obliterate({ force: true }),
+            this.titleLocationSyncQueue.obliterate({ force: true }),
         ])
-    }
-
-    private async addJob(
-        queue: Queue,
-        name: string,
-        data: JobData,
-        options: JobsOptions,
-    ): Promise<void> {
-        try {
-            await queue.add(name, data, options)
-        } catch (error) {
-            this.logger.error(
-                `Failed to add job to queue ${queue.name}: ${error.message}`,
-                error.stack,
-            )
-            throw error
-        }
-    }
-
-    private async cleanUpQueue(
-        queue: Queue,
-        category?: TitleCategory,
-    ): Promise<void> {
-        try {
-            const jobs = await queue.getJobs([
-                'waiting',
-                'delayed',
-                'active',
-                'failed',
-            ])
-            const jobsToRemove = category
-                ? jobs.filter((job) => job.data.category === category)
-                : jobs
-
-            if (jobsToRemove.length > 0) {
-                await Promise.all(
-                    jobsToRemove.map((job) => queue.remove(job.id)),
-                )
-                this.logger.debug(
-                    `Removed ${jobsToRemove.length} jobs from ${queue.name} queue`,
-                )
-            }
-
-            const redis = await queue.client
-            const keys = await redis.keys(`bull:${queue.name}:*`)
-            if (keys.length > 0) {
-                await redis.del(keys)
-                this.logger.debug(
-                    `Cleared ${keys.length} Redis keys for ${queue.name} queue`,
-                )
-            }
-
-            const remainingJobs = await queue.count()
-            if (remainingJobs > 0) {
-                this.logger.warn(
-                    `Queue ${queue.name} not fully cleared: ${remainingJobs} jobs remain`,
-                )
-            }
-        } catch (error) {
-            this.logger.error(
-                `Failed to clean ${queue.name} queue: ${error.message}`,
-                error.stack,
-            )
-            throw error
-        }
+        this.logger.log('Queues obliterated.')
     }
 }

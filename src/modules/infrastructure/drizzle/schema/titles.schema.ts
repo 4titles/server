@@ -1,9 +1,9 @@
-import { TitleDetails } from '@/modules/content/title/models/title-details.model'
-import { TitleOverview } from '@/modules/content/title/models/title.model'
+import { TitleDetails } from '@/modules/content/title/models/title.model'
 import { relations } from 'drizzle-orm'
 import {
     boolean,
     index,
+    integer,
     jsonb,
     pgTable,
     real,
@@ -22,7 +22,9 @@ import { favorites } from './favorites.schema'
 import { titleCountries } from './title-countries.schema'
 import { titleFilmingLocations } from './title-filming-locations.schema'
 import { titleGenres } from './title-genres.schema'
+import { titleImages } from './title-images.schema'
 import { titleLanguages } from './title-languages.schema'
+import { titleTranslations } from './title-translations.schema'
 
 export const titles = pgTable(
     'titles',
@@ -30,7 +32,6 @@ export const titles = pgTable(
         id: uuid('id').primaryKey().defaultRandom(),
         tmdbId: text('tmdb_id').notNull().unique(),
         imdbId: text('imdb_id').unique(),
-        name: text('name').notNull(),
         originalName: text('original_name'),
         type: titleTypeEnum('type').notNull(),
         category: titleCategoryEnum('category').notNull(),
@@ -39,10 +40,14 @@ export const titles = pgTable(
         posterPath: text('poster_path'),
         backdropPath: text('backdrop_path'),
         popularity: real('popularity').default(0),
-        overview: jsonb('overview').$type<TitleOverview>(),
-        details: jsonb('details').$type<TitleDetails>().notNull(),
-        needsLocationUpdate: boolean('needs_location_update').default(false),
-        lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+        hasLocations: boolean('has_locations').default(false),
+        voteCount: integer('vote_count'),
+        voteAverage: real('vote_average'),
+        releaseDate: timestamp('release_date'),
+        details: jsonb('details').$type<TitleDetails>(),
+        lastSyncedAt: timestamp('last_synced_at', {
+            withTimezone: true,
+        }),
         ...timestamps,
     },
     (table) => ({
@@ -50,7 +55,6 @@ export const titles = pgTable(
         imdbIdIdx: index('titles_imdb_id_idx').on(table.imdbId),
         categoryIdx: index('titles_category_idx').on(table.category),
         popularityIdx: index('titles_popularity_idx').on(table.popularity),
-        nameIdx: index('titles_name_idx').on(table.name),
     }),
 )
 
@@ -61,6 +65,8 @@ export const titleRelations = relations(titles, ({ many }) => ({
     countries: many(titleCountries),
     comments: many(comments),
     favorites: many(favorites),
+    translations: many(titleTranslations),
+    images: many(titleImages),
 }))
 
 export type DbTitle = typeof titles.$inferSelect

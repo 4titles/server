@@ -6,10 +6,12 @@ import {
     CreditsResponse,
     ExternalId,
     Language,
+    MovieChangesResponse,
     MovieDb,
     MovieImagesResponse,
     MovieRecommendationsResponse,
     MovieResultsResponse,
+    ShowChangesResponse,
     SimilarMovieResponse,
     TrendingResponse,
     TvImagesResponse,
@@ -34,7 +36,7 @@ export class TmdbService {
         private readonly configService: ConfigService,
         private readonly httpService: HttpService,
     ) {
-        const apiKey = this.configService.get<string>('tmdb.apiKey')
+        const apiKey = this.configService.get<string>('TMDB_API_KEY')
         if (!apiKey) {
             throw new Error('TMDB_API_KEY is not defined')
         }
@@ -257,13 +259,19 @@ export class TmdbService {
 
     async getMovieImages(
         tmdbId: number | string,
-        language: string = 'en',
+        includeImageLanguages: string,
     ): Promise<MovieImagesResponse> {
         try {
-            return await this.moviedb.movieImages({
-                id: tmdbId,
-                language,
-            })
+            const response = await firstValueFrom(
+                this.httpService.get(
+                    `${this.moviedb.baseUrl}/movie/${tmdbId}/images?include_image_language=${includeImageLanguages}`,
+                    {
+                        headers: this.configService.get('tmdb.headers'),
+                    },
+                ),
+            )
+
+            return response.data
         } catch (error) {
             this.logger.error(
                 `Failed to fetch movie images for ID ${tmdbId}:`,
@@ -277,13 +285,19 @@ export class TmdbService {
 
     async getTvShowImages(
         tmdbId: number | string,
-        language: string = 'en',
+        includeImageLanguages: string,
     ): Promise<TvImagesResponse> {
         try {
-            return await this.moviedb.tvImages({
-                id: tmdbId,
-                language,
-            })
+            const response = await firstValueFrom(
+                this.httpService.get(
+                    `${this.moviedb.baseUrl}/tv/${tmdbId}/images?include_image_language=${includeImageLanguages}`,
+                    {
+                        headers: this.configService.get('tmdb.headers'),
+                    },
+                ),
+            )
+
+            return response.data
         } catch (error) {
             this.logger.error(
                 `Failed to fetch TV show images for ID ${tmdbId}:`,
@@ -465,6 +479,50 @@ export class TmdbService {
             )
             throw new TmdbException(
                 `Failed to find title by IMDb ID: ${error.message}`,
+            )
+        }
+    }
+
+    async getMovieChanges(
+        tmdbId: string,
+        startDate: string,
+        endDate: string,
+    ): Promise<MovieChangesResponse> {
+        try {
+            return await this.moviedb.movieChanges({
+                id: tmdbId,
+                start_date: startDate,
+                end_date: endDate,
+            })
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch movie changes for ID ${tmdbId}:`,
+                error,
+            )
+            throw new TmdbException(
+                `Failed to fetch movie changes: ${error.message}`,
+            )
+        }
+    }
+
+    async getTvShowChanges(
+        tmdbId: string,
+        startDate: string,
+        endDate: string,
+    ): Promise<ShowChangesResponse> {
+        try {
+            return await this.moviedb.tvChanges({
+                id: tmdbId,
+                start_date: startDate,
+                end_date: endDate,
+            })
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch TV show changes for ID ${tmdbId}:`,
+                error,
+            )
+            throw new TmdbException(
+                `Failed to fetch TV show changes: ${error.message}`,
             )
         }
     }

@@ -1,4 +1,4 @@
-import { IRedisConfig } from '@/config/redis/redis-config.interface'
+import getRedisConfig from '@/config/redis.config'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { HealthIndicatorResult } from '@nestjs/terminus'
@@ -9,7 +9,7 @@ export class RedisHealthService {
     private redis: Redis
 
     constructor(private configService: ConfigService) {
-        this.redis = new Redis(this.configService.get<IRedisConfig>('redis'))
+        this.redis = new Redis(getRedisConfig(configService))
     }
 
     async check(key: string): Promise<HealthIndicatorResult> {

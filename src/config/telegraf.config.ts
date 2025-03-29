@@ -1,9 +1,10 @@
+import { ConfigService } from '@nestjs/config'
 import type { TelegrafModuleOptions } from 'nestjs-telegraf'
-import { registerAs } from '@nestjs/config'
 
-export default registerAs(
-    'telegraf',
-    (): TelegrafModuleOptions => ({
-        token: process.env.TELEGRAM_BOT_TOKEN,
-    }),
-)
+export default function getTelegrafConfig(
+    configService: ConfigService,
+): TelegrafModuleOptions {
+    return {
+        token: configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN'),
+    }
+}
