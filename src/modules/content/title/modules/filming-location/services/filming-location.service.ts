@@ -76,9 +76,6 @@ export class FilmingLocationService {
             description: raw.description,
             enhancedDescription: '', // TODO
             userId,
-            isVerified: true,
-            verifiedAt: new Date(),
-            lastVerifiedAt: new Date(),
         }
 
         await this.db.insert(filmingLocations).values(newLocation)
@@ -92,8 +89,6 @@ export class FilmingLocationService {
         enhancedDescription?: string,
     ): Promise<void> {
         const locationUpdate: Partial<DbFilmingLocation> = {
-            isVerified: true,
-            verifiedAt: new Date(),
             enhancedDescription,
             userId,
             updatedAt: new Date(),

@@ -12,7 +12,7 @@ import {
 import Redis from 'ioredis'
 import MercuriusGQLUpload from 'mercurius-upload'
 import { AppModule } from './app.module'
-import { IRedisConfig } from './config/redis/redis-config.interface'
+import getRedisConfig from './config/redis.config'
 import {
     COMPANY_DESCRIPTION,
     COMPANY_NAME,
@@ -74,7 +74,7 @@ async function bootstrap() {
                 sameSite: 'lax',
             },
             store: new RedisStore({
-                client: new Redis(config.getOrThrow<IRedisConfig>('redis')),
+                client: new Redis(getRedisConfig(config)),
                 prefix: config.getOrThrow<string>('SESSION_FOLDER'),
             }),
         })

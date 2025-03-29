@@ -5,6 +5,7 @@ import { FeedbackStatus } from '@/modules/content/feedback/enums/feedback-status
 import { FeedbackType } from '@/modules/content/feedback/enums/feedback-type.enum'
 import { CommentableType } from '@/modules/content/title/enums/commentable-type.enum'
 import { TitleCategory } from '@/modules/content/title/enums/title-category.enum'
+import { TitleImageType } from '@/modules/content/title/enums/title-image-type.enum'
 import { TitleLanguageType } from '@/modules/content/title/enums/title-language-type.enum'
 import { TitleStatus } from '@/modules/content/title/enums/title-status.enum'
 import { TitleType } from '@/modules/content/title/enums/title-type.enum'
@@ -40,6 +41,12 @@ export const titleLanguageTypeEnum = pgEnum('title_language_type', [
     TitleLanguageType.ORIGINAL,
     TitleLanguageType.SPOKEN,
     TitleLanguageType.AVAILABLE,
+])
+
+export const titleImageTypeEnum = pgEnum('title_image_type', [
+    TitleImageType.BACKDROP,
+    TitleImageType.POSTER,
+    TitleImageType.LOGO,
 ])
 
 export const commentableTypeEnum = pgEnum('commentable_type', [

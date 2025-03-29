@@ -1,9 +1,9 @@
 import { ConfigService } from '@nestjs/config'
 import type { ClientOptions } from 'minio'
 
-export default async function getMinioConfig(
+export default function getMinioConfig(
     configService: ConfigService,
-): Promise<ClientOptions> {
+): ClientOptions {
     return {
         endPoint: configService.getOrThrow('MINIO_ENDPOINT'),
         port: Number(configService.getOrThrow('MINIO_PORT')),

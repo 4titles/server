@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config'
 
-export default async function getBullMQConfig(configService: ConfigService) {
+export default function getBullMQConfig(configService: ConfigService) {
     return {
         connection: {
             host: configService.getOrThrow('REDIS_HOST'),
