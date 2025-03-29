@@ -13,6 +13,7 @@ import { TitleConfigCacheService } from './services/cache/title-config-cache.ser
 import { TitleCountryService } from './services/relations/title-country.service'
 import { TitleFilmingLocationService } from './services/relations/title-filming-location.service'
 import { TitleGenreService } from './services/relations/title-genre.service'
+import { TitleImageService } from './services/relations/title-image.service'
 import { TitleLanguageService } from './services/relations/title-language.service'
 import { TitleRelationService } from './services/relations/title-relation.service'
 import { TitleTranslationService } from './services/relations/title-translation.service'
@@ -74,6 +75,7 @@ import { TitleResolver } from './title.resolver'
         TitleGenreService,
         TitleRelationService,
         TitleTranslationService,
+        TitleImageService,
     ],
     exports: [
         TitleService,

@@ -7,6 +7,7 @@ import { titleTranslations } from '@/modules/infrastructure/drizzle/schema/title
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
+import { titleImages } from '../../../../infrastructure/drizzle/schema/title-images.schema'
 import {
     ExtendedShowResponse,
     TmdbTitleExtendedResponse,
@@ -14,6 +15,7 @@ import {
 import { TitleCountryService } from './title-country.service'
 import { TitleFilmingLocationService } from './title-filming-location.service'
 import { TitleGenreService } from './title-genre.service'
+import { TitleImageService } from './title-image.service'
 import { TitleLanguageService } from './title-language.service'
 import { TitleTranslationService } from './title-translation.service'
 
@@ -25,6 +27,7 @@ export class TitleRelationService {
         private readonly titleLanguageService: TitleLanguageService,
         private readonly titleTranslationService: TitleTranslationService,
         private readonly titleFilmingLocationService: TitleFilmingLocationService,
+        private readonly titleImageService: TitleImageService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {}
 
@@ -55,6 +58,11 @@ export class TitleRelationService {
                     tx,
                     titleId,
                     detailedInfo.translations.translations,
+                ),
+                this.titleImageService.linkTitleToImages(
+                    tx,
+                    titleId,
+                    detailedInfo.images,
                 ),
             ])
         })
@@ -101,6 +109,7 @@ export class TitleRelationService {
             tx
                 .delete(titleFilmingLocations)
                 .where(eq(titleFilmingLocations.titleId, titleId)),
+            tx.delete(titleImages).where(eq(titleImages.titleId, titleId)),
         ])
     }
 
@@ -112,6 +121,7 @@ export class TitleRelationService {
                 tx.delete(titleLanguages),
                 tx.delete(titleTranslations),
                 tx.delete(titleFilmingLocations),
+                tx.delete(titleImages),
             ])
         })
     }

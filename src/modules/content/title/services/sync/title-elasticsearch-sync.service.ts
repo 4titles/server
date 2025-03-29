@@ -87,20 +87,7 @@ export class TitleElasticsearchSyncService {
     // ???
     async deleteTitleFromElasticsearch(titleId: string): Promise<boolean> {
         try {
-            const result =
-                await this.titleElasticsearchService.deleteTitle(titleId)
-
-            if (result) {
-                this.logger.log(
-                    `Title ${titleId} successfully deleted from ElasticSearch`,
-                )
-            } else {
-                this.logger.warn(
-                    `Failed to delete title ${titleId} from ElasticSearch`,
-                )
-            }
-
-            return result
+            return await this.titleElasticsearchService.deleteTitle(titleId)
         } catch (error) {
             this.logger.error(
                 `Error deleting title ${titleId} from ElasticSearch:`,
@@ -115,9 +102,7 @@ export class TitleElasticsearchSyncService {
         titleId: string,
     ): Promise<TitleDocumentES | null> {
         try {
-            const result =
-                await this.titleElasticsearchService.getTitle(titleId)
-            return result
+            return await this.titleElasticsearchService.getTitle(titleId)
         } catch (error) {
             this.logger.error(
                 `Error getting title ${titleId} from ElasticSearch:`,

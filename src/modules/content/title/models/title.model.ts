@@ -37,6 +37,9 @@ export class TitleImage {
     @Field(() => Number, { nullable: true })
     height?: number
 
+    @Field(() => Number, { nullable: true })
+    width?: number
+
     @Field(() => String, { nullable: true })
     iso_639_1?: string
 
@@ -222,9 +225,6 @@ export class Title {
     @Field(() => TitleDetails, { nullable: true })
     details?: TitleDetails
 
-    @Field(() => TitleImages, { nullable: true })
-    images?: TitleImages
-
     @Field(() => [TitleKeyword], { nullable: true })
     keywords?: TitleKeyword[]
 
@@ -260,4 +260,7 @@ export class Title {
 
     @Field(() => [TitleTranslation])
     translations: TitleTranslation[]
+
+    @Field(() => TitleImages, { nullable: true })
+    images?: TitleImages
 }

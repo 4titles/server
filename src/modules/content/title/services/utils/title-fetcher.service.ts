@@ -265,6 +265,7 @@ export class TitleFetcherService {
         }
     }
 
+    // TODO: check on created_at or last_changes_check insted of date hardcoding
     async getTitleChanges(
         tmdbId: string,
         type: TitleType,

@@ -394,7 +394,7 @@ export class TitleSyncService {
     }
 
     async cleanup(): Promise<boolean> {
-        this.logger.warn(
+        this.logger.log(
             'Starting cleanup process: deleting all titles and relations, and clearing Redis and ElasticSearch.',
         )
 

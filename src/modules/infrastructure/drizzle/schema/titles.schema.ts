@@ -21,6 +21,7 @@ import { favorites } from './favorites.schema'
 import { titleCountries } from './title-countries.schema'
 import { titleFilmingLocations } from './title-filming-locations.schema'
 import { titleGenres } from './title-genres.schema'
+import { titleImages } from './title-images.schema'
 import { titleLanguages } from './title-languages.schema'
 import { titleTranslations } from './title-translations.schema'
 
@@ -61,6 +62,7 @@ export const titleRelations = relations(titles, ({ many }) => ({
     comments: many(comments),
     favorites: many(favorites),
     translations: many(titleTranslations),
+    images: many(titleImages),
 }))
 
 export type DbTitle = typeof titles.$inferSelect

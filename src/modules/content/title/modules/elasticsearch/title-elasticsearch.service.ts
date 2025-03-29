@@ -11,11 +11,47 @@ export class TitleElasticsearchService implements OnModuleInit {
     private readonly indexName = 'titles'
     private readonly indexSettings = {
         analysis: {
+            filter: {
+                russian_stop: {
+                    type: 'stop',
+                    stopwords: '_russian_',
+                },
+                russian_stemmer: {
+                    type: 'stemmer',
+                    language: 'russian',
+                },
+                english_stop: {
+                    type: 'stop',
+                    stopwords: '_english_',
+                },
+                english_stemmer: {
+                    type: 'stemmer',
+                    language: 'english',
+                },
+                edge_ngram_filter: {
+                    type: 'edge_ngram',
+                    min_gram: 2,
+                    max_gram: 20,
+                },
+            },
             analyzer: {
                 title_analyzer: {
                     type: 'custom',
                     tokenizer: 'standard',
                     filter: ['lowercase', 'asciifolding'],
+                },
+                russian_analyzer: {
+                    tokenizer: 'standard',
+                    filter: ['lowercase', 'russian_stop', 'russian_stemmer'],
+                },
+                english_analyzer: {
+                    tokenizer: 'standard',
+                    filter: ['lowercase', 'english_stop', 'english_stemmer'],
+                },
+                autocomplete_analyzer: {
+                    type: 'custom',
+                    tokenizer: 'standard',
+                    filter: ['lowercase', 'asciifolding', 'edge_ngram_filter'],
                 },
             },
         },
@@ -23,6 +59,7 @@ export class TitleElasticsearchService implements OnModuleInit {
             number_of_shards: 1,
             number_of_replicas: 0,
             refresh_interval: '5s',
+            max_ngram_diff: 18,
         },
     }
     private readonly indexMappings = {
@@ -51,6 +88,20 @@ export class TitleElasticsearchService implements OnModuleInit {
         } catch (error) {
             this.logger.error(`Index creation failed: ${error.message}`)
             throw error
+        }
+    }
+
+    async titleExists(titleId: string): Promise<boolean> {
+        try {
+            return await this.elasticsearchService.documentExists(
+                this.indexName,
+                titleId,
+            )
+        } catch (error) {
+            this.logger.error(
+                `Check existence failed for ${titleId}: ${error.message}`,
+            )
+            return false
         }
     }
 
@@ -88,11 +139,14 @@ export class TitleElasticsearchService implements OnModuleInit {
         }
 
         try {
-            await this.elasticsearchService.updateDocument(
+            const result = await this.elasticsearchService.updateDocument(
                 this.indexName,
                 titleId,
                 updateDoc,
             )
+
+            if (result === null) return false
+
             this.logger.log(`Title ${titleId} updated`)
             return true
         } catch (error) {
@@ -117,10 +171,13 @@ export class TitleElasticsearchService implements OnModuleInit {
 
     async deleteTitle(titleId: string): Promise<boolean> {
         try {
-            await this.elasticsearchService.deleteDocument(
+            const result = await this.elasticsearchService.deleteDocument(
                 this.indexName,
                 titleId,
             )
+
+            if (result === null) return false
+
             this.logger.log(`Deleted title ${titleId}`)
             return true
         } catch (error) {
@@ -158,7 +215,7 @@ export class TitleElasticsearchService implements OnModuleInit {
         }
     }
 
-    private async initializeIndex() {
+    async initializeIndex() {
         try {
             const exists = await this.elasticsearchService.indexExists(
                 this.indexName,
@@ -192,6 +249,12 @@ export class TitleElasticsearchService implements OnModuleInit {
                     analyzer: 'title_analyzer',
                     fields: {
                         keyword: { type: 'keyword' },
+                        russian: { type: 'text', analyzer: 'russian_analyzer' },
+                        english: { type: 'text', analyzer: 'english_analyzer' },
+                        autocomplete: {
+                            type: 'text',
+                            analyzer: 'autocomplete_analyzer',
+                        },
                     },
                 },
                 original_name: {
@@ -199,6 +262,12 @@ export class TitleElasticsearchService implements OnModuleInit {
                     analyzer: 'title_analyzer',
                     fields: {
                         keyword: { type: 'keyword' },
+                        russian: { type: 'text', analyzer: 'russian_analyzer' },
+                        english: { type: 'text', analyzer: 'english_analyzer' },
+                        autocomplete: {
+                            type: 'text',
+                            analyzer: 'autocomplete_analyzer',
+                        },
                     },
                 },
                 overview: {
@@ -206,6 +275,12 @@ export class TitleElasticsearchService implements OnModuleInit {
                     analyzer: 'title_analyzer',
                     fields: {
                         keyword: { type: 'keyword' },
+                        russian: { type: 'text', analyzer: 'russian_analyzer' },
+                        english: { type: 'text', analyzer: 'english_analyzer' },
+                        autocomplete: {
+                            type: 'text',
+                            analyzer: 'autocomplete_analyzer',
+                        },
                     },
                 },
                 popularity: { type: 'double' },
@@ -219,6 +294,12 @@ export class TitleElasticsearchService implements OnModuleInit {
                     analyzer: 'title_analyzer',
                     fields: {
                         keyword: { type: 'keyword' },
+                        russian: { type: 'text', analyzer: 'russian_analyzer' },
+                        english: { type: 'text', analyzer: 'english_analyzer' },
+                        autocomplete: {
+                            type: 'text',
+                            analyzer: 'autocomplete_analyzer',
+                        },
                     },
                 },
                 name: {
@@ -226,6 +307,12 @@ export class TitleElasticsearchService implements OnModuleInit {
                     analyzer: 'title_analyzer',
                     fields: {
                         keyword: { type: 'keyword' },
+                        russian: { type: 'text', analyzer: 'russian_analyzer' },
+                        english: { type: 'text', analyzer: 'english_analyzer' },
+                        autocomplete: {
+                            type: 'text',
+                            analyzer: 'autocomplete_analyzer',
+                        },
                     },
                 },
                 video: { type: 'boolean' },
@@ -235,14 +322,21 @@ export class TitleElasticsearchService implements OnModuleInit {
                     type: 'date',
                     format: 'yyyy-MM-dd||yyyy-MM||yyyy',
                     ignore_malformed: true,
+                    fields: {
+                        keyword: { type: 'keyword' },
+                    },
                 },
                 first_air_date: {
                     type: 'date',
                     format: 'yyyy-MM-dd||yyyy-MM||yyyy',
                     ignore_malformed: true,
+                    fields: {
+                        keyword: { type: 'keyword' },
+                    },
                 },
                 genres: {
                     type: 'nested',
+                    include_in_parent: true,
                     properties: {
                         id: { type: 'long' },
                         name: {
@@ -256,6 +350,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                 },
                 production_companies: {
                     type: 'nested',
+                    include_in_parent: true,
                     properties: {
                         id: { type: 'long' },
                         name: {
@@ -271,17 +366,37 @@ export class TitleElasticsearchService implements OnModuleInit {
                 },
                 production_countries: {
                     type: 'nested',
+                    include_in_parent: true,
                     properties: {
                         iso_3166_1: { type: 'keyword' },
-                        name: { type: 'keyword' },
+                        name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
                     },
                 },
                 spoken_languages: {
                     type: 'nested',
+                    include_in_parent: true,
                     properties: {
                         iso_639_1: { type: 'keyword' },
-                        name: { type: 'keyword' },
-                        english_name: { type: 'keyword' },
+                        name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
+                        english_name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
                     },
                 },
                 credits: {
@@ -289,6 +404,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                     properties: {
                         cast: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 id: { type: 'long' },
                                 adult: { type: 'boolean' },
@@ -302,10 +418,16 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 original_name: {
                                     type: 'text',
                                     analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
                                 },
                                 character: {
                                     type: 'text',
                                     analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
                                 },
                                 order: { type: 'integer' },
                                 profile_path: { type: 'keyword' },
@@ -318,6 +440,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                         },
                         crew: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 id: { type: 'long' },
                                 adult: { type: 'boolean' },
@@ -331,10 +454,25 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 original_name: {
                                     type: 'text',
                                     analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
                                 },
                                 popularity: { type: 'float' },
-                                job: { type: 'keyword' },
-                                department: { type: 'keyword' },
+                                job: {
+                                    type: 'text',
+                                    analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
+                                },
+                                department: {
+                                    type: 'text',
+                                    analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
+                                },
                                 profile_path: { type: 'keyword' },
                                 known_for_department: { type: 'keyword' },
                                 gender: { type: 'integer' },
@@ -348,6 +486,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                     properties: {
                         keywords: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 id: { type: 'long' },
                                 name: {
@@ -381,6 +520,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                     properties: {
                         backdrops: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 aspect_ratio: { type: 'double' },
                                 file_path: { type: 'keyword' },
@@ -393,6 +533,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                         },
                         posters: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 aspect_ratio: { type: 'double' },
                                 file_path: { type: 'keyword' },
@@ -405,6 +546,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                         },
                         logos: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 aspect_ratio: { type: 'double' },
                                 file_path: { type: 'keyword' },
@@ -433,6 +575,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                     properties: {
                         titles: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 iso_3166_1: { type: 'keyword' },
                                 title: {
@@ -452,14 +595,24 @@ export class TitleElasticsearchService implements OnModuleInit {
                     properties: {
                         translations: {
                             type: 'nested',
+                            include_in_parent: true,
                             properties: {
                                 iso_3166_1: { type: 'keyword' },
                                 iso_639_1: { type: 'keyword' },
                                 name: {
                                     type: 'text',
                                     analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
                                 },
-                                english_name: { type: 'keyword' },
+                                english_name: {
+                                    type: 'text',
+                                    analyzer: 'title_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                    },
+                                },
                                 data: {
                                     type: 'object',
                                     properties: {
@@ -480,11 +633,17 @@ export class TitleElasticsearchService implements OnModuleInit {
                                         overview: {
                                             type: 'text',
                                             analyzer: 'title_analyzer',
+                                            fields: {
+                                                keyword: { type: 'keyword' },
+                                            },
                                         },
                                         homepage: { type: 'keyword' },
                                         tagline: {
                                             type: 'text',
                                             analyzer: 'title_analyzer',
+                                            fields: {
+                                                keyword: { type: 'keyword' },
+                                            },
                                         },
                                         runtime: { type: 'integer' },
                                     },
@@ -497,6 +656,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                 episode_run_time: { type: 'integer' },
                 networks: {
                     type: 'nested',
+                    include_in_parent: true,
                     properties: {
                         id: { type: 'long' },
                         name: {

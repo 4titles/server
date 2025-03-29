@@ -3,6 +3,7 @@ import { Client } from '@elastic/elasticsearch'
 import {
     BulkResponse,
     DeleteResponse,
+    ExistsResponse,
     IndexResponse,
     IndicesCreateResponse,
     IndicesDeleteResponse,
@@ -42,6 +43,15 @@ export class ElasticsearchService implements OnModuleInit {
             return response
         } catch (error) {
             this.logger.error(`Index exists check failed for ${index}:`, error)
+            return false
+        }
+    }
+
+    async documentExists(index: string, id: string): Promise<ExistsResponse> {
+        try {
+            return await this.client.exists({ index, id })
+        } catch (error) {
+            this.logger.error(`Document exists check failed for ${id}:`, error)
             return false
         }
     }
@@ -158,8 +168,11 @@ export class ElasticsearchService implements OnModuleInit {
         id: string,
         document: Partial<T>,
         refresh: boolean = false,
-    ): Promise<UpdateResponse> {
+    ): Promise<UpdateResponse | null> {
         try {
+            const exists = await this.documentExists(index, id)
+            if (!exists) return null
+
             const response = await this.client.update({
                 index,
                 id,
@@ -178,8 +191,11 @@ export class ElasticsearchService implements OnModuleInit {
         index: string,
         id: string,
         refresh: boolean = false,
-    ): Promise<DeleteResponse> {
+    ): Promise<DeleteResponse | null> {
         try {
+            const exists = await this.documentExists(index, id)
+            if (!exists) return null
+
             const response = await this.client.delete({
                 index,
                 id,

@@ -1,4 +1,5 @@
 import {
+    Backdrop,
     CollectionTranslationsResponse,
     CreditsResponse,
     KeywordResponse,
@@ -9,10 +10,12 @@ import {
     MovieRecommendationsResponse,
     MovieResponse,
     MovieResultsResponse,
+    Poster,
     ShowAlternativeTitlesResponse,
     ShowChangesResponse,
     ShowResponse,
     SimilarMovieResponse,
+    TitleLogo,
     TrendingResponse,
     TvExternalIdsResponse,
     TvImagesResponse,
@@ -54,7 +57,13 @@ export interface TmdbResponse {
     page: number
 }
 
+export type TmdbTitleImage = Backdrop | TitleLogo | Poster
 export type TmdbImages = MovieImagesResponse | TvImagesResponse
+export type TmdbTitleImages =
+    | TmdbImages['backdrops']
+    | TmdbImages['posters']
+    | TmdbImages['logos']
+
 export type TmdbExternalIds = MovieExternalIdsResponse | TvExternalIdsResponse
 
 export interface ExtendedMovieResponse extends MovieResponse {
