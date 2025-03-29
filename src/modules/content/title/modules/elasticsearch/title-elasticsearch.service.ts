@@ -1,8 +1,7 @@
 import { ElasticsearchService } from '@/modules/infrastructure/elasticsearch/elasticsearch.service'
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
-import { Title } from '../../models/title.model'
-import { TmdbTitleExtendedResponse } from '../tmdb/types/tmdb.interface'
+import { TmdbTitleExtendedResponse } from '../../modules/tmdb/types/tmdb.interface'
 import { TitleDocumentES } from './types/title-elasticsearch-document.interface'
 
 @Injectable()
@@ -186,8 +185,8 @@ export class TitleElasticsearchService implements OnModuleInit {
         }
     }
 
-    async searchTitles(query: any): Promise<SearchResponse<Title>> {
-        return await this.elasticsearchService.search<Title>(
+    async searchTitles(query: any): Promise<SearchResponse<TitleDocumentES>> {
+        return await this.elasticsearchService.search<TitleDocumentES>(
             this.indexName,
             query,
         )
@@ -233,6 +232,30 @@ export class TitleElasticsearchService implements OnModuleInit {
         }
     }
 
+    async recreateTitleIndex(): Promise<boolean> {
+        try {
+            const exists = await this.elasticsearchService.indexExists(
+                this.indexName,
+            )
+
+            if (exists) {
+                await this.elasticsearchService.deleteIndex(this.indexName)
+                this.logger.log(`Index ${this.indexName} deleted successfully`)
+            }
+
+            await this.createTitleIndex()
+            this.logger.log(`Index ${this.indexName} recreated successfully`)
+
+            return true
+        } catch (error) {
+            this.logger.error(
+                `Failed to recreate index: ${error.message}`,
+                error.stack,
+            )
+            return false
+        }
+    }
+
     private getTitleDetailsMapping() {
         return {
             type: 'object',
@@ -267,6 +290,47 @@ export class TitleElasticsearchService implements OnModuleInit {
                         autocomplete: {
                             type: 'text',
                             analyzer: 'autocomplete_analyzer',
+                        },
+                    },
+                },
+                filming_locations: {
+                    type: 'nested',
+                    properties: {
+                        id: { type: 'keyword' },
+                        placeId: { type: 'keyword' },
+                        address: { type: 'text', analyzer: 'standard' },
+                        formattedAddress: {
+                            type: 'text',
+                            analyzer: 'standard',
+                        },
+                        city: {
+                            type: 'text',
+                            analyzer: 'standard',
+                            fields: {
+                                keyword: { type: 'keyword', ignore_above: 256 },
+                            },
+                        },
+                        state: {
+                            type: 'text',
+                            analyzer: 'standard',
+                            fields: {
+                                keyword: { type: 'keyword', ignore_above: 256 },
+                            },
+                        },
+                        countryId: { type: 'keyword' },
+                        countryCode: { type: 'keyword' },
+                        countryName: {
+                            type: 'text',
+                            analyzer: 'standard',
+                            fields: {
+                                keyword: { type: 'keyword', ignore_above: 256 },
+                            },
+                        },
+                        coordinates: { type: 'geo_point' },
+                        description: { type: 'text', analyzer: 'standard' },
+                        enhancedDescription: {
+                            type: 'text',
+                            analyzer: 'standard',
                         },
                     },
                 },
@@ -669,6 +733,51 @@ export class TitleElasticsearchService implements OnModuleInit {
                     },
                 },
             },
+        }
+    }
+
+    async updateTitleWithFilmingLocations(
+        titleId: string,
+        filmingLocations: any[],
+    ): Promise<boolean> {
+        try {
+            const existingDoc = await this.getTitle(titleId)
+            if (!existingDoc) {
+                this.logger.warn(
+                    `Title ${titleId} not found in Elasticsearch. Cannot update filming locations.`,
+                )
+                return false
+            }
+
+            const updatedDetails = JSON.parse(
+                JSON.stringify(existingDoc.details),
+            )
+
+            updatedDetails.filming_locations = filmingLocations
+
+            const updateDoc = {
+                details: updatedDetails,
+                updatedAt: Date.now(),
+            }
+
+            const result = await this.elasticsearchService.updateDocument(
+                this.indexName,
+                titleId,
+                updateDoc,
+            )
+
+            if (result === null) return false
+
+            this.logger.log(
+                `Filming locations for title ${titleId} updated in Elasticsearch`,
+            )
+            return true
+        } catch (error) {
+            this.logger.error(
+                `Failed to update filming locations for title ${titleId} in Elasticsearch: ${error.message}`,
+                error,
+            )
+            return false
         }
     }
 }

@@ -163,6 +163,93 @@ export class TitleTransformService {
         }
     }
 
+    mergeDbAndEsDetails(
+        dbTitleWithRelations: DbTitle,
+        esDetails: TmdbTitleExtendedResponse | null,
+    ): Title {
+        const title: Partial<Title> = {
+            id: dbTitleWithRelations.id,
+            tmdbId: dbTitleWithRelations.tmdbId,
+            imdbId: dbTitleWithRelations.imdbId,
+            originalName: dbTitleWithRelations.originalName,
+            type: dbTitleWithRelations.type,
+            category: dbTitleWithRelations.category,
+            status: dbTitleWithRelations.status,
+            isAdult: dbTitleWithRelations.isAdult,
+            posterPath: dbTitleWithRelations.posterPath,
+            backdropPath: dbTitleWithRelations.backdropPath,
+            popularity: dbTitleWithRelations.popularity,
+            details: dbTitleWithRelations.details,
+            hasLocations: dbTitleWithRelations.hasLocations,
+            createdAt: dbTitleWithRelations.createdAt,
+            updatedAt: dbTitleWithRelations.updatedAt,
+            lastSyncedAt: dbTitleWithRelations.lastSyncedAt,
+            genres: (dbTitleWithRelations as any).genres || [],
+            countries: (dbTitleWithRelations as any).countries || [],
+            languages: (dbTitleWithRelations as any).languages || [],
+            translations: (dbTitleWithRelations as any).translations || [],
+            images: (dbTitleWithRelations as any).images || {
+                backdrops: [],
+                posters: [],
+                logos: [],
+            },
+            filmingLocations:
+                (dbTitleWithRelations as any).filmingLocations || [],
+            comments: (dbTitleWithRelations as any).comments || [],
+        }
+
+        if (esDetails) {
+            const basicDetailsFromEs = this.extractBasicDetails(esDetails)
+            title.details = {
+                ...(dbTitleWithRelations.details || {}),
+                ...basicDetailsFromEs,
+            }
+
+            const keywordsResponse = esDetails.keywords
+            if (keywordsResponse && 'keywords' in keywordsResponse) {
+                title.keywords = Array.isArray(keywordsResponse.keywords)
+                    ? keywordsResponse.keywords
+                    : []
+            } else if (Array.isArray(keywordsResponse)) {
+                title.keywords = keywordsResponse
+            } else {
+                title.keywords = []
+            }
+
+            title.credits = {
+                cast: esDetails.credits?.cast || [],
+                crew: esDetails.credits?.crew || [],
+            }
+            title.alternativeTitles = this.extractAlternativeTitles(
+                esDetails.alternative_titles,
+            )
+            title.externalIds = esDetails.external_ids || null
+
+            if (
+                !(
+                    title.images &&
+                    (title.images.backdrops?.length > 0 ||
+                        title.images.posters?.length > 0 ||
+                        title.images.logos?.length > 0)
+                )
+            ) {
+                title.images = esDetails.images || {
+                    backdrops: [],
+                    posters: [],
+                    logos: [],
+                }
+            }
+        } else {
+            title.details = dbTitleWithRelations.details || {}
+            title.keywords = []
+            title.credits = { cast: [], crew: [] }
+            title.alternativeTitles = []
+            title.externalIds = null
+        }
+
+        return title as Title
+    }
+
     mapTitleStatus(status: string): TitleStatus {
         switch (status) {
             case 'Rumored':
@@ -210,6 +297,9 @@ export class TitleTransformService {
             backdropPath: title.backdrop_path || null,
             popularity: title.popularity || 0,
             details,
+            voteCount: details.vote_count || 0,
+            voteAverage: details.vote_average || 0.0,
+            releaseDate: new Date(details.release_date) || null,
             images: titleDetails.images || null,
             keywords: titleDetails.keywords || [],
             credits: {

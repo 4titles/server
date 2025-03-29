@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm'
 import {
     boolean,
     index,
+    integer,
     jsonb,
     pgTable,
     real,
@@ -40,6 +41,9 @@ export const titles = pgTable(
         backdropPath: text('backdrop_path'),
         popularity: real('popularity').default(0),
         hasLocations: boolean('has_locations').default(false),
+        voteCount: integer('vote_count'),
+        voteAverage: real('vote_average'),
+        releaseDate: timestamp('release_date'),
         details: jsonb('details').$type<TitleDetails>(),
         lastSyncedAt: timestamp('last_synced_at', {
             withTimezone: true,

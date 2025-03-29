@@ -7,9 +7,18 @@ import {
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, desc, eq, inArray } from 'drizzle-orm'
+import {
+    TitleRelationsConfig,
+    TitleRelationsConfigService,
+} from '../config/title-relations.config'
 import { TitleCategory } from '../enums/title-category.enum'
+import { TitleLoadRelations } from '../enums/title-load-relations.enum'
 import { TitleType } from '../enums/title-type.enum'
-import { TitleTransformService } from './utils/title-transform.service'
+
+interface FindTitleOptions {
+    loadRelations?: TitleLoadRelations
+    customRelations?: TitleRelationsConfig
+}
 
 @Injectable()
 export class TitleService {
@@ -17,89 +26,143 @@ export class TitleService {
 
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
-        private readonly titleTransformService: TitleTransformService,
+        private readonly titleRelationsConfig: TitleRelationsConfigService,
     ) {}
 
-    async findById(titleId: string): Promise<DbTitle> {
-        return await this.db.query.titles.findFirst({
-            where: eq(titles.id, titleId),
-        })
-    }
-
-    async findByTmdbId(tmdbId: string): Promise<DbTitle> {
-        return await this.db.query.titles.findFirst({
-            where: eq(titles.tmdbId, tmdbId),
-        })
-    }
-
-    async findByImdbId(imdbId: string): Promise<DbTitle> {
-        return await this.db.query.titles.findFirst({
-            where: eq(titles.imdbId, imdbId),
-        })
-    }
-
-    async findByCategory(category: TitleCategory): Promise<DbTitle[]> {
-        return await this.db.query.titles.findMany({
-            where: eq(titles.category, category),
-        })
-    }
-
-    async findByType(type: TitleType): Promise<DbTitle[]> {
-        return await this.db.query.titles.findMany({
-            where: eq(titles.type, type),
-        })
-    }
-
-    async findWithLocations(titleId: string): Promise<DbTitle> {
-        return await this.db.query.titles.findFirst({
-            where: eq(titles.id, titleId),
-            with: { filmingLocations: true },
-        })
-    }
-
-    async findByByImdbIdWithRelations(imdbId: string): Promise<DbTitle> {
-        return await this.db.query.titles.findFirst({
-            where: eq(titles.imdbId, imdbId),
-            with: {
-                filmingLocations: true,
-                genres: true,
-                countries: true,
-                languages: true,
-            },
-        })
-    }
-
-    async findAll(filters: Partial<DbTitle> = {}): Promise<DbTitle[]> {
-        const orderBy = [desc(titles.popularity)]
-        let query = this.db.query.titles.findMany({
-            orderBy,
-        })
-
-        if (filters) {
-            const conditions = []
-
-            if (filters.category) {
-                conditions.push(eq(titles.category, filters.category))
-            }
-            if (filters.type) {
-                conditions.push(eq(titles.type, filters.type))
-            }
-            if (filters.status) {
-                conditions.push(eq(titles.status, filters.status))
-            }
-            if (filters.hasLocations) {
-                conditions.push(eq(titles.hasLocations, filters.hasLocations))
-            }
-
-            if (conditions.length > 0) {
-                query = this.db.query.titles.findMany({
-                    where: and(...conditions),
-                    orderBy,
-                })
-            }
+    private _buildWithClause(
+        loadRelations: TitleLoadRelations = TitleLoadRelations.NONE,
+        customRelations?: TitleRelationsConfig,
+    ) {
+        if (customRelations) {
+            return customRelations
         }
 
-        return await query
+        switch (loadRelations) {
+            case TitleLoadRelations.CORE:
+                return this.titleRelationsConfig.CORE
+            case TitleLoadRelations.SEARCH_PREVIEW:
+                return this.titleRelationsConfig.SEARCH_PREVIEW
+            case TitleLoadRelations.FULL:
+                return this.titleRelationsConfig.FULL
+            case TitleLoadRelations.NONE:
+            default:
+                return this.titleRelationsConfig.NONE
+        }
+    }
+
+    async findById(
+        titleId: string,
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle | null> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findFirst({
+            where: eq(titles.id, titleId),
+            with: withClause as any,
+        })
+    }
+
+    async findByTmdbId(
+        tmdbId: string,
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle | null> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findFirst({
+            where: eq(titles.tmdbId, tmdbId),
+            with: withClause as any,
+        })
+    }
+
+    async findByImdbId(
+        imdbId: string,
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle | null> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findFirst({
+            where: eq(titles.imdbId, imdbId),
+            with: withClause as any,
+        })
+    }
+
+    async findManyByIds(
+        titleIds: string[],
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle[]> {
+        if (!titleIds || titleIds.length === 0) return []
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findMany({
+            where: inArray(titles.id, titleIds),
+            with: withClause as any,
+        })
+    }
+
+    async findByCategory(
+        category: TitleCategory,
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle[]> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findMany({
+            where: eq(titles.category, category),
+            with: withClause as any,
+        })
+    }
+
+    async findByType(
+        type: TitleType,
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle[]> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findMany({
+            where: eq(titles.type, type),
+            with: withClause as any,
+        })
+    }
+
+    async findAll(
+        filters: Partial<DbTitle> = {},
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle[]> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+        const orderBy = [desc(titles.popularity)]
+
+        const conditions = []
+        if (filters.category) {
+            conditions.push(eq(titles.category, filters.category))
+        }
+        if (filters.type) {
+            conditions.push(eq(titles.type, filters.type))
+        }
+        if (filters.status) {
+            conditions.push(eq(titles.status, filters.status))
+        }
+        if (filters.hasLocations) {
+            conditions.push(eq(titles.hasLocations, filters.hasLocations))
+        }
+
+        return await this.db.query.titles.findMany({
+            where: conditions.length > 0 ? and(...conditions) : undefined,
+            orderBy,
+            with: withClause as any,
+        })
     }
 
     async createFromTmdb(titleData: Partial<DbTitle>): Promise<DbTitle> {

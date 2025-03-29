@@ -10,7 +10,7 @@ export interface TitleSyncConfig {
     cronExpressions: Record<TitleCategory, string>
 }
 
-export const DEFAULT_TITLES_FETCH_LIMIT = 5 // permanently
+export const DEFAULT_TITLES_FETCH_LIMIT = 15 // permanently
 
 export const defaultTitleSyncConfig: TitleSyncConfig = {
     limits: {

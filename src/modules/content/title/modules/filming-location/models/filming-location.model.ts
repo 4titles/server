@@ -5,10 +5,10 @@ import { Country } from '../../country/models/country.model'
 @ObjectType()
 export class Point {
     @Field(() => Number, { nullable: true })
-    latitude?: number
+    x?: number
 
     @Field(() => Number, { nullable: true })
-    longitude?: number
+    y?: number
 }
 
 @ObjectType()
@@ -39,12 +39,6 @@ export class FilmingLocation {
 
     @Field(() => String, { nullable: true })
     enhancedDescription?: string
-
-    @Field(() => Boolean)
-    isVerified: boolean
-
-    @Field(() => Date)
-    lastVerifiedAt: Date
 
     @Field(() => Date)
     createdAt: Date

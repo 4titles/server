@@ -222,6 +222,15 @@ export class Title {
     @Field(() => Boolean)
     hasLocations: boolean
 
+    @Field(() => Number, { nullable: true })
+    voteAverage?: number
+
+    @Field(() => Number, { nullable: true })
+    voteCount?: number
+
+    @Field(() => String, { nullable: true })
+    releaseDate?: Date
+
     @Field(() => TitleDetails, { nullable: true })
     details?: TitleDetails
 
