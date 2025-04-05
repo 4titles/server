@@ -8,6 +8,7 @@ import { RawLocation } from '../../modules/filming-location/interfaces/raw-locat
 export class TitleCacheService {
     private readonly logger = new Logger(TitleCacheService.name)
     private readonly REDIS_KEY_PREFIX = 'title:'
+    private readonly TITLES_LIST_PREFIX = 'titles:list:'
     private readonly SYNC_CATEGORY_PREFIX = 'sync:category:'
     private readonly SYNC_ACTIVE_IDS_PREFIX = 'sync:active_ids:'
     private readonly REDIS_EXPIRE_TIME = 60 * 60 * 24 * 7 // 1 week
@@ -19,6 +20,9 @@ export class TitleCacheService {
         try {
             const client = await this.cacheService.getClient()
             const titleKeys = await client.keys(`${this.REDIS_KEY_PREFIX}*`)
+            const titlesListKeys = await client.keys(
+                `${this.TITLES_LIST_PREFIX}*`,
+            )
             const syncTimestampKeys = await client.keys(
                 `${this.SYNC_CATEGORY_PREFIX}*`,
             )
@@ -27,6 +31,7 @@ export class TitleCacheService {
             )
             const keys = [
                 ...titleKeys,
+                ...titlesListKeys,
                 ...syncTimestampKeys,
                 ...syncActiveIdsKeys,
             ]
@@ -45,6 +50,56 @@ export class TitleCacheService {
         } catch (error) {
             this.logger.error('Failed to clear Redis cache:', error)
             throw error
+        }
+    }
+
+    async invalidateTitlesListCache(): Promise<void> {
+        try {
+            const client = await this.cacheService.getClient()
+            const titlesListKeys = await client.keys(
+                `${this.TITLES_LIST_PREFIX}*`,
+            )
+
+            if (titlesListKeys.length > 0) {
+                this.logger.debug(
+                    `Invalidating ${titlesListKeys.length} titles list cache keys`,
+                )
+
+                const batchSize = 1000
+                for (let i = 0; i < titlesListKeys.length; i += batchSize) {
+                    const batch = titlesListKeys.slice(i, i + batchSize)
+                    await Promise.all(batch.map((key) => client.del(key)))
+                }
+
+                this.logger.debug('Titles list cache invalidated successfully')
+            }
+        } catch (error) {
+            this.logger.error('Failed to invalidate titles list cache:', error)
+        }
+    }
+
+    async invalidateCategoryTitlesListCache(
+        category: TitleCategory,
+    ): Promise<void> {
+        try {
+            const client = await this.cacheService.getClient()
+            const categoryPattern = `${this.TITLES_LIST_PREFIX}${category}:*`
+            const titlesListKeys = await client.keys(categoryPattern)
+
+            if (titlesListKeys.length > 0) {
+                this.logger.debug(
+                    `Invalidating ${titlesListKeys.length} cache keys for category ${category}`,
+                )
+                await Promise.all(titlesListKeys.map((key) => client.del(key)))
+                this.logger.debug(
+                    `Cache for category ${category} invalidated successfully`,
+                )
+            }
+        } catch (error) {
+            this.logger.error(
+                `Failed to invalidate cache for category ${category}:`,
+                error,
+            )
         }
     }
 

@@ -1,4 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
+import { TitleFilterInput } from './inputs/title-filter.input'
 import { TitleGeosearchInput } from './inputs/title-geosearch.input'
 import { TitleSearchInput } from './inputs/title-search.input'
 import { PaginatedTitleSearchResults } from './models/paginated-title-search-results.model'
@@ -19,6 +20,13 @@ export class TitleResolver {
         private readonly titleSearchService: TitleSearchService,
         private readonly titleElasticsearchService: TitleElasticsearchService,
     ) {}
+
+    @Query(() => PaginatedTitleSearchResults, { name: 'titles' })
+    async getTitles(
+        @Args('filter', { nullable: true }) filter?: TitleFilterInput,
+    ): Promise<PaginatedTitleSearchResults> {
+        return await this.titleQueryService.getTitles(filter)
+    }
 
     @Query(() => Title, { name: 'title' })
     async getTitleById(
