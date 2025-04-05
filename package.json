@@ -85,6 +85,7 @@
         "nestjs-minio-client": "^2.2.0",
         "nestjs-telegraf": "^2.8.1",
         "nsfwjs": "^4.2.1",
+        "openai": "^4.91.1",
         "otpauth": "^9.3.6",
         "pg": "^8.13.1",
         "puppeteer": "^23.10.1",

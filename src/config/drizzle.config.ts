@@ -18,9 +18,6 @@ export default function getDrizzleConfig(
                 configService.get<number>('DB_IDLE_TIMEOUT_MS') ?? 30000,
             connectionTimeoutMillis:
                 configService.get<number>('DB_CONNECT_TIMEOUT_MS') ?? 5000,
-            ssl: configService.get('DB_SSL_ENABLED')
-                ? { rejectUnauthorized: false }
-                : undefined,
         },
         schema,
     }

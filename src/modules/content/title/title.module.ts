@@ -21,6 +21,9 @@ import { TitleTranslationService } from './services/relations/title-translation.
 import { TitleConfigSyncService } from './services/sync/title-config-sync.service'
 import { TitleElasticsearchLocationSyncService } from './services/sync/title-elasticsearch-location-sync.service'
 import { TitleElasticsearchSyncService } from './services/sync/title-elasticsearch-sync.service'
+import { TitleLocationDescriptionSyncQueueService } from './services/sync/title-location-description-sync-queue.service'
+import { TitleLocationDescriptionSyncProcessor } from './services/sync/title-location-description-sync.processor'
+import { TitleLocationDescriptionSyncService } from './services/sync/title-location-description-sync.service'
 import { TitleLocationSyncProcessor } from './services/sync/title-location-sync.processor'
 import { TitleLocationSyncService } from './services/sync/title-location-sync.service'
 import { TitleSyncQueueService } from './services/sync/title-sync-queue.service'
@@ -50,6 +53,9 @@ import { TitleResolver } from './title.resolver'
             {
                 name: 'title-location-sync',
             },
+            {
+                name: 'title-location-description-sync',
+            },
         ),
     ],
     providers: [
@@ -68,10 +74,13 @@ import { TitleResolver } from './title.resolver'
         // Sync
         TitleSyncService,
         TitleLocationSyncService,
+        TitleLocationDescriptionSyncService,
         TitleConfigSyncService,
         TitleSyncProcessor,
         TitleLocationSyncProcessor,
+        TitleLocationDescriptionSyncProcessor,
         TitleSyncQueueService,
+        TitleLocationDescriptionSyncQueueService,
         TitleElasticsearchSyncService,
         TitleElasticsearchLocationSyncService,
 
@@ -90,6 +99,7 @@ import { TitleResolver } from './title.resolver'
         TitleSyncService,
         TitleConfigSyncService,
         TitleLocationSyncService,
+        TitleLocationDescriptionSyncService,
         TitleQueryService,
         TitleSearchService,
         TitleSupportedLanguagesConfig,

@@ -8,6 +8,7 @@ import { TitleRelationService } from '../relations/title-relation.service'
 import { TitleService } from '../title.service'
 import { TitleChangeDetectorService } from '../utils/title-change-detector.service'
 import { TitleElasticsearchLocationSyncService } from './title-elasticsearch-location-sync.service'
+import { TitleLocationDescriptionSyncQueueService } from './title-location-description-sync-queue.service'
 
 @Injectable()
 export class TitleLocationSyncService {
@@ -22,6 +23,7 @@ export class TitleLocationSyncService {
         private readonly titleChangeDetectorService: TitleChangeDetectorService,
         private readonly titleEsLocationSyncService: TitleElasticsearchLocationSyncService,
         private readonly titleRelationsConfig: TitleRelationsConfigService,
+        private readonly descriptionSyncQueueService: TitleLocationDescriptionSyncQueueService,
     ) {}
 
     async syncTitleLocations(
@@ -100,6 +102,34 @@ export class TitleLocationSyncService {
                             await this.filmingLocationService.findByPlaceId(
                                 loc.placeId,
                             )
+
+                        this.logger.debug(
+                            `Location ${newLocation.id} created, trying to add to queue of description sync`,
+                        )
+
+                        if (newLocation && !newLocation.enhancedDescription) {
+                            this.logger.debug(
+                                `Adding description job for location ${newLocation.id} of title ${titleId}`,
+                            )
+                            try {
+                                await this.descriptionSyncQueueService.addLocationDescriptionJob(
+                                    titleId,
+                                    newLocation.id,
+                                )
+                                this.logger.debug(
+                                    `Successfully added description job for location ${newLocation.id}`,
+                                )
+                            } catch (error) {
+                                this.logger.error(
+                                    `Failed to add description job for location ${newLocation.id}: ${error.message}`,
+                                    error.stack,
+                                )
+                            }
+                        } else {
+                            this.logger.debug(
+                                `Location ${newLocation.id} already has an enhanced description or location not found`,
+                            )
+                        }
 
                         return newLocation.id
                     }),

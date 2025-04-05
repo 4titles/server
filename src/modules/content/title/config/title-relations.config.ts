@@ -21,7 +21,11 @@ export interface TitleRelationsConfig {
             filmingLocation?: boolean
         }
     }
-    translations?: boolean
+    translations?: {
+        with?: {
+            language?: boolean
+        }
+    }
     images?: boolean
 }
 
@@ -48,7 +52,11 @@ export class TitleRelationsConfigService {
     }
 
     public readonly SEARCH_PREVIEW: TitleRelationsConfig = {
-        translations: true,
+        translations: {
+            with: {
+                language: true,
+            },
+        },
     }
 
     public readonly FULL: TitleRelationsConfig = {
@@ -72,7 +80,11 @@ export class TitleRelationsConfigService {
                 filmingLocation: true,
             },
         },
-        translations: true,
+        translations: {
+            with: {
+                language: true,
+            },
+        },
         images: true,
     }
 
@@ -80,6 +92,24 @@ export class TitleRelationsConfigService {
         filmingLocations: {
             with: {
                 filmingLocation: true,
+            },
+        },
+    }
+
+    public readonly BASIC_DETAILS_WITH_TRANSLATIONS: TitleRelationsConfig = {
+        genres: {
+            with: {
+                genre: true,
+            },
+        },
+        countries: {
+            with: {
+                country: true,
+            },
+        },
+        translations: {
+            with: {
+                language: true,
             },
         },
     }
