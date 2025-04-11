@@ -156,7 +156,7 @@ export class TitleSyncService {
         }
     }
 
-    async syncAll(): Promise<void> {
+    async syncAll(): Promise<boolean> {
         try {
             this.logger.warn('Starting sync for all categories')
             const categories = Object.values(TitleCategory)
@@ -173,6 +173,8 @@ export class TitleSyncService {
             }
 
             this.logger.warn('All category sync jobs have been added to queue')
+            await this.titleCacheService.invalidateTitlesListCache()
+            return true
         } catch (error) {
             this.logger.fatal('Failed to start sync for all categories:', error)
             const categories = Object.values(TitleCategory).filter(
@@ -583,7 +585,7 @@ export class TitleSyncService {
             this.logger.log('Cleanup queues finished.')
 
             this.logger.log('Cleanup process completed successfully.')
-
+            await this.titleCacheService.invalidateTitlesListCache()
             return true
         } catch (error) {
             this.logger.error(

@@ -20,6 +20,13 @@ export class FilmingLocationService {
         private readonly countryService: CountryService,
     ) {}
 
+    async findById(id: string): Promise<DbFilmingLocation | null> {
+        return await this.db.query.filmingLocations.findFirst({
+            where: eq(filmingLocations.id, id),
+            with: { country: true },
+        })
+    }
+
     async findByPlaceId(placeId: string): Promise<DbFilmingLocation | null> {
         return await this.db.query.filmingLocations.findFirst({
             where: eq(filmingLocations.placeId, placeId),
@@ -81,6 +88,19 @@ export class FilmingLocationService {
         await this.db.insert(filmingLocations).values(newLocation)
 
         return true
+    }
+
+    async updateEnhancedDescription(
+        locationId: string,
+        enhancedDescription: string,
+    ): Promise<void> {
+        await this.db
+            .update(filmingLocations)
+            .set({
+                enhancedDescription,
+                updatedAt: new Date(),
+            } as Partial<DbFilmingLocation>)
+            .where(eq(filmingLocations.id, locationId))
     }
 
     async verifyLocation(

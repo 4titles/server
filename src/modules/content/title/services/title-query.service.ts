@@ -3,6 +3,8 @@ import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { dateReviver } from '@/shared/utils/time/date-retriever.util'
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { TitleRelationsConfigService } from '../config/title-relations.config'
+import { TitleFilterInput } from '../inputs/title-filter.input'
+import { PaginatedTitleSearchResults } from '../models/paginated-title-search-results.model'
 import { Title } from '../models/title.model'
 import { TitleDocumentES } from '../modules/elasticsearch/types/title-elasticsearch-document.interface'
 import { TitleElasticsearchSyncService } from './sync/title-elasticsearch-sync.service'
@@ -13,7 +15,9 @@ import { TitleTransformService } from './utils/title-transform.service'
 export class TitleQueryService {
     private readonly logger = new Logger(TitleQueryService.name)
     private readonly CACHE_KEY_PREFIX = 'title:details:'
+    private readonly TITLES_LIST_PREFIX = 'titles:list:'
     private readonly CACHE_TTL_SECONDS = 60 * 60 * 2 // 2 hours
+    private readonly TITLES_CACHE_TTL_SECONDS = 60 * 15 // 15 minutes
     private CACHE_TITLE_DATE_KEYS = [
         'createdAt',
         'updatedAt',
@@ -28,6 +32,86 @@ export class TitleQueryService {
         private readonly cacheService: CacheService,
         private readonly titleRelationsConfig: TitleRelationsConfigService,
     ) {}
+
+    async getTitles(
+        filter?: TitleFilterInput,
+    ): Promise<PaginatedTitleSearchResults> {
+        const {
+            category,
+            withFilmingLocations,
+            limit = 10,
+            offset = 0,
+        } = filter || {}
+
+        const cacheKey = this.getTitlesListCacheKey({
+            category,
+            withFilmingLocations,
+            limit,
+            offset,
+        })
+
+        try {
+            const cachedData = await this.cacheService.get<string>(cacheKey)
+
+            if (cachedData) {
+                return JSON.parse(cachedData, (key, value) =>
+                    dateReviver(this.CACHE_TITLE_DATE_KEYS, key, value),
+                ) as PaginatedTitleSearchResults
+            }
+
+            const filters: Partial<DbTitle> = {}
+
+            if (category) {
+                filters.category = category
+            }
+            if (withFilmingLocations) {
+                filters.hasLocations = true
+            }
+
+            const dbTitles = await this.titleService.findAll(filters, {
+                customRelations: this.titleRelationsConfig.FULL,
+            })
+
+            const total = dbTitles.length
+            const paginatedDbTitles = dbTitles.slice(offset, offset + limit)
+
+            const titles = await Promise.all(
+                paginatedDbTitles.map(async (dbTitle) => {
+                    try {
+                        const esTitle =
+                            await this.titleElasticsearchSyncService.getTitleDetailsFromElasticsearch(
+                                dbTitle.id,
+                            )
+
+                        return this.combineDbAndEsTitleData(dbTitle, esTitle)
+                    } catch (error) {
+                        this.logger.warn(
+                            `Error getting ES details for title ${dbTitle.id}: ${error.message}`,
+                        )
+                        return this.combineDbAndEsTitleData(dbTitle, null)
+                    }
+                }),
+            )
+
+            const result: PaginatedTitleSearchResults = {
+                items: titles,
+                total,
+                hasNextPage: offset + limit < total,
+                hasPreviousPage: offset > 0,
+            }
+
+            await this.cacheService.set(
+                cacheKey,
+                JSON.stringify(result),
+                this.TITLES_CACHE_TTL_SECONDS,
+            )
+
+            return result
+        } catch (error) {
+            this.logger.error(`Error fetching filtered titles:`, error)
+            throw error
+        }
+    }
 
     async getTitleById(id: string): Promise<Title> {
         const cacheKey = this.getTitleCacheKey(id)
@@ -209,6 +293,17 @@ export class TitleQueryService {
             dbTitle,
             esTitle?.details || null,
         )
+    }
+
+    private getTitlesListCacheKey(params: {
+        category?: string
+        withFilmingLocations?: boolean
+        limit: number
+        offset: number
+    }): string {
+        const { category = 'all', withFilmingLocations, limit, offset } = params
+
+        return `${this.TITLES_LIST_PREFIX}${category}:${withFilmingLocations ? 'withLoc' : 'allLoc'}:${limit}:${offset}`
     }
 
     private getTitleCacheKey(id: string): string {

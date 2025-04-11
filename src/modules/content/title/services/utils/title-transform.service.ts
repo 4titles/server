@@ -59,6 +59,8 @@ export class TitleTransformService {
             poster_path: titleDetails.poster_path,
             backdrop_path: titleDetails.backdrop_path,
             popularity: titleDetails.popularity,
+            vote_average: titleDetails.vote_average,
+            vote_count: titleDetails.vote_count,
         }
     }
 
@@ -149,6 +151,10 @@ export class TitleTransformService {
                 ...existingDetails,
                 ...basicDetails,
             },
+            voteAverage:
+                existingTitle.voteAverage || basicTitleInfo.vote_average || 0,
+            voteCount:
+                existingTitle.voteCount || basicTitleInfo.vote_count || 0,
             images: titleImages,
             keywords: titleKeywords,
             credits: titleCredits,

@@ -20,4 +20,10 @@ export interface LocationSyncJobData {
     category: TitleCategory
 }
 
+export interface LocationDescriptionJobData {
+    titleId: string
+    locationId: string
+    language?: string
+}
+
 export type SyncJobData = CategorySyncJobData | TitleSyncJobData
