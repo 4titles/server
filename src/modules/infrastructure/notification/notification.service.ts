@@ -1,6 +1,6 @@
 import { generateToken } from '@/shared/utils/common/generate-token.util'
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
-import { and, count, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, lte } from 'drizzle-orm'
 import { TokenType } from '../../auth/account/enums/token-type.enum'
 import { User } from '../../auth/account/models/user.model'
 import { Feedback } from '../../content/feedback/models/feedback.model'
@@ -226,5 +226,14 @@ export class NotificationService {
             `Critical bug report received from user <b>${user ? user.username : 'unknown'}</b>: "${feedback.message}"`,
             `${NotificationService.name}.${this.notifyAdminsAboutBugReport.name}`,
         )
+    }
+
+    async deleteOld(): Promise<void> {
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+        await this.db
+            .delete(notifications)
+            .where(lte(notifications.createdAt, sevenDaysAgo))
     }
 }
