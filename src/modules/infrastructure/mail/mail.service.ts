@@ -13,7 +13,7 @@ import { VerificationTemplate } from './templates/verification.template'
 @Injectable()
 export class MailService {
     private readonly logger: Logger = new Logger(MailService.name)
-    private MAIL_SEND_TIMEOUT_IN_MS = 10000
+    private MAIL_SEND_TIMEOUT_IN_MS = 7000
 
     constructor(
         private readonly mailerService: MailerService,
