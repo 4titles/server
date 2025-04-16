@@ -147,23 +147,12 @@ export class NotificationService {
             isTelegramNotificationsEnabled,
         }
 
-        const existingNotificationSettings =
-            await this.db.query.notificationSettings.findFirst({
-                where: eq(notificationSettings.userId, user.id),
-                with: { user: true },
-            })
+        await this.createNotificationSettingsForUserIfNotExists(user)
 
-        if (!existingNotificationSettings) {
-            await this.db
-                .insert(notificationSettings)
-                .values(notificationSettingsUpdate)
-                .returning()
-        } else {
-            await this.db
-                .update(notificationSettings)
-                .set(notificationSettingsUpdate)
-                .where(eq(notificationSettings.userId, user.id))
-        }
+        await this.db
+            .update(notificationSettings)
+            .set(notificationSettingsUpdate)
+            .where(eq(notificationSettings.userId, user.id))
 
         const updatedNotificationSettings =
             await this.db.query.notificationSettings.findFirst({
@@ -199,6 +188,25 @@ export class NotificationService {
 
         return {
             notificationSettings: updatedNotificationSettings,
+        }
+    }
+
+    async createNotificationSettingsForUserIfNotExists(
+        user: User,
+    ): Promise<void> {
+        const existingNotificationSettings =
+            await this.db.query.notificationSettings.findFirst({
+                where: eq(notificationSettings.userId, user.id),
+                with: { user: true },
+            })
+
+        if (!existingNotificationSettings) {
+            await this.db
+                .insert(notificationSettings)
+                .values({
+                    userId: user.id,
+                })
+                .returning()
         }
     }
 

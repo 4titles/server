@@ -5,6 +5,7 @@ import {
     users,
 } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { NotificationService } from '@/modules/infrastructure/notification/notification.service'
 import { destroySession } from '@/shared/utils/session/session.utils'
 import {
     ConflictException,
@@ -41,6 +42,7 @@ export class AccountService {
         private readonly rbacService: RbacService,
         @Inject(forwardRef(() => AccountDeletionService))
         private readonly accountDeletionService: AccountDeletionService,
+        private readonly notificationService: NotificationService,
     ) {}
 
     private async findUser(
@@ -158,6 +160,10 @@ export class AccountService {
                 userId: user[0].id,
                 roleId: role.id,
             })
+
+            await this.notificationService.createNotificationSettingsForUserIfNotExists(
+                user[0],
+            )
 
             await this.verificationService.sendVerificationToken(user[0])
 
