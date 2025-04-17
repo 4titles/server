@@ -36,7 +36,7 @@ export const RecoveryTemplate = ({
     companyName = COMPANY_NAME,
     supportEmail = COMPANY_SUPPORT_EMAIL,
 }: RecoveryTemplateProps) => {
-    const resetLink = `${domain}/account/recovery?token=${token}`
+    const resetLink = `${domain}/account/recovery/${token}`
 
     return (
         <Html lang="ru">

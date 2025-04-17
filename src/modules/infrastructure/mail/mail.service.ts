@@ -142,7 +142,7 @@ export class MailService {
                     templateId = this.configService.getOrThrow<string>(
                         'COURIER_MAIL_ACCOUNT_RECOVERY_TEMPLATE',
                     )
-                    data.recoveryLink = `${baseLink}/recovery?token=${token}`
+                    data.recoveryLink = `${baseLink}/recovery/${token}`
                     break
                 case MailType.DEACTIVATION:
                     templateId = this.configService.getOrThrow<string>(
