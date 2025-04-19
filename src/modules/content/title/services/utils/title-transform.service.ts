@@ -1,6 +1,8 @@
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { Injectable } from '@nestjs/common'
+import { generateSlug } from 'src/modules/shared/utils/slug.utils'
 import { TitleStatus } from '../../enums/title-status.enum'
+import { TitleSupportedLanguage } from '../../enums/title-supported-languages.enum'
 import {
     Title,
     TitleAlternativeTitle,
@@ -131,6 +133,9 @@ export class TitleTransformService {
             tmdbId: existingTitle.tmdbId,
             imdbId: existingTitle.imdbId || null,
             originalName: existingTitle.originalName || '',
+            slug:
+                existingTitle.slug ||
+                generateSlug(existingTitle.originalName || ''),
             type: existingTitle.type,
             category: existingTitle.category,
             status: existingTitle.status,
@@ -178,6 +183,14 @@ export class TitleTransformService {
             tmdbId: dbTitleWithRelations.tmdbId,
             imdbId: dbTitleWithRelations.imdbId,
             originalName: dbTitleWithRelations.originalName,
+            slug:
+                dbTitleWithRelations.slug ||
+                generateSlug(
+                    this.getEnglishTitleForSlug(
+                        dbTitleWithRelations.originalName || '',
+                        (dbTitleWithRelations as any).translations || [],
+                    ),
+                ),
             type: dbTitleWithRelations.type,
             category: dbTitleWithRelations.category,
             status: dbTitleWithRelations.status,
@@ -287,12 +300,15 @@ export class TitleTransformService {
         const isMovie = this.isTitleMovie(titleDetails)
         const details = this.extractBasicDetails(titleDetails)
 
+        const originalName = isMovie
+            ? (titleDetails as ExtendedMovieResponse).original_title
+            : (titleDetails as ExtendedShowResponse).original_name
+
         return {
             tmdbId: String(title.id),
             imdbId: imdbId || null,
-            originalName: isMovie
-                ? (titleDetails as ExtendedMovieResponse).original_title
-                : (titleDetails as ExtendedShowResponse).original_name,
+            originalName,
+            slug: generateSlug(originalName),
             type,
             category,
             status: this.mapTitleStatus(titleDetails.status),
@@ -317,5 +333,23 @@ export class TitleTransformService {
             ),
             externalIds: titleDetails.external_ids || null,
         }
+    }
+
+    getEnglishTitleForSlug(
+        originalName: string,
+        translations: any[] = [],
+    ): string {
+        const englishTranslation = translations?.find(
+            (translation) =>
+                translation?.language?.iso === TitleSupportedLanguage.EN ||
+                translation?.iso_639_1 === TitleSupportedLanguage.EN,
+        )
+
+        return (
+            (englishTranslation?.title ||
+                englishTranslation?.data?.title ||
+                originalName) ??
+            ''
+        )
     }
 }

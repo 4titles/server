@@ -33,6 +33,7 @@ export const titles = pgTable(
         tmdbId: text('tmdb_id').notNull().unique(),
         imdbId: text('imdb_id').unique(),
         originalName: text('original_name'),
+        slug: text('slug').unique(),
         type: titleTypeEnum('type').notNull(),
         category: titleCategoryEnum('category').notNull(),
         status: titleStatusEnum('status').notNull(),
@@ -53,6 +54,7 @@ export const titles = pgTable(
     (table) => ({
         tmdbIdIdx: index('titles_tmdb_id_idx').on(table.tmdbId),
         imdbIdIdx: index('titles_imdb_id_idx').on(table.imdbId),
+        slugIdx: index('titles_slug_idx').on(table.slug),
         categoryIdx: index('titles_category_idx').on(table.category),
         popularityIdx: index('titles_popularity_idx').on(table.popularity),
     }),

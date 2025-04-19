@@ -2,6 +2,7 @@ import { Field, ObjectType } from '@nestjs/graphql'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TitleStatus } from '../enums/title-status.enum'
 import { TitleType } from '../enums/title-type.enum'
+import { Language } from '../modules/language/models/language.model'
 import { Comment } from './comment.model'
 import { TitleCountry } from './title-country.model'
 import { TitleFilmingLocation } from './title-filming-location.model'
@@ -182,6 +183,9 @@ export class TitleTranslation {
 
     @Field(() => String, { nullable: true })
     homepage?: string
+
+    @Field(() => Language)
+    language: Language
 }
 
 @ObjectType()
@@ -197,6 +201,9 @@ export class Title {
 
     @Field(() => String, { nullable: true })
     originalName?: string
+
+    @Field(() => String, { nullable: true })
+    slug?: string
 
     @Field(() => TitleType)
     type: TitleType

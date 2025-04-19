@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
+import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { TitleFilterInput } from './inputs/title-filter.input'
 import { TitleGeosearchInput } from './inputs/title-geosearch.input'
 import { TitleSearchInput } from './inputs/title-search.input'
@@ -9,6 +9,7 @@ import { TitleConfigSyncService } from './services/sync/title-config-sync.servic
 import { TitleSyncService } from './services/sync/title-sync.service'
 import { TitleQueryService } from './services/title-query.service'
 import { TitleSearchService } from './services/title-search.service'
+import { TitleService } from './services/title.service'
 
 // TODO: protect w/ RBAC
 @Resolver(() => Title)
@@ -19,6 +20,7 @@ export class TitleResolver {
         private readonly titleQueryService: TitleQueryService,
         private readonly titleSearchService: TitleSearchService,
         private readonly titleElasticsearchService: TitleElasticsearchService,
+        private readonly titleService: TitleService,
     ) {}
 
     @Query(() => PaginatedTitleSearchResults, { name: 'titles' })
@@ -43,6 +45,11 @@ export class TitleResolver {
     @Query(() => Title, { name: 'titleByImdbId' })
     async getTitleByImdbId(@Args('imdbId') imdbId: string): Promise<Title> {
         return await this.titleQueryService.getTitleByImdbId(imdbId)
+    }
+
+    @Query(() => Title, { name: 'titleBySlug' })
+    async getTitleBySlug(@Args('slug') slug: string): Promise<Title> {
+        return await this.titleQueryService.getTitleBySlug(slug)
     }
 
     @Query(() => PaginatedTitleSearchResults, { name: 'searchTitles' })
@@ -120,5 +127,34 @@ export class TitleResolver {
     @Mutation(() => Boolean, { name: 'rebuildTitleElasticsearchIndex' })
     async rebuildElasticsearchIndex(): Promise<boolean> {
         return await this.titleElasticsearchService.recreateTitleIndex()
+    }
+
+    @Mutation(() => Boolean, { name: 'updateAllTitleSlugs' })
+    async updateAllTitleSlugs(
+        @Args('forceUpdate', { type: () => Boolean, defaultValue: false })
+        forceUpdate: boolean = false,
+    ): Promise<boolean> {
+        const updatedCount =
+            await this.titleService.updateSlugsForAllTitles(forceUpdate)
+        return updatedCount > 0
+    }
+
+    @Query(() => [Title], { name: 'popularTitles' })
+    async getPopularTitles(
+        @Args('limit', { type: () => Int, defaultValue: 5 }) limit: number,
+    ): Promise<Title[]> {
+        return await this.titleQueryService.getPopularTitles(limit)
+    }
+
+    @Mutation(() => Boolean, { name: 'trackTitleSearch' })
+    async trackTitleSearch(
+        @Args('titleId', { nullable: true }) titleId?: string,
+        @Args('slug', { nullable: true }) slug?: string,
+    ): Promise<boolean> {
+        const result = await this.titleQueryService.trackTitleSearch(
+            titleId || null,
+            slug || null,
+        )
+        return !!result
     }
 }

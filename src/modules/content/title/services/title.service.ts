@@ -5,8 +5,11 @@ import {
     titles,
 } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
+import { generateSlug } from '@/modules/shared/utils/slug.utils'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { languages } from 'src/modules/infrastructure/drizzle/schema/languages.schema'
+import { titleTranslations } from 'src/modules/infrastructure/drizzle/schema/title-translations.schema'
 import {
     TitleRelationsConfig,
     TitleRelationsConfigService,
@@ -14,6 +17,7 @@ import {
 import { TitleCategory } from '../enums/title-category.enum'
 import { TitleLoadRelations } from '../enums/title-load-relations.enum'
 import { TitleType } from '../enums/title-type.enum'
+import { TitleTransformService } from './utils/title-transform.service'
 
 interface FindTitleOptions {
     loadRelations?: TitleLoadRelations
@@ -135,6 +139,20 @@ export class TitleService {
         })
     }
 
+    async findBySlug(
+        slug: string,
+        options: FindTitleOptions = {},
+    ): Promise<DbTitle> {
+        const { loadRelations = TitleLoadRelations.NONE, customRelations } =
+            options
+        const withClause = this._buildWithClause(loadRelations, customRelations)
+
+        return await this.db.query.titles.findFirst({
+            where: eq(titles.slug, slug),
+            with: withClause as any,
+        })
+    }
+
     async findAll(
         filters: Partial<DbTitle> = {},
         options: FindTitleOptions = {},
@@ -198,12 +216,107 @@ export class TitleService {
         titleId: string,
         hasLocations: boolean = false,
     ): Promise<boolean> {
-        await this.db
-            .update(titles)
-            .set({ hasLocations, updatedAt: new Date() } as Partial<DbTitle>)
-            .where(eq(titles.id, titleId))
+        try {
+            await this.db
+                .update(titles)
+                .set({
+                    hasLocations,
+                    updatedAt: new Date(),
+                } as Partial<DbTitleInsert>)
+                .where(eq(titles.id, titleId))
 
-        return true
+            return true
+        } catch (error) {
+            this.logger.error(
+                `Failed to update hasLocations for title ${titleId}:`,
+                error,
+            )
+            return false
+        }
+    }
+
+    async updateSlugsForAllTitles(
+        forceUpdate: boolean = false,
+    ): Promise<number> {
+        try {
+            const condition = forceUpdate ? undefined : sql`slug IS NULL`
+            const titlesData = await this.db
+                .select({
+                    id: titles.id,
+                    originalName: titles.originalName,
+                    translationTitle: titleTranslations.title,
+                    languageIso: languages.iso,
+                })
+                .from(titles)
+                .where(condition)
+                .leftJoin(
+                    titleTranslations,
+                    eq(titles.id, titleTranslations.titleId),
+                )
+                .leftJoin(
+                    languages,
+                    eq(titleTranslations.languageId, languages.id),
+                )
+
+            const titlesWithTranslations = new Map<
+                string,
+                {
+                    id: string
+                    originalName: string
+                    translations: any[]
+                }
+            >()
+
+            titlesData.forEach((row) => {
+                if (!titlesWithTranslations.has(row.id)) {
+                    titlesWithTranslations.set(row.id, {
+                        id: row.id,
+                        originalName: row.originalName,
+                        translations: [],
+                    })
+                }
+
+                if (row.translationTitle && row.languageIso) {
+                    const titleData = titlesWithTranslations.get(row.id)
+                    titleData.translations.push({
+                        title: row.translationTitle,
+                        language: { iso: row.languageIso },
+                    })
+                }
+            })
+
+            let updatedCount = 0
+            const titleTransformService = new TitleTransformService()
+
+            for (const titleData of titlesWithTranslations.values()) {
+                if (!titleData.originalName) continue
+
+                const englishTitle =
+                    titleTransformService.getEnglishTitleForSlug(
+                        titleData.originalName,
+                        titleData.translations,
+                    )
+
+                const slug = generateSlug(englishTitle)
+                if (!slug) continue
+
+                await this.db
+                    .update(titles)
+                    .set({
+                        slug,
+                        updatedAt: new Date(),
+                    } as Partial<DbTitleInsert>)
+                    .where(eq(titles.id, titleData.id))
+
+                updatedCount++
+            }
+
+            this.logger.log(`Updated slugs for ${updatedCount} titles`)
+            return updatedCount
+        } catch (error) {
+            this.logger.error('Failed to update slugs for titles:', error)
+            return 0
+        }
     }
 
     async updateCategoryForTitles(

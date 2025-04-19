@@ -59,6 +59,17 @@ export class TitleSearchService {
             )
             const enrichedResult = await this.enrichSearchResults(esResult)
 
+            if (enrichedResult.items.length > 0) {
+                const firstTitle = enrichedResult.items[0]
+                const { id, slug } = firstTitle
+
+                try {
+                    await this.titleQueryService.trackTitleSearch(id, slug)
+                } catch (error) {
+                    this.logger.error(`Error tracking popular title: ${error}`)
+                }
+            }
+
             await this.cacheService.set(
                 cacheKey,
                 JSON.stringify(enrichedResult),
