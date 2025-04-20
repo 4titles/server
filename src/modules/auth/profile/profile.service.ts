@@ -37,7 +37,7 @@ export class ProfileService {
 
         const buffer = file.buffer
 
-        const fileName = `/avatars/${user.username}.webp`
+        const fileName = `/avatars/${user.username}-${Date.now()}.webp`
 
         if (file.filename && file.filename.endsWith('.gif')) {
             const processedBuffer = await sharp(buffer, { animated: true })
