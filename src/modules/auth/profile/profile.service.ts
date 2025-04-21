@@ -100,17 +100,22 @@ export class ProfileService {
             await this.contentModerationService.validateContent({
                 text: displayName,
             })
+        const isBioSafe = await this.contentModerationService.validateContent({
+            text: bio,
+        })
 
         if (!isUsernameSafe) {
             throw new ConflictException(
                 'Username contains inappropriate content',
             )
         }
-
         if (!isDisplayNameSafe) {
             throw new ConflictException(
                 'Display name contains inappropriate content',
             )
+        }
+        if (!isBioSafe) {
+            throw new ConflictException('Bio contains inappropriate content')
         }
 
         const existingUser: DbUser = await this.db.query.users.findFirst({
