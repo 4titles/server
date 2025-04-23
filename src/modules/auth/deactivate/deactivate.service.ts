@@ -26,6 +26,7 @@ import type { FastifyRequest } from 'fastify'
 import { TokenType } from '../account/enums/token-type.enum'
 import { AuthModel } from '../account/models/auth.model'
 import { User } from '../account/models/user.model'
+import { SessionService } from '../session/session.service'
 import { DeactivateAccountInput } from './inputs/deactivate-account.input'
 
 @Injectable()
@@ -36,6 +37,7 @@ export class DeactivateService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly mailService: MailService,
         private readonly telegramService: TelegramService,
+        private readonly sessionService: SessionService,
     ) {}
 
     async deactivate(
@@ -69,6 +71,8 @@ export class DeactivateService {
         }
 
         await this.validateDeactivationToken(req, pin)
+
+        await this.sessionService.clearAllUserSessions(req)
 
         return { user }
     }
@@ -116,7 +120,7 @@ export class DeactivateService {
                 ),
             )
 
-        return destroySession(req)
+        return true
     }
 
     async sendDeactivationToken(

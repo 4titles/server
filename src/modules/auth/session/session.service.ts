@@ -46,8 +46,8 @@ export class SessionService {
         const { login, password, pin } = input
         const user = await this.accountService.findByLogin(login)
 
-        if (!user) {
-            throw new NotFoundException('User not found')
+        if (!user || user.isDeactivated) {
+            throw new NotFoundException('User not found or deactivated')
         }
 
         const isPasswordValid = await verify(user.password, password)
@@ -144,11 +144,22 @@ export class SessionService {
         return { ...session, id: sessionId }
     }
 
-    async clearSession(req: FastifyRequest) {
-        return await destroySession(req) // ???
+    async clearSession(req: FastifyRequest): Promise<boolean> {
+        return await destroySession(req)
     }
 
-    public async remove(req: FastifyRequest, id: string) {
+    async clearAllUserSessions(req: FastifyRequest): Promise<boolean> {
+        const sessions = await this.findByUser(req)
+
+        for (const { id } of sessions) {
+            if (id === req.session.id) continue
+            await this.remove(req, id)
+        }
+
+        return await this.clearSession(req)
+    }
+
+    public async remove(req: FastifyRequest, id: string): Promise<boolean> {
         if (req.session.id === id) {
             throw new ConflictException('Cannot delete current session')
         }

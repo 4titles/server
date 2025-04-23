@@ -5,5 +5,6 @@ import { SessionService } from './session.service'
 
 @Module({
     providers: [SessionService, SessionResolver, VerificationService],
+    exports: [SessionService],
 })
 export class SessionModule {}

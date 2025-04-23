@@ -19,7 +19,10 @@ export class DeactivateResolver {
         action: Action.DELETE,
         possession: 'own',
     })
-    @Mutation(() => AuthModel, { description: 'Deactivate an account' })
+    @Mutation(() => AuthModel, {
+        description: 'Deactivate an account',
+        name: 'deactivateAccount',
+    })
     async deactivate(
         @Context() { req }: GqlContext,
         @Args('data') input: DeactivateAccountInput,
