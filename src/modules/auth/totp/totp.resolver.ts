@@ -19,6 +19,7 @@ export class TotpResolver {
     })
     @Query(() => TotpModel, {
         description: 'Generate TOTP secret',
+        name: 'generateTotpSecret',
     })
     async generate(@Authorized() user: User): Promise<TotpModel> {
         return await this.totpService.generate(user)
@@ -31,6 +32,7 @@ export class TotpResolver {
     })
     @Mutation(() => Boolean, {
         description: 'Enable TOTP for the user',
+        name: 'enableTotp',
     })
     async enable(
         @Authorized() user: User,
@@ -46,6 +48,7 @@ export class TotpResolver {
     })
     @Mutation(() => Boolean, {
         description: 'Disable TOTP for the user',
+        name: 'disableTotp',
     })
     async disable(@Authorized() user: User): Promise<boolean> {
         return await this.totpService.disable(user)
