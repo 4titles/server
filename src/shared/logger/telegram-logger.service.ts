@@ -1,15 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Telegraf } from 'telegraf'
+import { Telegram } from 'telegraf'
 import { COMPANY_NAME } from '../constants/company.constants'
 
 @Injectable()
-export class TelegramLoggerService extends Telegraf {
+export class TelegramLoggerService {
     private readonly chatId: string
     private readonly logger = new Logger(TelegramLoggerService.name)
+    private readonly telegram: Telegram
 
     constructor(private readonly configService: ConfigService) {
-        super(configService.getOrThrow<string>('TELEGRAM_LOGGER_BOT_TOKEN'))
+        this.telegram = new Telegram(
+            configService.getOrThrow<string>('TELEGRAM_LOGGER_BOT_TOKEN'),
+        )
         this.chatId = this.configService.getOrThrow<string>(
             'TELEGRAM_LOGGER_CHAT_ID',
         )

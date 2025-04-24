@@ -1,5 +1,6 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { User } from '@/modules/auth/account/models/user.model'
+import { ProfileService } from '@/modules/auth/profile/profile.service'
 import { FeedbackType } from '@/modules/content/feedback/enums/feedback-type.enum'
 import { FeedbacksLimitExceededException } from '@/modules/content/feedback/exceptions/feedbacks-limit-exceeded.exception'
 import { FeedbackService } from '@/modules/content/feedback/feedback.service'
@@ -12,7 +13,15 @@ import { SessionMetadata } from '@/shared/types/session-metadata.types'
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { eq } from 'drizzle-orm'
-import { Action, Command, Ctx, On, Start, Update } from 'nestjs-telegraf'
+import {
+    Action,
+    Command,
+    Ctx,
+    InjectBot,
+    On,
+    Start,
+    Update,
+} from 'nestjs-telegraf'
 import { Context, Telegraf } from 'telegraf'
 import { AccountService } from '../../auth/account/account.service'
 import { BOT_BUTTONS } from './constants/bot-buttons.constant'
@@ -22,39 +31,48 @@ import { FeedbackState } from './interfaces/feedback-state.interface'
 
 @Update()
 @Injectable()
-export class TelegramService extends Telegraf {
+export class TelegramService {
     private readonly logger: Logger = new Logger(TelegramService.name)
     private readonly feedbackStates: Map<string, FeedbackState> = new Map()
-    private isBotLaunched: boolean = false
 
     constructor(
+        @InjectBot() private readonly bot: Telegraf,
         private readonly configService: ConfigService,
         @Inject(forwardRef(() => AccountService))
         private readonly accountService: AccountService,
+        private readonly profileService: ProfileService,
         private readonly followService: FollowService,
         private readonly feedbackService: FeedbackService,
         private readonly userContextService: TelegramUserContextService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
-    ) {
-        super(configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN'))
+    ) {}
+
+    async onModuleInit() {
+        try {
+            this.logger.log('Setting bot commands on module init...')
+            await this.bot.telegram.setMyCommands(BOT_COMMANDS)
+        } catch (error) {
+            this.logger.error(
+                `Error setting commands: ${error.message}`,
+                error.stack,
+            )
+        }
     }
 
     @Start()
     async onStart(@Ctx() ctx: Context): Promise<void> {
         try {
-            if (!this.isBotLaunched) {
-                await this.telegram.setMyCommands(BOT_COMMANDS)
-                await this.launch()
-                this.isBotLaunched = true
-            }
-
+            this.logger.log('Handling /start command')
             const chatId = ctx.chat.id.toString()
             const message = ctx.message as any
             const token = message?.text?.split(' ')[1]
+            this.logger.log(`Token: ${token}`)
 
             if (token) {
+                this.logger.log('Handling token authentication...')
                 await this.handleTokenAuthentication(ctx, token, chatId)
             } else {
+                this.logger.log('Handling initial greeting...')
                 await this.handleInitialGreeting(ctx, chatId)
             }
         } catch (error) {
@@ -62,7 +80,6 @@ export class TelegramService extends Telegraf {
             await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
         }
     }
-
     private async handleTokenAuthentication(
         ctx: Context,
         token: string,
@@ -74,7 +91,7 @@ export class TelegramService extends Telegraf {
         })
 
         if (!authToken || new Date(authToken.expiresAt) < new Date()) {
-            await ctx.reply(BOT_MESSAGES.invalidToken)
+            await ctx.replyWithHTML(BOT_MESSAGES.invalidToken)
             return
         }
 
@@ -105,6 +122,7 @@ export class TelegramService extends Telegraf {
         try {
             const chatId = ctx.chat.id.toString()
             const user = await this.userContextService.getUserByChatId(chatId)
+            this.userContextService.clearUserCache(user.id, chatId)
 
             if (!user) {
                 await ctx.replyWithHTML(
@@ -114,13 +132,36 @@ export class TelegramService extends Telegraf {
                 return
             }
 
-            const followersCount =
-                await this.followService.findFollowersCountByUser(user.id)
+            const [followersCount, avatarUrl] = await Promise.all([
+                this.followService.findFollowersCountByUser(user.id),
+                user.avatar ? this.profileService.getAvatarUrl(user) : null,
+            ])
 
-            await ctx.replyWithHTML(
-                BOT_MESSAGES.profile(user, followersCount),
-                BOT_BUTTONS.profile,
-            )
+            const profileMessage = BOT_MESSAGES.profile(user, followersCount)
+            const messageOptions = {
+                parse_mode: 'HTML' as const,
+                ...BOT_BUTTONS.profile,
+            }
+
+            if (avatarUrl) {
+                try {
+                    await ctx.replyWithPhoto(
+                        { url: avatarUrl },
+                        {
+                            caption: profileMessage,
+                            ...messageOptions,
+                        },
+                    )
+                    return
+                } catch (photoError) {
+                    this.logger.warn(
+                        `Failed to send photo for user ${user.id}, falling back to text: ${photoError.message}`,
+                        { stack: photoError.stack, avatarUrl },
+                    )
+                }
+            }
+
+            await ctx.replyWithHTML(profileMessage, messageOptions)
         } catch (error) {
             this.logger.error(`Error in onMe: ${error.message}`, error.stack)
             await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
@@ -228,6 +269,7 @@ export class TelegramService extends Telegraf {
                 await ctx.answerCbQuery('Пользователь не найден')
                 return
             }
+            await ctx.replyWithHTML(BOT_MESSAGES.errorOccurred)
 
             const wouldExceedLimit =
                 await this.feedbackService.wouldExceedFeedbackLimit(user.id)
@@ -436,7 +478,7 @@ export class TelegramService extends Telegraf {
         metadata: SessionMetadata,
     ): Promise<void> {
         try {
-            await this.telegram.sendMessage(
+            await this.bot.telegram.sendMessage(
                 chatId,
                 BOT_MESSAGES.resetPassword(token, metadata),
                 { parse_mode: 'HTML' },
@@ -455,7 +497,7 @@ export class TelegramService extends Telegraf {
         metadata: SessionMetadata,
     ): Promise<void> {
         try {
-            await this.telegram.sendMessage(
+            await this.bot.telegram.sendMessage(
                 chatId,
                 BOT_MESSAGES.accountDeactivation(token, metadata),
                 { parse_mode: 'HTML' },
@@ -470,7 +512,7 @@ export class TelegramService extends Telegraf {
 
     async sendAccountDeletion(chatId: string): Promise<void> {
         try {
-            await this.telegram.sendMessage(
+            await this.bot.telegram.sendMessage(
                 chatId,
                 BOT_MESSAGES.accountDeleted,
                 {
@@ -494,7 +536,7 @@ export class TelegramService extends Telegraf {
                 return
             }
 
-            await this.telegram.sendMessage(
+            await this.bot.telegram.sendMessage(
                 chatId,
                 BOT_MESSAGES.newFollowing(follower, user.followers.length),
                 {
@@ -511,7 +553,7 @@ export class TelegramService extends Telegraf {
 
     async sendInfoNotification(chatId: string, message: string): Promise<void> {
         try {
-            await this.telegram.sendMessage(chatId, message, {
+            await this.bot.telegram.sendMessage(chatId, message, {
                 parse_mode: 'HTML',
             })
         } catch (error) {

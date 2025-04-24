@@ -67,6 +67,11 @@ export class ProfileService {
         return true
     }
 
+    async getAvatarUrl(user: User): Promise<string | null> {
+        if (!user || !user?.avatar) return null
+        return await this.s3Service.getPublicUrl(user.avatar)
+    }
+
     async removeAvatar(user: User) {
         if (!user.avatar) {
             return

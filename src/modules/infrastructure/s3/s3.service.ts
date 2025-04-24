@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { MinioService } from 'nestjs-minio-client'
+import { Readable } from 'stream'
 
 @Injectable()
 export class S3Service {
@@ -14,11 +15,7 @@ export class S3Service {
         this.bucket = this.configService.get<string>('MINIO_DEFAULT_BUCKET')
     }
 
-    public async upload(
-        buffer: Buffer,
-        key: string,
-        mimetype: string,
-    ): Promise<void> {
+    async upload(buffer: Buffer, key: string, mimetype: string): Promise<void> {
         try {
             await this.minio.client.putObject(this.bucket, key, buffer, {
                 'Content-Type': mimetype,
@@ -30,7 +27,7 @@ export class S3Service {
         }
     }
 
-    public async remove(key: string): Promise<void> {
+    async remove(key: string): Promise<void> {
         try {
             await this.minio.client.removeObject(this.bucket, key)
             this.logger.log(`File removed successfully: ${key}`)
@@ -40,7 +37,7 @@ export class S3Service {
         }
     }
 
-    public async fileExists(key: string): Promise<boolean> {
+    async fileExists(key: string): Promise<boolean> {
         try {
             await this.minio.client.statObject(this.bucket, key)
             return true
@@ -50,6 +47,17 @@ export class S3Service {
                 error,
             )
             return false
+        }
+    }
+
+    async getPublicUrl(key: string): Promise<string | null> {
+        if (!key) return null
+
+        try {
+            return await this.minio.client.presignedUrl('GET', this.bucket, key)
+        } catch (error) {
+            this.logger.error(`Error generating URL for file: ${key}`, error)
+            return null
         }
     }
 }

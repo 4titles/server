@@ -69,6 +69,7 @@ export class AccountService {
                             },
                         },
                     },
+                    notificationSettings: { with: { user: true } },
                 },
             })
 

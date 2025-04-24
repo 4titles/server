@@ -1,6 +1,6 @@
 import { generateToken } from '@/shared/utils/common/generate-token.util'
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
-import { and, count, desc, eq, lte } from 'drizzle-orm'
+import { and, count, desc, eq, lte, or } from 'drizzle-orm'
 import { TokenType } from '../../auth/account/enums/token-type.enum'
 import { User } from '../../auth/account/models/user.model'
 import { Feedback } from '../../content/feedback/models/feedback.model'
@@ -30,7 +30,12 @@ export class NotificationService {
         const unreadUserNotificationsCount = await this.db
             .select({ count: count() })
             .from(notifications)
-            .where(eq(notifications.userId, user.id))
+            .where(
+                and(
+                    eq(notifications.userId, user.id),
+                    eq(notifications.isRead, false),
+                ),
+            )
 
         const unreadGlobalNotificationsCount = await this.db
             .select({ count: count() })
@@ -53,9 +58,15 @@ export class NotificationService {
             .update(notifications)
             .set({ isRead: true } as Partial<DbNotification>)
             .where(
-                and(
-                    eq(notifications.userId, user.id),
-                    eq(notifications.isRead, false),
+                or(
+                    and(
+                        eq(notifications.userId, user.id),
+                        eq(notifications.isRead, false),
+                    ),
+                    and(
+                        eq(notifications.isGlobal, true),
+                        eq(notifications.isRead, false),
+                    ),
                 ),
             )
 
