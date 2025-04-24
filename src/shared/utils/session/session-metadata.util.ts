@@ -8,7 +8,7 @@ import { IS_DEV_ENV } from '../common/is-dev.util'
 import DeviceDetector = require('device-detector-js')
 countries.registerLocale(require('i18n-iso-countries/langs/en.json'))
 
-export const DEFAULT_IP = '175.45.177.217'
+export const DEFAULT_IP = '3.166.49.64'
 export function getSessionMetadata(
     req: FastifyRequest,
     userAgent: string,

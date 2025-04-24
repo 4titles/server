@@ -19,7 +19,7 @@ export const transformMetadata = (
     metadata: SessionMetadata,
 ): TransformedLocationInfo => {
     const locationParts = [
-        metadata.location.country.ru,
+        metadata.location.country.en,
         metadata.location.region,
         metadata.location.city,
     ]

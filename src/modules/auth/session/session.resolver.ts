@@ -57,6 +57,7 @@ export class SessionResolver {
     })
     @Query(() => [Session], {
         description: 'Get a list of user sessions',
+        name: 'findSessionsByUser',
     })
     async findByUser(@Context() { req }: GqlContext) {
         return await this.sessionService.findByUser(req)
@@ -69,6 +70,7 @@ export class SessionResolver {
     })
     @Query(() => Session, {
         description: 'Get a current user session',
+        name: 'findCurrentSession',
     })
     async findCurrent(@Context() { req }: GqlContext) {
         return await this.sessionService.findCurrent(req)
