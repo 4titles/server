@@ -1,6 +1,6 @@
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
+import { generateSlug } from '@/shared/utils/common/slug.utils'
 import { Injectable } from '@nestjs/common'
-import { generateSlug } from 'src/modules/shared/utils/slug.utils'
 import { TitleStatus } from '../../enums/title-status.enum'
 import { TitleSupportedLanguage } from '../../enums/title-supported-languages.enum'
 import {

@@ -59,6 +59,19 @@ export class FollowResolver {
 
     @RbacProtected({
         resource: Resource.USER,
+        action: Action.UPDATE,
+        possession: 'own',
+    })
+    @Mutation(() => Boolean)
+    async removeFollower(
+        @Authorized() user: User,
+        @Args('followerId') followerId: string,
+    ) {
+        return await this.followService.removeFollower(user, followerId)
+    }
+
+    @RbacProtected({
+        resource: Resource.USER,
         action: Action.READ,
         possession: 'any',
     })

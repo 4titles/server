@@ -5,7 +5,7 @@ import {
     titles,
 } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
-import { generateSlug } from '@/modules/shared/utils/slug.utils'
+import { generateSlug } from '@/shared/utils/common/slug.utils'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { languages } from 'src/modules/infrastructure/drizzle/schema/languages.schema'

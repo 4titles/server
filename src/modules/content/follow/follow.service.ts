@@ -130,6 +130,45 @@ export class FollowService {
         return true
     }
 
+    async removeFollower(user: User, followerId: string): Promise<boolean> {
+        const follower = await this.db.query.users.findFirst({
+            where: eq(users.id, followerId),
+        })
+
+        if (!follower) {
+            throw new NotFoundException('User not found')
+        }
+
+        if (follower.id === user.id) {
+            throw new ConflictException(
+                'You cannot remove yourself as a follower',
+            )
+        }
+
+        const existingFollow = await this.db.query.follows.findFirst({
+            where: and(
+                eq(follows.followerId, follower.id),
+                eq(follows.followingId, user.id),
+            ),
+        })
+
+        if (!existingFollow) {
+            throw new ConflictException('This user is not following you')
+        }
+
+        await this.db
+            .delete(follows)
+            .where(
+                and(
+                    eq(follows.id, existingFollow.id),
+                    eq(follows.followerId, follower.id),
+                    eq(follows.followingId, user.id),
+                ),
+            )
+
+        return true
+    }
+
     async findRecommendedUsers() {
         return await this.db.query.users.findMany({
             where: eq(users.isDeactivated, false),
