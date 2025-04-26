@@ -11,6 +11,8 @@ import { dateReviver } from '@/shared/utils/time/date-retriever.util'
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { desc, eq, sql } from 'drizzle-orm'
 import { TitleRelationsConfigService } from '../config/title-relations.config'
+import { TitleCategory } from '../enums/title-category.enum'
+import { TitleType } from '../enums/title-type.enum'
 import { TitleFilterInput } from '../inputs/title-filter.input'
 import { PaginatedTitleSearchResults } from '../models/paginated-title-search-results.model'
 import { Title } from '../models/title.model'
@@ -46,6 +48,7 @@ export class TitleQueryService {
         filter?: TitleFilterInput,
     ): Promise<PaginatedTitleSearchResults> {
         const {
+            type,
             category,
             withFilmingLocations,
             limit = 10,
@@ -53,6 +56,7 @@ export class TitleQueryService {
         } = filter || {}
 
         const cacheKey = this.getTitlesListCacheKey({
+            type,
             category,
             withFilmingLocations,
             limit,
@@ -70,6 +74,9 @@ export class TitleQueryService {
 
             const filters: Partial<DbTitle> = {}
 
+            if (type) {
+                filters.type = type
+            }
             if (category) {
                 filters.category = category
             }
@@ -269,33 +276,16 @@ export class TitleQueryService {
         return this.getTitleById(dbTitle.id)
     }
 
-    getCacheTitleDateKeys(): string[] {
-        return this.CACHE_TITLE_DATE_KEYS
-    }
-
     combineDbAndEsTitleData(
         dbTitle: DbTitle,
         esTitle: TitleDocumentES | null,
     ): Title {
+        console.log(JSON.stringify(dbTitle))
+
         return this.titleTransformService.mergeDbAndEsDetails(
             dbTitle,
             esTitle?.details || null,
         )
-    }
-
-    private getTitlesListCacheKey(params: {
-        category?: string
-        withFilmingLocations?: boolean
-        limit: number
-        offset: number
-    }): string {
-        const { category = 'all', withFilmingLocations, limit, offset } = params
-
-        return `${this.TITLES_LIST_PREFIX}${category}:${withFilmingLocations ? 'withLoc' : 'allLoc'}:${limit}:${offset}`
-    }
-
-    private getTitleCacheKey(id: string): string {
-        return `${this.CACHE_KEY_PREFIX}${id}`
     }
 
     async getPopularTitles(limit: number = 5): Promise<Title[]> {
@@ -319,16 +309,85 @@ export class TitleQueryService {
                 .limit(limit)
 
             const titleIds = result.map((row) => row.popular_titles.titleId)
-            const dbTitles = await this.titleService.findManyByIds(titleIds, {
-                customRelations: this.titleRelationsConfig.FULL,
-            })
+            const dbPopularTitles = await this.titleService.findManyByIds(
+                titleIds,
+                {
+                    customRelations: this.titleRelationsConfig.FULL,
+                },
+            )
 
-            const sortedTitles = titleIds
-                .map((id) => dbTitles.find((title) => title.id === id))
+            const sortedPopularTitles = titleIds
+                .map((id) => dbPopularTitles.find((title) => title.id === id))
                 .filter(Boolean) as DbTitle[]
 
+            let combinedTitles = [...sortedPopularTitles]
+            const missingCount = limit - combinedTitles.length
+
+            if (missingCount > 0) {
+                this.logger.debug(
+                    `Need to fill ${missingCount} more titles for popular section`,
+                )
+                const fallbackCategories = [
+                    {
+                        type: TitleType.MOVIE,
+                        category: TitleCategory.TOP_RATED,
+                    },
+                    { type: TitleType.TV, category: TitleCategory.TOP_RATED },
+                    { type: TitleType.MOVIE, category: TitleCategory.TRENDING },
+                    { type: TitleType.TV, category: TitleCategory.TRENDING },
+                ]
+
+                let remainingCount = missingCount
+                let usedIds = new Set(titleIds)
+
+                for (const { type, category } of fallbackCategories) {
+                    if (remainingCount <= 0) break
+
+                    const filter: TitleFilterInput = {
+                        type,
+                        category,
+                        limit: remainingCount * 2,
+                        offset: 0,
+                    }
+
+                    const results = await this.getTitles(filter)
+
+                    const uniqueNewItems = results.items.filter(
+                        (item) => !usedIds.has(item.id),
+                    )
+
+                    const newTitles = await Promise.all(
+                        uniqueNewItems.map((item) =>
+                            this.titleService.findById(item.id, {
+                                customRelations: this.titleRelationsConfig.FULL,
+                            }),
+                        ),
+                    )
+
+                    const filteredTitles = newTitles.filter(
+                        Boolean,
+                    ) as DbTitle[]
+
+                    for (const title of filteredTitles) {
+                        if (remainingCount <= 0) break
+                        usedIds.add(title.id)
+                        combinedTitles.push(title)
+                        remainingCount--
+                    }
+                }
+            }
+
+            const uniqueTitlesMap = new Map<string, DbTitle>()
+            for (const title of combinedTitles) {
+                uniqueTitlesMap.set(title.id, title)
+            }
+            const uniqueTitles = Array.from(uniqueTitlesMap.values()).slice(
+                0,
+                limit,
+            )
+
             const titles = await Promise.all(
-                sortedTitles.map(async (dbTitle) => {
+                uniqueTitles.map(async (dbTitle) => {
                     try {
                         const esTitle =
                             await this.titleElasticsearchSyncService.getTitleDetailsFromElasticsearch(
@@ -347,7 +406,7 @@ export class TitleQueryService {
             await this.cacheService.set(
                 cacheKey,
                 JSON.stringify(titles),
-                this.TITLES_CACHE_TTL_SECONDS,
+                this.TITLES_CACHE_TTL_SECONDS / 2,
             )
 
             return titles
@@ -409,6 +468,32 @@ export class TitleQueryService {
             this.logger.error(`Error tracking title search:`, error)
             return null
         }
+    }
+
+    getCacheTitleDateKeys(): string[] {
+        return this.CACHE_TITLE_DATE_KEYS
+    }
+
+    private getTitlesListCacheKey(params: {
+        type?: string
+        category?: string
+        withFilmingLocations?: boolean
+        limit: number
+        offset: number
+    }): string {
+        const {
+            type = 'all',
+            category = 'all',
+            withFilmingLocations,
+            limit,
+            offset,
+        } = params
+
+        return `${this.TITLES_LIST_PREFIX}type-${type}:category-${category}:${withFilmingLocations ? 'withLoc' : 'allLoc'}:${limit}:${offset}`
+    }
+
+    private getTitleCacheKey(id: string): string {
+        return `${this.CACHE_KEY_PREFIX}${id}`
     }
 
     private getPopularTitlesCacheKey(limit: number): string {

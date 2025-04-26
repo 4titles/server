@@ -26,7 +26,11 @@ export interface TitleRelationsConfig {
             language?: boolean
         }
     }
-    images?: boolean
+    images?: {
+        with?: {
+            language?: boolean
+        }
+    }
 }
 
 @Injectable()
@@ -85,7 +89,11 @@ export class TitleRelationsConfigService {
                 language: true,
             },
         },
-        images: true,
+        images: {
+            with: {
+                language: true,
+            },
+        },
     }
 
     public readonly FILMING_LOCATIONS_ONLY: TitleRelationsConfig = {
