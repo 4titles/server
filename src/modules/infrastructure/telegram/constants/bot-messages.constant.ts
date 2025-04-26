@@ -57,8 +57,7 @@ export const BOT_MESSAGES: BotMessages = {
         `🔧 Нажмите на кнопку ниже, чтобы перейти к настройкам профиля.`,
 
     follows: (user: User) =>
-        `🔔 Новый подписчик: <a href="https://4titles.ru/${user.username}">${user.username}</a>\n` +
-        `Теперь они будут получать уведомления о новых локациях, которые вы добавляете.`,
+        `👤 <a href="https://teastream.ru/${user.username}">${user.username}</a>`,
 
     resetPassword: (token: string, metadata: SessionMetadata) =>
         `<b>🔐 Cброс пароля</b>\n\n` +
@@ -110,7 +109,7 @@ export const BOT_MESSAGES: BotMessages = {
         `Всего подписчиков: ${followersCount} ${getFollowersEmoji(followersCount)}`,
 
     followingsList: (followingsList: string) =>
-        `<b>🌟 Каналы на который Вы подписаны:</b>\n\n${followingsList}`,
+        `<b>🌟 Пользователи, на которых Вы подписаны:</b>\n\n${followingsList}`,
 
     followingsNotFound: '<b>❌ Подписки отсутствуют.</b>',
 
