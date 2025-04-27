@@ -38,8 +38,6 @@ export const titles = pgTable(
         category: titleCategoryEnum('category').notNull(),
         status: titleStatusEnum('status').notNull(),
         isAdult: boolean('is_adult').default(false),
-        posterPath: text('poster_path'),
-        backdropPath: text('backdrop_path'),
         popularity: real('popularity').default(0),
         hasLocations: boolean('has_locations').default(false),
         voteCount: integer('vote_count'),

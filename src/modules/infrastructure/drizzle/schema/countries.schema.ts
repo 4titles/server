@@ -11,6 +11,7 @@ export const countries = pgTable(
         iso: text('iso').notNull().unique(),
         name: text('name'),
         englishName: text('english_name').notNull(),
+        flagUrl: text('flag_url'),
         ...timestamps,
     },
     (table) => ({

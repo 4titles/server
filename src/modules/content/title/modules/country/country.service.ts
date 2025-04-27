@@ -9,6 +9,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { asc, eq, inArray } from 'drizzle-orm'
 import { TmdbCountry } from '../tmdb/models/tmdb-country.model'
 import { TmdbService } from '../tmdb/tmdb.service'
+import { CountryFlagService } from './country-flag.service'
 import { CreateCountryInput } from './inputs/create-country.input'
 import { Country } from './models/country.model'
 
@@ -18,6 +19,7 @@ export class CountryService {
 
     constructor(
         private readonly tmdbService: TmdbService,
+        private readonly countryFlagService: CountryFlagService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {}
 
@@ -73,13 +75,27 @@ export class CountryService {
         return await this.tmdbService.getCountries()
     }
 
+    async enrichCountriesWithFlags(
+        countriesToEnrich: CreateCountryInput[],
+    ): Promise<CreateCountryInput[]> {
+        const isoCodes = countriesToEnrich.map((country) => country.iso)
+        const flagUrls =
+            await this.countryFlagService.getFlagUrlsForCountries(isoCodes)
+
+        return countriesToEnrich.map((country) => ({
+            ...country,
+            flagUrl: flagUrls[country.iso] || undefined,
+        }))
+    }
+
     async create(input: CreateCountryInput): Promise<boolean> {
-        const { iso, englishName, name } = input
+        const { iso, englishName, name, flagUrl } = input
 
         const newCountry = {
             iso,
             name,
             englishName,
+            flagUrl,
         }
 
         await this.db.insert(countries).values(newCountry)
@@ -88,12 +104,13 @@ export class CountryService {
     }
 
     async upsert(input: CreateCountryInput): Promise<boolean> {
-        const { iso, englishName, name } = input
+        const { iso, englishName, name, flagUrl } = input
 
         const country = {
             iso,
             englishName,
             name,
+            flagUrl,
         }
 
         await this.db
@@ -101,15 +118,18 @@ export class CountryService {
             .values(country)
             .onConflictDoUpdate({
                 target: countries.iso,
-                set: { name, englishName } as Partial<DbCountry>,
+                set: { name, englishName, flagUrl } as Partial<DbCountry>,
             })
 
         return true
     }
 
     async createMany(countriesToCreate: CreateCountryInput[]): Promise<number> {
+        const enrichedCountries =
+            await this.enrichCountriesWithFlags(countriesToCreate)
+
         const createdCountries = await Promise.all(
-            countriesToCreate.map((country) => this.upsert(country)),
+            enrichedCountries.map((country) => this.upsert(country)),
         )
 
         return createdCountries?.length || 0

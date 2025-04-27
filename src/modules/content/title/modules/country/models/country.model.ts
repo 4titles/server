@@ -15,6 +15,9 @@ export class Country {
     @Field(() => String, { nullable: true })
     name?: string
 
+    @Field(() => String, { nullable: true })
+    flagUrl?: string
+
     @Field(() => [TitleCountry], { nullable: true })
     titles?: TitleCountry[]
 }

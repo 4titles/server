@@ -60,8 +60,6 @@ export class TitleTransformService {
             isAdult: isMovie
                 ? (titleDetails as ExtendedMovieResponse).adult || false
                 : false,
-            posterPath: title.poster_path || null,
-            backdropPath: title.backdrop_path || null,
             popularity: title.popularity || 0,
             details,
             voteCount: details.vote_count || 0,
@@ -105,8 +103,6 @@ export class TitleTransformService {
             category: dbTitleWithRelations.category,
             status: dbTitleWithRelations.status,
             isAdult: dbTitleWithRelations.isAdult,
-            posterPath: dbTitleWithRelations.posterPath,
-            backdropPath: dbTitleWithRelations.backdropPath,
             popularity: dbTitleWithRelations.popularity,
             details: dbTitleWithRelations.details,
             hasLocations: dbTitleWithRelations.hasLocations,
@@ -345,12 +341,6 @@ export class TitleTransformService {
             category: existingTitle.category,
             status: existingTitle.status,
             isAdult: existingTitle.isAdult || false,
-            posterPath:
-                existingTitle.posterPath || basicTitleInfo.poster_path || null,
-            backdropPath:
-                existingTitle.backdropPath ||
-                basicTitleInfo.backdrop_path ||
-                null,
             popularity:
                 existingTitle.popularity || basicTitleInfo.popularity || 0,
             hasLocations: existingTitle.hasLocations || false,

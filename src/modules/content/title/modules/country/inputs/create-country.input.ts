@@ -20,4 +20,9 @@ export class CreateCountryInput {
     @IsString()
     @Max(20)
     englishName: string
+
+    @Field(() => String, { nullable: true })
+    @IsOptional()
+    @IsString()
+    flagUrl?: string
 }
