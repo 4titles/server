@@ -1,9 +1,15 @@
 import { Field, InputType, Int } from '@nestjs/graphql'
 import { IsBoolean, IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator'
 import { TitleCategory } from '../enums/title-category.enum'
+import { TitleType } from '../enums/title-type.enum'
 
 @InputType()
 export class TitleFilterInput {
+    @Field(() => TitleType, { nullable: true })
+    @IsOptional()
+    @IsEnum(TitleType)
+    type?: TitleType
+
     @Field(() => TitleCategory, { nullable: true })
     @IsOptional()
     @IsEnum(TitleCategory)

@@ -163,11 +163,11 @@ export class TitleService {
         const orderBy = [desc(titles.popularity)]
 
         const conditions = []
-        if (filters.category) {
-            conditions.push(eq(titles.category, filters.category))
-        }
         if (filters.type) {
             conditions.push(eq(titles.type, filters.type))
+        }
+        if (filters.category) {
+            conditions.push(eq(titles.category, filters.category))
         }
         if (filters.status) {
             conditions.push(eq(titles.status, filters.status))
@@ -243,6 +243,7 @@ export class TitleService {
             const titlesData = await this.db
                 .select({
                     id: titles.id,
+                    tmdbId: titles.tmdbId,
                     originalName: titles.originalName,
                     translationTitle: titleTranslations.title,
                     languageIso: languages.iso,
@@ -262,6 +263,7 @@ export class TitleService {
                 string,
                 {
                     id: string
+                    tmdbId: string
                     originalName: string
                     translations: any[]
                 }
@@ -271,6 +273,7 @@ export class TitleService {
                 if (!titlesWithTranslations.has(row.id)) {
                     titlesWithTranslations.set(row.id, {
                         id: row.id,
+                        tmdbId: row.tmdbId,
                         originalName: row.originalName,
                         translations: [],
                     })
@@ -297,8 +300,7 @@ export class TitleService {
                         titleData.translations,
                     )
 
-                const slug = generateSlug(englishTitle)
-                if (!slug) continue
+                const slug = generateSlug(englishTitle, titleData.tmdbId)
 
                 await this.db
                     .update(titles)

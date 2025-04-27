@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql'
+import { Field, Int, ObjectType } from '@nestjs/graphql'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TitleStatus } from '../enums/title-status.enum'
 import { TitleType } from '../enums/title-type.enum'
@@ -163,17 +163,17 @@ export class TitleExternalIds {
 
 @ObjectType()
 export class TitleTranslation {
-    @Field(() => String)
-    id: string
+    @Field(() => String, { nullable: true })
+    id?: string
 
     @Field(() => String)
-    titleId: string
+    titleId?: string
 
     @Field(() => String)
-    languageId: string
+    languageId?: string
 
     @Field(() => String)
-    title: string
+    title?: string
 
     @Field(() => String, { nullable: true })
     overview?: string
@@ -184,8 +184,11 @@ export class TitleTranslation {
     @Field(() => String, { nullable: true })
     homepage?: string
 
-    @Field(() => Language)
-    language: Language
+    @Field(() => Int, { nullable: true })
+    runtime?: number
+
+    @Field(() => Language, { nullable: true })
+    language?: Language
 }
 
 @ObjectType()

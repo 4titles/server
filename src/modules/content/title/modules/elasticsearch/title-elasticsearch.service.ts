@@ -105,11 +105,29 @@ export class TitleElasticsearchService implements OnModuleInit {
     }
 
     async indexTitle(titleId: string, titleData: TmdbTitleExtendedResponse) {
+        const titleDataCopy = JSON.parse(JSON.stringify(titleData))
+
         const document: TitleDocumentES = {
             titleId,
-            details: titleData,
+            details: titleDataCopy,
             createdAt: Date.now(),
             updatedAt: Date.now(),
+        }
+
+        const keywords = document.details.keywords as any
+        if (keywords) {
+            if ('keywords' in keywords) {
+                keywords.results = keywords.keywords
+                delete keywords.keywords
+            }
+        }
+
+        const alternativeTitles = document.details.alternative_titles as any
+        if (alternativeTitles) {
+            if ('titles' in alternativeTitles) {
+                alternativeTitles.results = alternativeTitles.titles
+                delete alternativeTitles.titles
+            }
         }
 
         try {
@@ -127,13 +145,29 @@ export class TitleElasticsearchService implements OnModuleInit {
             return false
         }
     }
-
     async updateTitle(
         titleId: string,
         titleData: Partial<TmdbTitleExtendedResponse>,
     ) {
+        const titleDataCopy = JSON.parse(JSON.stringify(titleData))
+
+        if (titleDataCopy.keywords) {
+            if ('keywords' in titleDataCopy.keywords) {
+                titleDataCopy.keywords.results = titleDataCopy.keywords.keywords
+                delete titleDataCopy.keywords.keywords
+            }
+        }
+
+        if (titleDataCopy.alternative_titles) {
+            if ('titles' in titleDataCopy.alternative_titles) {
+                titleDataCopy.alternative_titles.results =
+                    titleDataCopy.alternative_titles.titles
+                delete titleDataCopy.alternative_titles.titles
+            }
+        }
+
         const updateDoc = {
-            details: titleData,
+            details: titleDataCopy,
             updatedAt: Date.now(),
         }
 
@@ -186,32 +220,39 @@ export class TitleElasticsearchService implements OnModuleInit {
     }
 
     async searchTitles(query: any): Promise<SearchResponse<TitleDocumentES>> {
+        const normalizedQuery = this.normalizeSearchQuery(query)
+
         return await this.elasticsearchService.search<TitleDocumentES>(
             this.indexName,
-            query,
+            normalizedQuery,
         )
     }
 
-    async bulkIndexTitles(items: TitleDocumentES[]) {
-        const bulkData = items.map((item) => ({
-            id: item.titleId,
-            data: {
-                titleId: item.titleId,
-                tmdbId: item.details.id,
-                details: item.details,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-            },
-        }))
+    private normalizeSearchQuery(query: any): any {
+        const normalizedQuery = JSON.parse(JSON.stringify(query))
 
-        try {
-            await this.elasticsearchService.bulkIndex(this.indexName, bulkData)
-            this.logger.log(`Bulk indexed ${items.length} titles`)
-            return { success: true, count: items.length }
-        } catch (error) {
-            this.logger.error(`Bulk indexing failed: ${error.message}`)
-            return { success: false, error: error.message }
-        }
+        this.processQueryObject(normalizedQuery)
+
+        return normalizedQuery
+    }
+
+    private processQueryObject(obj: any): void {
+        if (!obj || typeof obj !== 'object') return
+
+        Object.keys(obj).forEach((key) => {
+            if (key === 'path' && typeof obj[key] === 'string') {
+                if (obj[key] === 'details.alternative_titles.titles') {
+                    obj[key] = 'details.alternative_titles.results'
+                }
+                if (obj[key] === 'details.keywords.keywords') {
+                    obj[key] = 'details.keywords.results'
+                }
+            }
+
+            if (obj[key] && typeof obj[key] === 'object') {
+                this.processQueryObject(obj[key])
+            }
+        })
     }
 
     async initializeIndex() {
@@ -261,8 +302,137 @@ export class TitleElasticsearchService implements OnModuleInit {
             type: 'object',
             properties: {
                 id: { type: 'long' },
+                type: { type: 'keyword' },
                 adult: { type: 'boolean' },
                 backdrop_path: { type: 'keyword' },
+                created_by: {
+                    type: 'nested',
+                    include_in_parent: true,
+                    properties: {
+                        id: { type: 'long' },
+                        credit_id: { type: 'keyword' },
+                        name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
+                        gender: { type: 'integer' },
+                        profile_path: { type: 'keyword' },
+                        original_name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
+                    },
+                },
+                in_production: { type: 'boolean' },
+                languages: { type: 'keyword' },
+                last_air_date: {
+                    type: 'date',
+                    format: 'yyyy-MM-dd||yyyy-MM||yyyy',
+                    ignore_malformed: true,
+                    fields: {
+                        keyword: { type: 'keyword' },
+                    },
+                },
+                last_episode_to_air: {
+                    type: 'object',
+                    properties: {
+                        air_date: {
+                            type: 'date',
+                            format: 'yyyy-MM-dd||yyyy-MM||yyyy',
+                            ignore_malformed: true,
+                        },
+                        episode_number: { type: 'integer' },
+                        id: { type: 'long' },
+                        name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
+                        order: { type: 'integer' },
+                        overview: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                        },
+                        production_code: { type: 'keyword' },
+                        rating: { type: 'double' },
+                        show_id: { type: 'integer' },
+                        season_number: { type: 'integer' },
+                        still_path: { type: 'keyword' },
+                        vote_average: { type: 'double' },
+                        vote_count: { type: 'long' },
+                        episode_type: { type: 'keyword' },
+                        runtime: { type: 'integer' },
+                    },
+                },
+                next_episode_to_air: {
+                    type: 'object',
+                    properties: {
+                        air_date: {
+                            type: 'date',
+                            format: 'yyyy-MM-dd||yyyy-MM||yyyy',
+                            ignore_malformed: true,
+                        },
+                        episode_number: { type: 'integer' },
+                        id: { type: 'long' },
+                        name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
+                        order: { type: 'integer' },
+                        overview: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                        },
+                        production_code: { type: 'keyword' },
+                        rating: { type: 'double' },
+                        show_id: { type: 'integer' },
+                        season_number: { type: 'integer' },
+                        still_path: { type: 'keyword' },
+                        vote_average: { type: 'double' },
+                        vote_count: { type: 'long' },
+                        episode_type: { type: 'keyword' },
+                        runtime: { type: 'integer' },
+                    },
+                },
+                number_of_episodes: { type: 'integer' },
+                number_of_seasons: { type: 'integer' },
+                seasons: {
+                    type: 'nested',
+                    properties: {
+                        air_date: {
+                            type: 'date',
+                            format: 'yyyy-MM-dd||yyyy-MM||yyyy',
+                            ignore_malformed: true,
+                        },
+                        episode_count: { type: 'integer' },
+                        id: { type: 'long' },
+                        name: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                            fields: {
+                                keyword: { type: 'keyword' },
+                            },
+                        },
+                        overview: {
+                            type: 'text',
+                            analyzer: 'title_analyzer',
+                        },
+                        poster_path: { type: 'keyword' },
+                        season_number: { type: 'integer' },
+                        vote_average: { type: 'double' },
+                    },
+                },
                 budget: { type: 'long' },
                 homepage: { type: 'keyword' },
                 imdb_id: { type: 'keyword' },
@@ -548,7 +718,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                 keywords: {
                     type: 'object',
                     properties: {
-                        keywords: {
+                        results: {
                             type: 'nested',
                             include_in_parent: true,
                             properties: {
@@ -590,7 +760,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 file_path: { type: 'keyword' },
                                 height: { type: 'integer' },
                                 width: { type: 'integer' },
-                                vote_average: { type: 'float' },
+                                vote_average: { type: 'double' },
                                 vote_count: { type: 'integer' },
                                 iso_639_1: { type: 'keyword' },
                             },
@@ -603,7 +773,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 file_path: { type: 'keyword' },
                                 height: { type: 'integer' },
                                 width: { type: 'integer' },
-                                vote_average: { type: 'float' },
+                                vote_average: { type: 'double' },
                                 vote_count: { type: 'integer' },
                                 iso_639_1: { type: 'keyword' },
                             },
@@ -616,7 +786,7 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 file_path: { type: 'keyword' },
                                 height: { type: 'integer' },
                                 width: { type: 'integer' },
-                                vote_average: { type: 'float' },
+                                vote_average: { type: 'double' },
                                 vote_count: { type: 'integer' },
                                 iso_639_1: { type: 'keyword' },
                             },
@@ -627,17 +797,20 @@ export class TitleElasticsearchService implements OnModuleInit {
                     type: 'object',
                     properties: {
                         imdb_id: { type: 'keyword' },
+                        freebase_mid: { type: 'keyword' },
+                        freebase_id: { type: 'keyword' },
                         tvdb_id: { type: 'long' },
+                        tvrage_id: { type: 'keyword' },
+                        wikidata_id: { type: 'keyword' },
                         facebook_id: { type: 'keyword' },
                         instagram_id: { type: 'keyword' },
                         twitter_id: { type: 'keyword' },
-                        wikidata_id: { type: 'keyword' },
                     },
                 },
                 alternative_titles: {
                     type: 'object',
                     properties: {
-                        titles: {
+                        results: {
                             type: 'nested',
                             include_in_parent: true,
                             properties: {
@@ -730,6 +903,8 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 keyword: { type: 'keyword' },
                             },
                         },
+                        logo_path: { type: 'keyword' },
+                        origin_country: { type: 'keyword' },
                     },
                 },
             },

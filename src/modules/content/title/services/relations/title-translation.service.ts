@@ -50,11 +50,7 @@ export class TitleTranslationService {
         const language = await this.languageService.findByISO(iso)
         if (!language) return
 
-        const translatedTitle = this.resolveTranslationTitle(
-            data,
-            name,
-            english_name,
-        )
+        const translatedTitle = this.resolveTranslationTitle(data)
         if (!translatedTitle) return
 
         const translationData = this.buildTranslationData(
@@ -78,14 +74,10 @@ export class TitleTranslationService {
 
     private resolveTranslationTitle(
         data: TmdbTranslation['data'],
-        name?: string,
-        englishName?: string,
     ): string | null {
-        return (
-            [data?.title, name, englishName]
-                .map((s) => s?.trim())
-                .find((s) => s && s.length > 0) || null
-        )
+        const titleField = data?.title || data?.name || null
+        const trimmedTitle = titleField?.trim()
+        return trimmedTitle && trimmedTitle.length > 0 ? trimmedTitle : null
     }
 
     private buildTranslationData(

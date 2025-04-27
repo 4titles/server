@@ -1,6 +1,7 @@
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { generateSlug } from '@/shared/utils/common/slug.utils'
 import { Injectable } from '@nestjs/common'
+import { TitleImageType } from '../../enums/title-image-type.enum'
 import { TitleStatus } from '../../enums/title-status.enum'
 import { TitleSupportedLanguage } from '../../enums/title-supported-languages.enum'
 import {
@@ -9,8 +10,10 @@ import {
     TitleCredits,
     TitleDetails,
     TitleExternalIds,
+    TitleImage,
     TitleImages,
     TitleKeyword,
+    TitleTranslation,
 } from '../../models/title.model'
 import {
     ExtendedMovieResponse,
@@ -18,6 +21,7 @@ import {
     TmdbTitleAlternativeTitlesResponse,
     TmdbTitleExtendedResponse,
     TmdbTitleResponse,
+    TmdbTranslation,
 } from '../../modules/tmdb/types/tmdb.interface'
 import { TitleSyncData } from '../../types/title-sync-data.interface'
 
@@ -34,6 +38,179 @@ export class TitleTransformService {
             updatedAt: new Date(),
             lastSyncedAt: new Date(),
         }
+    }
+
+    private createBaseTitleData(data: TitleSyncData): Partial<Title> {
+        const { title, titleDetails, type, category, imdbId } = data
+        const isMovie = this.isTitleMovie(titleDetails)
+        const details = this.extractBasicDetails(titleDetails)
+
+        const originalName = isMovie
+            ? (titleDetails as ExtendedMovieResponse).original_title
+            : (titleDetails as ExtendedShowResponse).original_name
+
+        return {
+            tmdbId: String(title.id),
+            imdbId: imdbId || null,
+            originalName,
+            slug: generateSlug(originalName, title.id),
+            type,
+            category,
+            status: this.mapTitleStatus(titleDetails.status),
+            isAdult: isMovie
+                ? (titleDetails as ExtendedMovieResponse).adult || false
+                : false,
+            posterPath: title.poster_path || null,
+            backdropPath: title.backdrop_path || null,
+            popularity: title.popularity || 0,
+            details,
+            voteCount: details.vote_count || 0,
+            voteAverage: details.vote_average || 0.0,
+            releaseDate: new Date(details.release_date) || null,
+            images: titleDetails.images || null,
+            keywords: titleDetails.keywords || [],
+            credits: {
+                cast: titleDetails.credits?.cast || [],
+                crew: titleDetails.credits?.crew || [],
+            },
+            alternativeTitles: this.extractAlternativeTitles(
+                titleDetails.alternative_titles,
+            ),
+            externalIds: titleDetails.external_ids || null,
+            translations: this.extractTranslations(
+                titleDetails.translations.translations,
+            ),
+        }
+    }
+
+    mergeDbAndEsDetails(
+        dbTitleWithRelations: DbTitle,
+        esDetails: TmdbTitleExtendedResponse | null,
+    ): Title {
+        const title: Partial<Title> = {
+            id: dbTitleWithRelations.id,
+            tmdbId: dbTitleWithRelations.tmdbId,
+            imdbId: dbTitleWithRelations.imdbId,
+            originalName: dbTitleWithRelations.originalName,
+            slug:
+                dbTitleWithRelations.slug ||
+                generateSlug(
+                    this.getEnglishTitleForSlug(
+                        dbTitleWithRelations.originalName || '',
+                        (dbTitleWithRelations as any).translations || [],
+                    ),
+                    dbTitleWithRelations.tmdbId,
+                ),
+            type: dbTitleWithRelations.type,
+            category: dbTitleWithRelations.category,
+            status: dbTitleWithRelations.status,
+            isAdult: dbTitleWithRelations.isAdult,
+            posterPath: dbTitleWithRelations.posterPath,
+            backdropPath: dbTitleWithRelations.backdropPath,
+            popularity: dbTitleWithRelations.popularity,
+            details: dbTitleWithRelations.details,
+            hasLocations: dbTitleWithRelations.hasLocations,
+            createdAt: dbTitleWithRelations.createdAt,
+            updatedAt: dbTitleWithRelations.updatedAt,
+            lastSyncedAt: dbTitleWithRelations.lastSyncedAt,
+            genres: (dbTitleWithRelations as any).genres || [],
+            countries: (dbTitleWithRelations as any).countries || [],
+            languages: (dbTitleWithRelations as any).languages || [],
+            translations: (dbTitleWithRelations as any).translations || [],
+            filmingLocations:
+                (dbTitleWithRelations as any).filmingLocations || [],
+            comments: (dbTitleWithRelations as any).comments || [],
+        }
+
+        const dbImages = (dbTitleWithRelations as any).images
+
+        const processedImages: TitleImages = {
+            backdrops: [],
+            posters: [],
+            logos: [],
+        }
+
+        if (dbImages) {
+            if (Array.isArray(dbImages)) {
+                for (const img of dbImages) {
+                    if (!img || !img.type || !img.filePath) continue
+
+                    const titleImage: TitleImage = {
+                        aspect_ratio: img.aspectRatio,
+                        file_path: img.filePath,
+                        vote_average: img.voteAverage || 0,
+                        vote_count: img.voteCount || 0,
+                        height: img.height,
+                        width: img.width,
+                        iso_639_1: img.language?.iso || null,
+                    }
+
+                    if (img.type === TitleImageType.BACKDROP) {
+                        processedImages.backdrops.push(titleImage)
+                    } else if (img.type === TitleImageType.POSTER) {
+                        processedImages.posters.push(titleImage)
+                    } else if (img.type === TitleImageType.LOGO) {
+                        processedImages.logos.push(titleImage)
+                    }
+                }
+            } else if (typeof dbImages === 'object') {
+                if (dbImages.backdrops && Array.isArray(dbImages.backdrops)) {
+                    processedImages.backdrops = dbImages.backdrops
+                }
+                if (dbImages.posters && Array.isArray(dbImages.posters)) {
+                    processedImages.posters = dbImages.posters
+                }
+                if (dbImages.logos && Array.isArray(dbImages.logos)) {
+                    processedImages.logos = dbImages.logos
+                }
+            }
+        }
+
+        title.images = processedImages
+
+        if (esDetails) {
+            const basicDetailsFromEs = this.extractBasicDetails(esDetails)
+            title.details = {
+                ...(dbTitleWithRelations.details || {}),
+                ...basicDetailsFromEs,
+            }
+
+            const keywordsResponse = esDetails.keywords
+            if (keywordsResponse && 'keywords' in keywordsResponse) {
+                title.keywords = Array.isArray(keywordsResponse.keywords)
+                    ? keywordsResponse.keywords
+                    : []
+            } else if (Array.isArray(keywordsResponse)) {
+                title.keywords = keywordsResponse
+            } else {
+                title.keywords = []
+            }
+
+            title.credits = {
+                cast: esDetails.credits?.cast || [],
+                crew: esDetails.credits?.crew || [],
+            }
+            title.alternativeTitles = this.extractAlternativeTitles(
+                esDetails.alternative_titles,
+            )
+            title.externalIds = esDetails.external_ids || null
+
+            if (!dbImages && esDetails.images) {
+                title.images = {
+                    backdrops: esDetails.images.backdrops || [],
+                    posters: esDetails.images.posters || [],
+                    logos: esDetails.images.logos || [],
+                }
+            }
+        } else {
+            title.details = dbTitleWithRelations.details || {}
+            title.keywords = []
+            title.credits = { cast: [], crew: [] }
+            title.alternativeTitles = []
+            title.externalIds = null
+        }
+
+        return title as Title
     }
 
     extractBasicTitleInfo(
@@ -109,6 +286,28 @@ export class TitleTransformService {
         }))
     }
 
+    extractTranslations(translations: TmdbTranslation[]): TitleTranslation[] {
+        if (!translations || !Array.isArray(translations)) {
+            return []
+        }
+
+        return translations.map((translation) => {
+            const { data } = translation
+
+            const titleValue = data?.title || data?.name || ''
+
+            const translationItem: Partial<TitleTranslation> = {
+                title: titleValue,
+                overview: data?.overview || '',
+                tagline: data?.tagline || '',
+                homepage: data?.homepage || '',
+                runtime: data?.runtime,
+            }
+
+            return translationItem
+        })
+    }
+
     extractFullTitle(
         existingTitle: DbTitle,
         titleDetails: TmdbTitleExtendedResponse,
@@ -127,6 +326,9 @@ export class TitleTransformService {
             titleDetails.external_ids || null
         const titleAlternativeTitles: TitleAlternativeTitle[] =
             this.extractAlternativeTitles(titleDetails.alternative_titles)
+        const titleTranslations: TitleTranslation[] = this.extractTranslations(
+            titleDetails.translations.translations,
+        )
 
         return {
             id: existingTitle.id,
@@ -135,7 +337,10 @@ export class TitleTransformService {
             originalName: existingTitle.originalName || '',
             slug:
                 existingTitle.slug ||
-                generateSlug(existingTitle.originalName || ''),
+                generateSlug(
+                    existingTitle.originalName || '',
+                    existingTitle.tmdbId,
+                ),
             type: existingTitle.type,
             category: existingTitle.category,
             status: existingTitle.status,
@@ -165,108 +370,13 @@ export class TitleTransformService {
             credits: titleCredits,
             alternativeTitles: titleAlternativeTitles,
             externalIds: titleExternalIds,
-            translations: [],
+            translations: titleTranslations,
             filmingLocations: [],
             comments: [],
             genres: [],
             languages: [],
             countries: [],
         }
-    }
-
-    mergeDbAndEsDetails(
-        dbTitleWithRelations: DbTitle,
-        esDetails: TmdbTitleExtendedResponse | null,
-    ): Title {
-        const title: Partial<Title> = {
-            id: dbTitleWithRelations.id,
-            tmdbId: dbTitleWithRelations.tmdbId,
-            imdbId: dbTitleWithRelations.imdbId,
-            originalName: dbTitleWithRelations.originalName,
-            slug:
-                dbTitleWithRelations.slug ||
-                generateSlug(
-                    this.getEnglishTitleForSlug(
-                        dbTitleWithRelations.originalName || '',
-                        (dbTitleWithRelations as any).translations || [],
-                    ),
-                ),
-            type: dbTitleWithRelations.type,
-            category: dbTitleWithRelations.category,
-            status: dbTitleWithRelations.status,
-            isAdult: dbTitleWithRelations.isAdult,
-            posterPath: dbTitleWithRelations.posterPath,
-            backdropPath: dbTitleWithRelations.backdropPath,
-            popularity: dbTitleWithRelations.popularity,
-            details: dbTitleWithRelations.details,
-            hasLocations: dbTitleWithRelations.hasLocations,
-            createdAt: dbTitleWithRelations.createdAt,
-            updatedAt: dbTitleWithRelations.updatedAt,
-            lastSyncedAt: dbTitleWithRelations.lastSyncedAt,
-            genres: (dbTitleWithRelations as any).genres || [],
-            countries: (dbTitleWithRelations as any).countries || [],
-            languages: (dbTitleWithRelations as any).languages || [],
-            translations: (dbTitleWithRelations as any).translations || [],
-            images: (dbTitleWithRelations as any).images || {
-                backdrops: [],
-                posters: [],
-                logos: [],
-            },
-            filmingLocations:
-                (dbTitleWithRelations as any).filmingLocations || [],
-            comments: (dbTitleWithRelations as any).comments || [],
-        }
-
-        if (esDetails) {
-            const basicDetailsFromEs = this.extractBasicDetails(esDetails)
-            title.details = {
-                ...(dbTitleWithRelations.details || {}),
-                ...basicDetailsFromEs,
-            }
-
-            const keywordsResponse = esDetails.keywords
-            if (keywordsResponse && 'keywords' in keywordsResponse) {
-                title.keywords = Array.isArray(keywordsResponse.keywords)
-                    ? keywordsResponse.keywords
-                    : []
-            } else if (Array.isArray(keywordsResponse)) {
-                title.keywords = keywordsResponse
-            } else {
-                title.keywords = []
-            }
-
-            title.credits = {
-                cast: esDetails.credits?.cast || [],
-                crew: esDetails.credits?.crew || [],
-            }
-            title.alternativeTitles = this.extractAlternativeTitles(
-                esDetails.alternative_titles,
-            )
-            title.externalIds = esDetails.external_ids || null
-
-            if (
-                !(
-                    title.images &&
-                    (title.images.backdrops?.length > 0 ||
-                        title.images.posters?.length > 0 ||
-                        title.images.logos?.length > 0)
-                )
-            ) {
-                title.images = esDetails.images || {
-                    backdrops: [],
-                    posters: [],
-                    logos: [],
-                }
-            }
-        } else {
-            title.details = dbTitleWithRelations.details || {}
-            title.keywords = []
-            title.credits = { cast: [], crew: [] }
-            title.alternativeTitles = []
-            title.externalIds = null
-        }
-
-        return title as Title
     }
 
     mapTitleStatus(status: string): TitleStatus {
@@ -293,46 +403,6 @@ export class TitleTransformService {
 
     private isTitleMovie(details: TmdbTitleExtendedResponse): boolean {
         return 'budget' in details || 'release_date' in details
-    }
-
-    private createBaseTitleData(data: TitleSyncData): Partial<Title> {
-        const { title, titleDetails, type, category, imdbId } = data
-        const isMovie = this.isTitleMovie(titleDetails)
-        const details = this.extractBasicDetails(titleDetails)
-
-        const originalName = isMovie
-            ? (titleDetails as ExtendedMovieResponse).original_title
-            : (titleDetails as ExtendedShowResponse).original_name
-
-        return {
-            tmdbId: String(title.id),
-            imdbId: imdbId || null,
-            originalName,
-            slug: generateSlug(originalName),
-            type,
-            category,
-            status: this.mapTitleStatus(titleDetails.status),
-            isAdult: isMovie
-                ? (titleDetails as ExtendedMovieResponse).adult || false
-                : false,
-            posterPath: title.poster_path || null,
-            backdropPath: title.backdrop_path || null,
-            popularity: title.popularity || 0,
-            details,
-            voteCount: details.vote_count || 0,
-            voteAverage: details.vote_average || 0.0,
-            releaseDate: new Date(details.release_date) || null,
-            images: titleDetails.images || null,
-            keywords: titleDetails.keywords || [],
-            credits: {
-                cast: titleDetails.credits?.cast || [],
-                crew: titleDetails.credits?.crew || [],
-            },
-            alternativeTitles: this.extractAlternativeTitles(
-                titleDetails.alternative_titles,
-            ),
-            externalIds: titleDetails.external_ids || null,
-        }
     }
 
     getEnglishTitleForSlug(

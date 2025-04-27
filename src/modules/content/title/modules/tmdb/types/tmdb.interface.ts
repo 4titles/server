@@ -11,6 +11,7 @@ import {
     MovieResponse,
     MovieResultsResponse,
     Poster,
+    Response,
     ShowAlternativeTitlesResponse,
     ShowChangesResponse,
     ShowResponse,
@@ -70,7 +71,7 @@ export interface ExtendedMovieResponse extends MovieResponse {
     credits: CreditsResponse
     keywords: KeywordResponse[]
     alternative_titles: MovieAlternativeTitlesResponse
-    translations: CollectionTranslationsResponse
+    translations: TmdbTranslationsResponse
     external_ids: TmdbExternalIds
     images: MovieImagesResponse
 }
@@ -79,9 +80,14 @@ export interface ExtendedShowResponse extends ShowResponse {
     credits: CreditsResponse
     keywords: KeywordResponse[]
     alternative_titles: ShowAlternativeTitlesResponse
-    translations: CollectionTranslationsResponse
+    translations: TmdbTranslationsResponse
     external_ids: TmdbExternalIds
     images: TvImagesResponse
+}
+
+export interface TmdbTranslationsResponse extends Response {
+    id?: number
+    translations?: TmdbTranslation[]
 }
 
 export interface TmdbTranslation {
@@ -91,8 +97,10 @@ export interface TmdbTranslation {
     english_name?: string
     data?: {
         title?: string
+        name?: string
         overview?: string
         homepage?: string
         tagline?: string
+        runtime?: number
     }
 }
