@@ -4,7 +4,9 @@ import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { TmdbCountry } from '../tmdb/models/tmdb-country.model'
 import { CountryService } from './country.service'
+import { CountryStatisticsInput } from './inputs/country-statistics.input'
 import { CreateCountryInput } from './inputs/create-country.input'
+import { CountryStatistics } from './models/country-statistics.model'
 import { Country } from './models/country.model'
 
 @Resolver(() => Country)
@@ -91,5 +93,17 @@ export class CountryResolver {
     @Mutation(() => Boolean, { name: 'createCountry' })
     async create(@Args('data') input: CreateCountryInput): Promise<boolean> {
         return await this.countryService.create(input)
+    }
+
+    @RbacProtected({
+        resource: Resource.COUNTRY,
+        action: Action.READ,
+        possession: 'any',
+    })
+    @Query(() => [CountryStatistics], { name: 'getCountriesStatistics' })
+    async getCountriesStatistics(
+        @Args('input', { nullable: true }) input?: CountryStatisticsInput,
+    ): Promise<CountryStatistics[]> {
+        return await this.countryService.getCountriesStatistics(input || {})
     }
 }

@@ -280,8 +280,6 @@ export class TitleQueryService {
         dbTitle: DbTitle,
         esTitle: TitleDocumentES | null,
     ): Title {
-        console.log(JSON.stringify(dbTitle))
-
         return this.titleTransformService.mergeDbAndEsDetails(
             dbTitle,
             esTitle?.details || null,

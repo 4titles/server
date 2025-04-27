@@ -1,5 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql'
 import { TitleCountry } from '../../../models/title-country.model'
+import { FilmingLocation } from '../../filming-location/models/filming-location.model'
 
 @ObjectType()
 export class Country {
@@ -20,4 +21,7 @@ export class Country {
 
     @Field(() => [TitleCountry], { nullable: true })
     titles?: TitleCountry[]
+
+    @Field(() => [FilmingLocation], { nullable: true })
+    filmingLocations?: FilmingLocation[]
 }

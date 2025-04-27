@@ -220,12 +220,6 @@ export class Title {
     @Field(() => Boolean)
     isAdult: boolean
 
-    @Field(() => String, { nullable: true })
-    posterPath?: string
-
-    @Field(() => String, { nullable: true })
-    backdropPath?: string
-
     @Field(() => Number)
     popularity: number
 
