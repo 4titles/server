@@ -43,7 +43,7 @@ export class TitleTranslationService {
         titleId: string,
         translation: TmdbTranslation,
     ): Promise<void> {
-        const { iso_639_1: iso, data, name, english_name } = translation
+        const { iso_639_1: iso, data } = translation
 
         if (!this.languagesConfig.shouldStoreInPostgres(iso)) return
 
@@ -51,7 +51,6 @@ export class TitleTranslationService {
         if (!language) return
 
         const translatedTitle = this.resolveTranslationTitle(data)
-        if (!translatedTitle) return
 
         const translationData = this.buildTranslationData(
             titleId,
@@ -75,9 +74,8 @@ export class TitleTranslationService {
     private resolveTranslationTitle(
         data: TmdbTranslation['data'],
     ): string | null {
-        const titleField = data?.title || data?.name || null
-        const trimmedTitle = titleField?.trim()
-        return trimmedTitle && trimmedTitle.length > 0 ? trimmedTitle : null
+        const titleField = data?.title || data?.name || ''
+        return titleField?.trim()
     }
 
     private buildTranslationData(
