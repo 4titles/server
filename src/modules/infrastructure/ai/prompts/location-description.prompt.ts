@@ -56,6 +56,7 @@ ${titlePlot ? `- **Plot Summary**: ${titlePlot}` : ''}
 7. Write in the style of a professional location guide.
 8. Keep the description informative, engaging, and factual. If you're not certain about specific scenes, focus on describing the location in a way that connects it to the overall theme or setting of the ${titleType}.
 9. If limited by context, prioritize the location’s ambiance and its thematic fit with the ${titleType}.
+10. Return **only the paragraph text**, with no additional headers, labels, or formatting.
 
-**Output**: Only the paragraph, no additional text.`
+**Output**: Return only the paragraph text, exactly as it would appear in the map pop-up.`
 }
