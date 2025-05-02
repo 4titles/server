@@ -18,7 +18,15 @@ export interface TitleRelationsConfig {
     }
     filmingLocations?: {
         with?: {
-            filmingLocation?: boolean
+            filmingLocation?: {
+                with?: {
+                    descriptions?: {
+                        with?: {
+                            language?: boolean
+                        }
+                    }
+                }
+            }
         }
     }
     translations?: {
@@ -81,7 +89,15 @@ export class TitleRelationsConfigService {
         },
         filmingLocations: {
             with: {
-                filmingLocation: true,
+                filmingLocation: {
+                    with: {
+                        descriptions: {
+                            with: {
+                                language: true,
+                            },
+                        },
+                    },
+                },
             },
         },
         translations: {
@@ -99,7 +115,15 @@ export class TitleRelationsConfigService {
     public readonly FILMING_LOCATIONS_ONLY: TitleRelationsConfig = {
         filmingLocations: {
             with: {
-                filmingLocation: true,
+                filmingLocation: {
+                    with: {
+                        descriptions: {
+                            with: {
+                                language: true,
+                            },
+                        },
+                    },
+                },
             },
         },
     }

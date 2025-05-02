@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm'
 import { index, pgTable, point, text, uuid } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
 import { countries } from './countries.schema'
+import { filmingLocationDescriptions } from './filming-location-descriptions.schema'
 import { titleFilmingLocations } from './title-filming-locations.schema'
 import { users } from './users.schema'
 
@@ -21,7 +22,6 @@ export const filmingLocations = pgTable(
         city: text('city'),
         state: text('state'),
         description: text('description'),
-        enhancedDescription: text('enhanced_description'),
         userId: uuid('user_id').references(() => users.id, {
             onDelete: 'set null',
         }),
@@ -44,6 +44,7 @@ export const filmingLocationsRelations = relations(
             fields: [filmingLocations.userId],
             references: [users.id],
         }),
+        descriptions: many(filmingLocationDescriptions),
     }),
 )
 

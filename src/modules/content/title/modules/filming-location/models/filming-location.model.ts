@@ -1,6 +1,7 @@
 import { User } from '@/modules/auth/account/models/user.model'
 import { Field, ObjectType } from '@nestjs/graphql'
 import { Country } from '../../country/models/country.model'
+import { FilmingLocationDescription } from './filming-location-description.model'
 
 @ObjectType()
 export class Point {
@@ -37,8 +38,8 @@ export class FilmingLocation {
     @Field(() => String, { nullable: true })
     description?: string
 
-    @Field(() => String, { nullable: true })
-    enhancedDescription?: string
+    @Field(() => [FilmingLocationDescription], { nullable: true })
+    descriptions?: FilmingLocationDescription[]
 
     @Field(() => Date)
     createdAt: Date

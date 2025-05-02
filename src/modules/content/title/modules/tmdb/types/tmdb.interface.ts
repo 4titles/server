@@ -16,6 +16,7 @@ import {
     ShowChangesResponse,
     ShowResponse,
     SimilarMovieResponse,
+    SimpleEpisode,
     TitleLogo,
     TrendingResponse,
     TvExternalIdsResponse,
@@ -103,4 +104,8 @@ export interface TmdbTranslation {
         tagline?: string
         runtime?: number
     }
+}
+
+export interface TvShowSimpleEpisode extends SimpleEpisode {
+    runtime?: number
 }

@@ -192,6 +192,21 @@ export class TitleTranslation {
 }
 
 @ObjectType()
+export class TitleProductionCompany {
+    @Field(() => String, { nullable: true })
+    id?: number
+
+    @Field(() => String, { nullable: true })
+    name?: string
+
+    @Field(() => String, { nullable: true })
+    logo_path?: string
+
+    @Field(() => String, { nullable: true })
+    origin_country?: string
+}
+
+@ObjectType()
 export class Title {
     @Field(() => String)
     id: string
@@ -226,17 +241,23 @@ export class Title {
     @Field(() => Boolean)
     hasLocations: boolean
 
+    @Field(() => String, { nullable: true })
+    releaseDate?: Date
+
+    @Field(() => Number, { nullable: true })
+    budget?: number
+
+    @Field(() => Number, { nullable: true })
+    revenue?: number
+
+    @Field(() => Number, { nullable: true })
+    runtime?: number
+
     @Field(() => Number, { nullable: true })
     voteAverage?: number
 
     @Field(() => Number, { nullable: true })
     voteCount?: number
-
-    @Field(() => String, { nullable: true })
-    releaseDate?: Date
-
-    @Field(() => TitleDetails, { nullable: true })
-    details?: TitleDetails
 
     @Field(() => [TitleKeyword], { nullable: true })
     keywords?: TitleKeyword[]
@@ -249,6 +270,9 @@ export class Title {
 
     @Field(() => TitleExternalIds, { nullable: true })
     externalIds?: TitleExternalIds
+
+    @Field(() => [TitleProductionCompany], { nullable: true })
+    productionCompanies?: TitleProductionCompany[]
 
     @Field(() => Date)
     createdAt: Date

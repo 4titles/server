@@ -498,9 +498,32 @@ export class TitleElasticsearchService implements OnModuleInit {
                         },
                         coordinates: { type: 'geo_point' },
                         description: { type: 'text', analyzer: 'standard' },
-                        enhancedDescription: {
-                            type: 'text',
-                            analyzer: 'standard',
+                        descriptions: {
+                            type: 'object',
+                            properties: {
+                                en: {
+                                    type: 'text',
+                                    analyzer: 'english_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                        autocomplete: {
+                                            type: 'text',
+                                            analyzer: 'autocomplete_analyzer',
+                                        },
+                                    },
+                                },
+                                ru: {
+                                    type: 'text',
+                                    analyzer: 'russian_analyzer',
+                                    fields: {
+                                        keyword: { type: 'keyword' },
+                                        autocomplete: {
+                                            type: 'text',
+                                            analyzer: 'autocomplete_analyzer',
+                                        },
+                                    },
+                                },
+                            },
                         },
                     },
                 },
@@ -760,7 +783,11 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 file_path: { type: 'keyword' },
                                 height: { type: 'integer' },
                                 width: { type: 'integer' },
-                                vote_average: { type: 'double' },
+                                // vote_average: { type: 'double' },
+                                vote_average: {
+                                    type: 'scaled_float',
+                                    scaling_factor: 100,
+                                },
                                 vote_count: { type: 'integer' },
                                 iso_639_1: { type: 'keyword' },
                             },
@@ -773,7 +800,11 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 file_path: { type: 'keyword' },
                                 height: { type: 'integer' },
                                 width: { type: 'integer' },
-                                vote_average: { type: 'double' },
+                                // vote_average: { type: 'double' },
+                                vote_average: {
+                                    type: 'scaled_float',
+                                    scaling_factor: 100,
+                                },
                                 vote_count: { type: 'integer' },
                                 iso_639_1: { type: 'keyword' },
                             },
@@ -786,7 +817,11 @@ export class TitleElasticsearchService implements OnModuleInit {
                                 file_path: { type: 'keyword' },
                                 height: { type: 'integer' },
                                 width: { type: 'integer' },
-                                vote_average: { type: 'double' },
+                                // vote_average: { type: 'double' },
+                                vote_average: {
+                                    type: 'scaled_float',
+                                    scaling_factor: 100,
+                                },
                                 vote_count: { type: 'integer' },
                                 iso_639_1: { type: 'keyword' },
                             },

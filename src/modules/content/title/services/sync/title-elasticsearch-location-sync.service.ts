@@ -53,6 +53,16 @@ export class TitleElasticsearchLocationSyncService {
         return dbLocations.map((rel) => {
             const loc = rel.filmingLocation
             const country = loc.country
+
+            const locDescriptions = {}
+            if (loc.descriptions && Array.isArray(loc.descriptions)) {
+                for (const desc of loc.descriptions) {
+                    if (desc.language && desc.language.iso) {
+                        locDescriptions[desc.language.iso] = desc.description
+                    }
+                }
+            }
+
             return {
                 id: loc.id,
                 placeId: loc.placeId,
@@ -67,7 +77,7 @@ export class TitleElasticsearchLocationSyncService {
                     ? { lat: loc.coordinates.y, lon: loc.coordinates.x }
                     : null,
                 description: loc.description,
-                enhancedDescription: loc.enhancedDescription,
+                descriptions: locDescriptions,
             }
         })
     }

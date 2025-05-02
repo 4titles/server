@@ -1,3 +1,4 @@
+import { AiModule } from '@/modules/infrastructure/ai/ai.module'
 import { BullModule } from '@nestjs/bullmq'
 import { Module } from '@nestjs/common'
 import { TitleRelationsConfigService } from './config/title-relations.config'
@@ -57,6 +58,7 @@ import { TitleResolver } from './title.resolver'
                 name: 'title-location-description-sync',
             },
         ),
+        AiModule,
     ],
     providers: [
         TitleResolver,

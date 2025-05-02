@@ -22,6 +22,7 @@ import {
     TmdbTitleExtendedResponse,
     TmdbTitleResponse,
     TmdbTranslation,
+    TvShowSimpleEpisode,
 } from '../../modules/tmdb/types/tmdb.interface'
 import { TitleSyncData } from '../../types/title-sync-data.interface'
 
@@ -61,10 +62,13 @@ export class TitleTransformService {
                 ? (titleDetails as ExtendedMovieResponse).adult || false
                 : false,
             popularity: title.popularity || 0,
-            details,
+            // details,
             voteCount: details.vote_count || 0,
             voteAverage: details.vote_average || 0.0,
             releaseDate: new Date(details.release_date) || null,
+            budget: details.budget,
+            revenue: details.revenue,
+            runtime: details.runtime,
             images: titleDetails.images || null,
             keywords: titleDetails.keywords || [],
             credits: {
@@ -104,8 +108,13 @@ export class TitleTransformService {
             status: dbTitleWithRelations.status,
             isAdult: dbTitleWithRelations.isAdult,
             popularity: dbTitleWithRelations.popularity,
-            details: dbTitleWithRelations.details,
             hasLocations: dbTitleWithRelations.hasLocations,
+            releaseDate: dbTitleWithRelations.releaseDate,
+            budget: dbTitleWithRelations.budget,
+            revenue: dbTitleWithRelations.revenue,
+            runtime: dbTitleWithRelations.runtime,
+            voteCount: dbTitleWithRelations.voteCount,
+            voteAverage: dbTitleWithRelations.voteAverage,
             createdAt: dbTitleWithRelations.createdAt,
             updatedAt: dbTitleWithRelations.updatedAt,
             lastSyncedAt: dbTitleWithRelations.lastSyncedAt,
@@ -165,12 +174,6 @@ export class TitleTransformService {
         title.images = processedImages
 
         if (esDetails) {
-            const basicDetailsFromEs = this.extractBasicDetails(esDetails)
-            title.details = {
-                ...(dbTitleWithRelations.details || {}),
-                ...basicDetailsFromEs,
-            }
-
             const keywordsResponse = esDetails.keywords
             if (keywordsResponse && 'keywords' in keywordsResponse) {
                 title.keywords = Array.isArray(keywordsResponse.keywords)
@@ -198,12 +201,14 @@ export class TitleTransformService {
                     logos: esDetails.images.logos || [],
                 }
             }
+
+            title.productionCompanies = esDetails.production_companies || []
         } else {
-            title.details = dbTitleWithRelations.details || {}
             title.keywords = []
             title.credits = { cast: [], crew: [] }
             title.alternativeTitles = []
             title.externalIds = null
+            title.productionCompanies = []
         }
 
         return title as Title
@@ -234,8 +239,7 @@ export class TitleTransformService {
             poster_path: titleDetails.poster_path,
             backdrop_path: titleDetails.backdrop_path,
             popularity: titleDetails.popularity,
-            vote_average: titleDetails.vote_average,
-            vote_count: titleDetails.vote_count,
+            overview: titleDetails.overview,
         }
     }
 
@@ -252,7 +256,8 @@ export class TitleTransformService {
                 : showInfo.episode_run_time &&
                     showInfo.episode_run_time.length > 0
                   ? showInfo.episode_run_time[0]
-                  : null,
+                  : (showInfo.last_episode_to_air as TvShowSimpleEpisode)
+                        .runtime,
             vote_average: titleDetails.vote_average || 0,
             vote_count: titleDetails.vote_count || 0,
             release_date: isMovie
@@ -308,7 +313,6 @@ export class TitleTransformService {
         existingTitle: DbTitle,
         titleDetails: TmdbTitleExtendedResponse,
     ): Title {
-        const existingDetails = existingTitle.details || {}
         const basicTitleInfo = this.extractBasicTitleInfo(titleDetails)
         const basicDetails = this.extractBasicDetails(titleDetails)
 
@@ -347,14 +351,17 @@ export class TitleTransformService {
             createdAt: existingTitle.createdAt,
             updatedAt: existingTitle.updatedAt,
             lastSyncedAt: existingTitle.lastSyncedAt,
-            details: {
-                ...existingDetails,
-                ...basicDetails,
-            },
-            voteAverage:
-                existingTitle.voteAverage || basicTitleInfo.vote_average || 0,
             voteCount:
                 existingTitle.voteCount || basicTitleInfo.vote_count || 0,
+            voteAverage:
+                existingTitle.voteAverage || basicTitleInfo.vote_average || 0,
+            releaseDate:
+                existingTitle.releaseDate || basicDetails.release_date
+                    ? new Date(basicDetails.release_date)
+                    : null,
+            budget: existingTitle.budget || basicDetails.budget,
+            revenue: existingTitle.revenue || basicDetails.revenue,
+            runtime: existingTitle.runtime || basicDetails.runtime,
             images: titleImages,
             keywords: titleKeywords,
             credits: titleCredits,

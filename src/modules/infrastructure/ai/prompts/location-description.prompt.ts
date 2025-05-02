@@ -37,23 +37,25 @@ export const getLocationDescriptionPrompt = (
         .filter(Boolean)
         .join(', ')
 
-    return `You are an expert in films, series, and their filming locations.
+    return `You are a skilled translator and expert in film history and location scouting, tasked with creating a concise, engaging description for a Web-GIS map pop-up in ${language}. The description should vividly connect a filming location to its role in a ${titleType}, captivating users with both story context and local significance.
 
-I need you to create a descriptive paragraph about a filming location from "${titleName}" (${titleYear}), which is a ${titleType} in these genres: ${genresText}.
+**Context**:
+- **Title**: "${titleName}" (${titleYear}), a ${titleType}
+- **Genres**: ${genresText}
+${titlePlot ? `- **Plot Summary**: ${titlePlot}` : ''}
+- **Location**: ${locationDetails}
 
-${titlePlot ? `The plot summary: ${titlePlot}` : ''}
+**Instructions**:
+1. Write **one cohesive paragraph** (max 200 words) in ${language}.
+2. Avoid using the title name directly; refer to the ${titleType} contextually (e.g., "this thriller," "the series", "in this drama...").
+3. Describe **specific scenes** filmed at this location (e.g., key events, character moments) and their narrative importance. If scene details are unknown, infer a plausible role based on the plot, genres, or setting, ensuring alignment with the ${titleType}'s tone.
+4. Include **one unique or interesting fact** about the location (e.g., historical significance, architectural style, cultural relevance).
+5. Use **vivid, concise language** suitable for a general audience, avoiding jargon or overly technical terms.
+6. Maintain a **professional, guidebook-style tone**—informative, engaging, and factual.
+6. Do **not** include AI disclaimers, meta commentary, speculative phrases like "imagine" or "perhaps." or any kind of spam.
+7. Write in the style of a professional location guide.
+8. Keep the description informative, engaging, and factual. If you're not certain about specific scenes, focus on describing the location in a way that connects it to the overall theme or setting of the ${titleType}.
+9. If limited by context, prioritize the location’s ambiance and its thematic fit with the ${titleType}.
 
-The filming location address is: ${locationDetails}
-
-Please write a descriptive paragraph (maximum 250 words) in ${language} that:
-1. Explains where and how this location appeared in the ${titleType}
-2. Describes what scenes might have been filmed there
-3. Provides interesting information about the location itself
-4. Explains why this location might have been chosen for filming
-
-Keep the description informative, engaging, and factual. If you're not certain about specific scenes, focus on describing the location in a way that connects it to the overall theme or setting of the ${titleType}.
-
-Do not include phrases like "I don't have specific information about" or "Without specific details" or any disclaimers. Just provide the most plausible description based on the available information. Write in the style of a professional location guide.
-
-Reply only with the descriptive paragraph, without any additional text.`
+**Output**: Only the paragraph, no additional text.`
 }

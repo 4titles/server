@@ -23,21 +23,42 @@ export class FilmingLocationService {
     async findById(id: string): Promise<DbFilmingLocation | null> {
         return await this.db.query.filmingLocations.findFirst({
             where: eq(filmingLocations.id, id),
-            with: { country: true },
+            with: {
+                country: true,
+                descriptions: {
+                    with: {
+                        language: true,
+                    },
+                },
+            },
         })
     }
 
     async findByPlaceId(placeId: string): Promise<DbFilmingLocation | null> {
         return await this.db.query.filmingLocations.findFirst({
             where: eq(filmingLocations.placeId, placeId),
-            with: { country: true },
+            with: {
+                country: true,
+                descriptions: {
+                    with: {
+                        language: true,
+                    },
+                },
+            },
         })
     }
 
     async findByAddress(address: string): Promise<DbFilmingLocation | null> {
         return await this.db.query.filmingLocations.findFirst({
             where: eq(filmingLocations.address, address),
-            with: { country: true },
+            with: {
+                country: true,
+                descriptions: {
+                    with: {
+                        language: true,
+                    },
+                },
+            },
         })
     }
 
@@ -47,9 +68,7 @@ export class FilmingLocationService {
         const geocodedLocations =
             await this.geocodingService.geocodeAddress(address)
 
-        if (geocodedLocations.length > 0) {
-            return geocodedLocations
-        }
+        if (geocodedLocations.length > 0) return geocodedLocations
 
         return null
     }
@@ -81,43 +100,12 @@ export class FilmingLocationService {
             city: geocoded.city,
             state: geocoded.state,
             description: raw.description,
-            enhancedDescription: '', // TODO
             userId,
         }
 
         await this.db.insert(filmingLocations).values(newLocation)
 
         return true
-    }
-
-    async updateEnhancedDescription(
-        locationId: string,
-        enhancedDescription: string,
-    ): Promise<void> {
-        await this.db
-            .update(filmingLocations)
-            .set({
-                enhancedDescription,
-                updatedAt: new Date(),
-            } as Partial<DbFilmingLocation>)
-            .where(eq(filmingLocations.id, locationId))
-    }
-
-    async verifyLocation(
-        locationId: string,
-        userId: string,
-        enhancedDescription?: string,
-    ): Promise<void> {
-        const locationUpdate: Partial<DbFilmingLocation> = {
-            enhancedDescription,
-            userId,
-            updatedAt: new Date(),
-        }
-
-        await this.db
-            .update(filmingLocations)
-            .set(locationUpdate)
-            .where(eq(filmingLocations.id, locationId))
     }
 
     async updateLocation(

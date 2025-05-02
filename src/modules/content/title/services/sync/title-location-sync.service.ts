@@ -104,10 +104,13 @@ export class TitleLocationSyncService {
                             )
 
                         this.logger.debug(
-                            `Location ${newLocation.id} created, trying to add to queue of description sync`,
+                            `Location ${newLocation.id} created, checking if description generation is needed`,
                         )
 
-                        if (newLocation && !newLocation.enhancedDescription) {
+                        const needsDescriptionGeneration =
+                            this.locationNeedsDescriptionGeneration(newLocation)
+
+                        if (needsDescriptionGeneration) {
                             this.logger.debug(
                                 `Adding description job for location ${newLocation.id} of title ${titleId}`,
                             )
@@ -127,7 +130,7 @@ export class TitleLocationSyncService {
                             }
                         } else {
                             this.logger.debug(
-                                `Location ${newLocation.id} already has an enhanced description or location not found`,
+                                `Location ${newLocation.id} already has descriptions or location not found`,
                             )
                         }
 
@@ -174,5 +177,15 @@ export class TitleLocationSyncService {
             )
             throw error
         }
+    }
+
+    private locationNeedsDescriptionGeneration(location: any): boolean {
+        if (!location) return false
+
+        if (location.descriptions && Array.isArray(location.descriptions)) {
+            return location.descriptions.length === 0
+        }
+
+        return true
     }
 }

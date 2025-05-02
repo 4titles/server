@@ -40,7 +40,7 @@ export const notificationSettings = pgTable('notification_settings', {
     ).default(true),
     isTelegramNotificationsEnabled: boolean(
         'is_telegram_notifications_enabled',
-    ).default(true),
+    ).default(false),
     ...timestamps,
 })
 

@@ -2,7 +2,6 @@ FROM node:22.12.0
 
 ARG APP_TIMEZONE=Europe/Moscow
 ENV TZ=${APP_TIMEZONE}
-
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
 
@@ -29,15 +28,20 @@ RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
 
 WORKDIR /usr/src/app
 
+COPY package*.json ./
+RUN npm install --force
+
 COPY . .
-RUN npm install
+
+RUN npm install -g @nestjs/cli
 
 RUN mkdir -p /usr/src/app/src && \
-    chown -R pptruser:pptruser /usr/src/app && \
+    chown -R node:node /usr/src/app && \
     chmod -R 755 /usr/src/app && \
     find /usr/src/app -type d -exec chmod 755 {} + && \
-    find /usr/src/app -type f -exec chmod 644 {} + && \
-    chmod -R u+w /usr/src/app/src
+    find /usr/src/app -type f -exec chmod 644 {} +
+
+USER node
 
 EXPOSE 3000
 
