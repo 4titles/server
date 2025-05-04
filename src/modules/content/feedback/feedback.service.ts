@@ -46,7 +46,7 @@ export class FeedbackService {
         try {
             const wouldExceedLimit = await this.wouldExceedFeedbackLimit(
                 user?.id,
-                metadata.ip,
+                metadata ? metadata.ip : undefined,
             )
 
             if (wouldExceedLimit) {
@@ -289,12 +289,11 @@ export class FeedbackService {
                 .where(eq(feedbacks.id, input.id))
                 .returning()
 
-            if (feedbackItem.user?.telegramId && input.responseMessage) {
-                await this.notificationService.notifyUserAboutFeedbackResponse(
-                    feedbackItem.user.telegramId,
-                    updatedFeedback,
-                )
-            }
+            await this.notificationService.notifyUserAboutFeedbackResponse(
+                feedbackItem.user.telegramId,
+                updatedFeedback,
+                feedbackItem.user.id,
+            )
 
             return {
                 ...updatedFeedback,

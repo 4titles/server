@@ -224,11 +224,28 @@ export class NotificationService {
     async notifyUserAboutFeedbackResponse(
         telegramId: string,
         feedback: Feedback,
+        userId?: string,
     ): Promise<void> {
         try {
             const message = `<b>✅ Ответ на ваш отзыв</b>\n\n<i>Ваш отзыв:</i>\n${feedback.message}\n\n<b>Ответ от команды:</b>\n${feedback.responseMessage}`
+            const notifiableUserId = userId ?? feedback?.user?.id
 
-            await this.telegramService.sendInfoNotification(telegramId, message)
+            if (notifiableUserId) {
+                const newNotification = {
+                    message,
+                    type: NotificationType.INFO,
+                    userId: userId ?? feedback.user.id,
+                }
+
+                await this.db.insert(notifications).values(newNotification)
+            }
+
+            if (telegramId && feedback?.responseMessage) {
+                await this.telegramService.sendInfoNotification(
+                    telegramId,
+                    message,
+                )
+            }
         } catch (error) {
             this.logger.error(
                 `Failed to notify user about feedback response: ${error.message}`,

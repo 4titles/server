@@ -16,7 +16,7 @@ export class CreateFeedbackInput {
     @Field(() => String)
     @IsString()
     @IsNotEmpty()
-    @MaxLength(1000)
+    @MaxLength(2500)
     message: string
 
     @Field(() => FeedbackType, { defaultValue: FeedbackType.GENERAL })
