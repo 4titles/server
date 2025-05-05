@@ -10,6 +10,7 @@ export * from './titles.schema'
 
 export * from './comments.schema'
 export * from './countries.schema'
+export * from './favorites.schema'
 export * from './feedbacks.schema'
 export * from './filming-location-descriptions.schema'
 export * from './filming-locations.schema'
