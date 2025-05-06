@@ -9,6 +9,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { TitleRelationsConfigService } from '../config/title-relations.config'
 import { TitleGeosearchInput } from '../inputs/title-geosearch.input'
 import { TitleSearchInput } from '../inputs/title-search.input'
+import { TitleFilmingLocation } from '../models/title-filming-location.model'
 import { Title } from '../models/title.model'
 import { TitleElasticsearchService } from '../modules/elasticsearch/title-elasticsearch.service'
 import { TitleDocumentES } from '../modules/elasticsearch/types/title-elasticsearch-document.interface'
@@ -486,5 +487,168 @@ export class TitleSearchService {
         options: SearchOptions,
     ): string {
         return `${this.CACHE_KEY_PREFIX}coordinates:${lat}:${lon}:${distance}:${options.from || 0}:${options.size || 10}`
+    }
+
+    async searchTitleFilmingLocations(
+        titleId: string,
+        query: string,
+    ): Promise<TitleFilmingLocation[]> {
+        this.logger.debug(
+            `Searching filming locations in title ${titleId} with query: ${query}`,
+        )
+
+        const cacheKey = `${this.CACHE_KEY_PREFIX}locations:title:${titleId}:${query}`
+
+        try {
+            const cachedResult = await this.cacheService.get<string>(cacheKey)
+            if (cachedResult) {
+                this.logger.debug(
+                    `Cache hit for filming locations search in title ${titleId} with query: ${query}`,
+                )
+                const result = JSON.parse(cachedResult, (key, value) =>
+                    dateReviver(this.cacheDateKeys, key, value),
+                )
+                return result as TitleFilmingLocation[]
+            }
+
+            this.logger.debug(
+                `Cache miss for filming locations search in title ${titleId} with query: ${query}`,
+            )
+
+            const dbTitle = await this.titleService.findById(titleId, {
+                customRelations: this.titleRelationsConfig.FULL,
+            })
+
+            if (!dbTitle) {
+                this.logger.warn(`Title with ID ${titleId} not found`)
+                return []
+            }
+
+            if (!query || query.trim() === '') {
+                const title = await this.titleQueryService.getTitleById(titleId)
+                return title.filmingLocations || []
+            }
+
+            const esQuery = {
+                query: {
+                    bool: {
+                        must: [
+                            { term: { titleId } },
+                            {
+                                nested: {
+                                    path: 'details.filming_locations',
+                                    query: {
+                                        bool: {
+                                            should: [
+                                                {
+                                                    multi_match: {
+                                                        query,
+                                                        fields: [
+                                                            'details.filming_locations.address',
+                                                            'details.filming_locations.formattedAddress',
+                                                            'details.filming_locations.city',
+                                                            'details.filming_locations.state',
+                                                            'details.filming_locations.countryName',
+                                                            'details.filming_locations.description',
+                                                            'details.filming_locations.descriptions.en',
+                                                            'details.filming_locations.descriptions.ru',
+                                                        ],
+                                                        fuzziness: 'AUTO',
+                                                    },
+                                                },
+                                            ],
+                                            minimum_should_match: 1,
+                                        },
+                                    },
+                                    inner_hits: {
+                                        _source: true,
+                                        highlight: {
+                                            fields: {
+                                                'details.filming_locations.address':
+                                                    {},
+                                                'details.filming_locations.description':
+                                                    {},
+                                                'details.filming_locations.descriptions.en':
+                                                    {},
+                                                'details.filming_locations.descriptions.ru':
+                                                    {},
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                },
+            }
+
+            const response =
+                await this.titleElasticsearchService.searchTitles(esQuery)
+
+            const filmingLocations: TitleFilmingLocation[] = []
+
+            if (
+                response.hits.total &&
+                (typeof response.hits.total === 'number'
+                    ? response.hits.total
+                    : response.hits.total.value) > 0
+            ) {
+                const hit = response.hits.hits[0]
+
+                if (
+                    hit &&
+                    hit.inner_hits &&
+                    hit.inner_hits['details.filming_locations'] &&
+                    hit.inner_hits['details.filming_locations'].hits.total
+                ) {
+                    const innerHits =
+                        hit.inner_hits['details.filming_locations'].hits.hits
+                    const locationIds = new Set<string>()
+
+                    for (const innerHit of innerHits) {
+                        const locationSource = innerHit._source as any
+                        if (locationSource && locationSource.id) {
+                            locationIds.add(locationSource.id)
+                        }
+                    }
+
+                    if (locationIds.size > 0) {
+                        const title =
+                            await this.titleQueryService.getTitleById(titleId)
+
+                        if (
+                            title.filmingLocations &&
+                            title.filmingLocations.length > 0
+                        ) {
+                            for (const location of title.filmingLocations) {
+                                if (
+                                    location.filmingLocation &&
+                                    locationIds.has(location.filmingLocation.id)
+                                ) {
+                                    filmingLocations.push(location)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            await this.cacheService.set(
+                cacheKey,
+                JSON.stringify(filmingLocations),
+                this.CACHE_TTL_SECONDS / 2,
+            )
+
+            this.logger.debug(
+                `Found ${filmingLocations.length} filming locations for title ${titleId} with query: ${query}`,
+            )
+            return filmingLocations
+        } catch (error) {
+            this.logger.error(
+                `Error searching filming locations in title ${titleId}:`,
+                error,
+            )
+            return []
+        }
     }
 }

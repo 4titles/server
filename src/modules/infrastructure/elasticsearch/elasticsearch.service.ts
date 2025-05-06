@@ -251,4 +251,20 @@ export class ElasticsearchService implements OnModuleInit {
             throw error
         }
     }
+
+    async updateIndexMapping(
+        index: string,
+        mappings: Record<string, any>,
+    ): Promise<void> {
+        try {
+            await this.client.indices.putMapping({
+                index,
+                properties: mappings,
+            })
+            this.logger.log(`Mapping updated for index ${index}`)
+        } catch (error) {
+            this.logger.error(`Failed to update mapping for ${index}:`, error)
+            throw error
+        }
+    }
 }
