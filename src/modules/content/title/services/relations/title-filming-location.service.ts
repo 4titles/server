@@ -8,10 +8,31 @@ import { and, eq, inArray } from 'drizzle-orm'
 export class TitleFilmingLocationService {
     constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
+    async findByTitleAndFilmingLocation(
+        titleId: string,
+        filmingLocationId: string,
+    ) {
+        return await this.db.query.titleFilmingLocations.findFirst({
+            where: and(
+                eq(titleFilmingLocations.titleId, titleId),
+                eq(titleFilmingLocations.filmingLocationId, filmingLocationId),
+            ),
+            with: {
+                filmingLocation: {
+                    with: {
+                        country: true,
+                        descriptions: { with: { language: true } },
+                    },
+                },
+            },
+        })
+    }
+
     async linkTitleToFilmingLocations(
         tx: DrizzleDB,
         titleId: string,
         locationIds: string[],
+        removePrev: boolean = true,
     ): Promise<void> {
         if (!locationIds) return
 
@@ -24,20 +45,25 @@ export class TitleFilmingLocationService {
 
         const currentIds = currentLocations.map((l) => l.filmingLocationId)
         const idsToAdd = locationIds.filter((id) => !currentIds.includes(id))
-        const idsToRemove = currentIds.filter((id) => !locationIds.includes(id))
 
-        if (idsToRemove.length > 0) {
-            await tx
-                .delete(titleFilmingLocations)
-                .where(
-                    and(
-                        eq(titleFilmingLocations.titleId, titleId),
-                        inArray(
-                            titleFilmingLocations.filmingLocationId,
-                            idsToRemove,
+        if (removePrev) {
+            const idsToRemove = currentIds.filter(
+                (id) => !locationIds.includes(id),
+            )
+
+            if (idsToRemove.length > 0) {
+                await tx
+                    .delete(titleFilmingLocations)
+                    .where(
+                        and(
+                            eq(titleFilmingLocations.titleId, titleId),
+                            inArray(
+                                titleFilmingLocations.filmingLocationId,
+                                idsToRemove,
+                            ),
                         ),
-                    ),
-                )
+                    )
+            }
         }
 
         if (idsToAdd.length > 0) {

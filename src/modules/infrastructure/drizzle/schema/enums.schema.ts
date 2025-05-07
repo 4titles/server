@@ -11,6 +11,8 @@ import { TitleLanguageType } from '@/modules/content/title/enums/title-language-
 import { TitleStatus } from '@/modules/content/title/enums/title-status.enum'
 import { TitleType } from '@/modules/content/title/enums/title-type.enum'
 import { CountryRelation } from '@/modules/content/title/modules/country/enums/country-relation.enum'
+import { FilmingLocationProposalStatus } from '@/modules/content/title/modules/filming-location/modules/filming-location-proposal/enums/filming-location-proposal-status.enum'
+import { FilmingLocationProposalType } from '@/modules/content/title/modules/filming-location/modules/filming-location-proposal/enums/filming-location-proposal-type.enum'
 import { pgEnum } from 'drizzle-orm/pg-core'
 import { NotificationType } from '../../notification/enums/notification-type.enum'
 
@@ -72,6 +74,7 @@ export const notificationTypeEnum = pgEnum('notification_type_enum', [
     NotificationType.ENABLE_TWO_FACTOR,
     NotificationType.NEW_FOLLOWER,
     NotificationType.NEW_FAVORITE_TITLE_LOCATION,
+    NotificationType.FILMING_LOCATION_PROPOSAL_STATUS_UPDATE,
     NotificationType.INFO,
 ])
 
@@ -106,4 +109,16 @@ export const countryRelationTypeEnum = pgEnum('country_relation_type', [
 export const favoriteTypeEnum = pgEnum('favorite_type', [
     FavoriteType.TITLE,
     FavoriteType.LOCATION,
+])
+
+export const filmingLocationProposalTypeEnum = pgEnum('proposal_type', [
+    FilmingLocationProposalType.ADD,
+    FilmingLocationProposalType.EDIT,
+])
+
+export const filmingLocationProposalStatusEnum = pgEnum('proposal_status', [
+    FilmingLocationProposalStatus.PENDING,
+    FilmingLocationProposalStatus.IN_PROGRESS,
+    FilmingLocationProposalStatus.APPROVED,
+    FilmingLocationProposalStatus.REJECTED,
 ])

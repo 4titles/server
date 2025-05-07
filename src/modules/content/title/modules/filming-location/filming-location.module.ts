@@ -5,6 +5,7 @@ import { TitleModule } from '../../title.module'
 import { CountryModule } from '../country/country.module'
 import { LanguageModule } from '../language/language.module'
 import { FilmingLocationResolver } from './filming-location.resolver'
+import { FilmingLocationProposalModule } from './modules/filming-location-proposal/filming-location-proposal.module'
 import { FilmingLocationDescriptionService } from './services/filming-location-description.service'
 import { FilmingLocationParserService } from './services/filming-location-parser.service'
 import { FilmingLocationService } from './services/filming-location.service'
@@ -16,6 +17,7 @@ import { FilmingLocationService } from './services/filming-location.service'
         CountryModule,
         AiModule,
         LanguageModule,
+        forwardRef(() => FilmingLocationProposalModule),
     ],
     providers: [
         FilmingLocationService,

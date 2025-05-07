@@ -24,6 +24,10 @@ export class ElasticsearchService implements OnModuleInit {
         this.client = new Client(config)
     }
 
+    getClient(): Client {
+        return this.client
+    }
+
     async onModuleInit() {
         try {
             const info = await this.client.info()

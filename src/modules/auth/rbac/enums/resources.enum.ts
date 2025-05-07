@@ -11,4 +11,5 @@ export enum Resource {
     COUNTRY = 'country',
     TMDB = 'tmdb',
     GEOCODING = 'geocoding',
+    FILMING_LOCATION = 'filming_location',
 }

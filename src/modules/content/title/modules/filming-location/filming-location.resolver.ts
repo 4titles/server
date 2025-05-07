@@ -1,4 +1,5 @@
 import { Resolver } from '@nestjs/graphql'
+import { FilmingLocation } from './models/filming-location.model'
 
-@Resolver()
+@Resolver(() => FilmingLocation)
 export class FilmingLocationResolver {}

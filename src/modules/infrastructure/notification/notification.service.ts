@@ -1,5 +1,13 @@
+import { FilmingLocationProposalStatus } from '@/modules/content/title/modules/filming-location/modules/filming-location-proposal/enums/filming-location-proposal-status.enum'
+import { FilmingLocationProposal } from '@/modules/content/title/modules/filming-location/modules/filming-location-proposal/models/filming-location-proposal.model'
 import { generateToken } from '@/shared/utils/common/generate-token.util'
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
+import {
+    ConflictException,
+    forwardRef,
+    Inject,
+    Injectable,
+    Logger,
+} from '@nestjs/common'
 import { and, count, desc, eq, lte, or } from 'drizzle-orm'
 import { TokenType } from '../../auth/account/enums/token-type.enum'
 import { User } from '../../auth/account/models/user.model'
@@ -250,6 +258,97 @@ export class NotificationService {
             this.logger.error(
                 `Failed to notify user about feedback response: ${error.message}`,
                 error.stack,
+            )
+        }
+    }
+
+    async notifyProposalStatusUpdate(
+        proposal: FilmingLocationProposal,
+    ): Promise<void> {
+        try {
+            const {
+                status,
+                title,
+                reviewMessage,
+                address,
+                user,
+                description,
+                createdAt,
+            } = proposal
+            if (!title || !user) {
+                throw new ConflictException(
+                    'Not enough data provided for filming location proposal status update notification',
+                )
+            }
+
+            const statusLabels = {
+                [FilmingLocationProposalStatus.IN_PROGRESS]:
+                    'В процессе обработки',
+                [FilmingLocationProposalStatus.PENDING]: 'На рассмотрении',
+                [FilmingLocationProposalStatus.APPROVED]: 'Одобрена',
+                [FilmingLocationProposalStatus.REJECTED]: 'Отклонена',
+            }
+
+            const statusLabel = statusLabels[status] || status
+
+            let message =
+                `<b>Статус заявки на локацию съемок обновлен</b>\n\n` +
+                `🎬 <b>Тайтл:</b> ${title.originalName}\n` +
+                `📅 <b>Дата подачи:</b> ${new Date(createdAt).toLocaleDateString()}\n` +
+                `🔄 <b>Новый статус:</b> ${statusLabel}\n`
+
+            if (description) {
+                message += `\n📝 <b>Описание локации:</b>\n${description}\n`
+            }
+            if (address) {
+                message += `\n📍 <b>Адрес:</b> ${address}\n`
+            }
+            if (reviewMessage) {
+                message += `\n💬 <b>Комментарий модератора:</b>\n${reviewMessage}\n`
+            }
+
+            message += `\nСпасибо за ваш вклад в развитие базы локаций!`
+
+            const newNotification = {
+                message,
+                type: NotificationType.FILMING_LOCATION_PROPOSAL_STATUS_UPDATE,
+                userId: user.id,
+            }
+
+            await this.db.insert(notifications).values(newNotification)
+
+            await this.sendTelegramNotificationIfEnabled(user.id, message)
+        } catch (error) {
+            this.logger.error(
+                `Failed to notify user about proposal status update: ${error.message}`,
+                error.stack,
+            )
+        }
+    }
+
+    private async sendTelegramNotificationIfEnabled(
+        userId: string,
+        message: string,
+    ): Promise<void> {
+        try {
+            const userSettings =
+                await this.db.query.notificationSettings.findFirst({
+                    where: eq(notificationSettings.userId, userId),
+                    with: { user: true },
+                })
+
+            if (
+                userSettings?.isTelegramNotificationsEnabled &&
+                userSettings?.user?.telegramId
+            ) {
+                await this.telegramService.sendInfoNotification(
+                    userSettings.user.telegramId,
+                    message,
+                )
+            }
+        } catch (error) {
+            this.logger.warn(
+                `Failed to send Telegram notification to user ${userId}: ${error.message}`,
             )
         }
     }

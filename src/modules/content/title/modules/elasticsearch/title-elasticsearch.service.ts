@@ -1,4 +1,5 @@
 import { ElasticsearchService } from '@/modules/infrastructure/elasticsearch/elasticsearch.service'
+import { Client } from '@elastic/elasticsearch'
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { TmdbTitleExtendedResponse } from '../../modules/tmdb/types/tmdb.interface'
@@ -7,6 +8,7 @@ import { TitleDocumentES } from './types/title-elasticsearch-document.interface'
 @Injectable()
 export class TitleElasticsearchService implements OnModuleInit {
     private readonly logger = new Logger(TitleElasticsearchService.name)
+    private readonly client: Client
     private readonly indexName = 'titles'
     private readonly indexSettings = {
         analysis: {
@@ -71,7 +73,9 @@ export class TitleElasticsearchService implements OnModuleInit {
         },
     }
 
-    constructor(private readonly elasticsearchService: ElasticsearchService) {}
+    constructor(private readonly elasticsearchService: ElasticsearchService) {
+        this.client = elasticsearchService.getClient()
+    }
 
     async onModuleInit() {
         await this.initializeIndex()
@@ -292,6 +296,124 @@ export class TitleElasticsearchService implements OnModuleInit {
             this.logger.error(
                 `Failed to recreate index: ${error.message}`,
                 error.stack,
+            )
+            return false
+        }
+    }
+
+    async addFilmingLocationToTitle(
+        titleId: string,
+        newLocation: any,
+    ): Promise<boolean> {
+        try {
+            const response = await this.client.update({
+                index: this.indexName,
+                id: titleId,
+                body: {
+                    script: {
+                        source: 'ctx._source.details.filming_locations.add(params.new_location)',
+                        lang: 'painless',
+                        params: { new_location: newLocation },
+                    },
+                },
+            })
+            if (response.result === 'updated') {
+                this.logger.log(`Added filming location to title ${titleId}`)
+                return true
+            }
+            this.logger.warn(
+                `Failed to add filming location to title ${titleId}: ${JSON.stringify(response)}`,
+            )
+            return false
+        } catch (error) {
+            this.logger.error(
+                `Failed to add filming location to title ${titleId}: ${error.message}`,
+            )
+            return false
+        }
+    }
+
+    async updateFilmingLocationInTitle(
+        titleId: string,
+        locationId: string,
+        updatedLocation: any,
+    ): Promise<boolean> {
+        try {
+            const response = await this.client.update({
+                index: this.indexName,
+                id: titleId,
+                body: {
+                    script: {
+                        source: `
+                            for (int i = 0; i < ctx._source.details.filming_locations.size(); i++) {
+                                if (ctx._source.details.filming_locations[i].id == params.id) {
+                                    ctx._source.details.filming_locations[i] = params.updated_location;
+                                    break;
+                                }
+                            }
+                        `,
+                        lang: 'painless',
+                        params: {
+                            id: locationId,
+                            updated_location: updatedLocation,
+                        },
+                    },
+                },
+            })
+            if (response.result === 'updated') {
+                this.logger.log(
+                    `Updated filming location ${locationId} in title ${titleId}`,
+                )
+                return true
+            }
+            this.logger.warn(
+                `Failed to update filming location ${locationId} in title ${titleId}: ${JSON.stringify(response)}`,
+            )
+            return false
+        } catch (error) {
+            this.logger.error(
+                `Failed to update filming location ${locationId} in title ${titleId}: ${error.message}`,
+            )
+            return false
+        }
+    }
+    async updateTitleWithFilmingLocations(
+        titleId: string,
+        filmingLocations: any[],
+    ): Promise<boolean> {
+        try {
+            const existingDoc = await this.getTitle(titleId)
+            if (!existingDoc) {
+                this.logger.warn(
+                    `Title ${titleId} not found in Elasticsearch. Cannot update filming locations.`,
+                )
+                return false
+            }
+
+            const updatedDetails = JSON.parse(
+                JSON.stringify(existingDoc.details),
+            )
+            updatedDetails.filming_locations = filmingLocations
+
+            const updateDoc = {
+                details: updatedDetails,
+                updatedAt: Date.now(),
+            }
+
+            const result = await this.elasticsearchService.updateDocument(
+                this.indexName,
+                titleId,
+                updateDoc,
+            )
+            if (result === null) return false
+
+            this.logger.log(
+                `Filming locations for title ${titleId} updated in Elasticsearch`,
+            )
+            return true
+        } catch (error) {
+            this.logger.error(
+                `Failed to update filming locations for title ${titleId} in Elasticsearch: ${error.message}`,
             )
             return false
         }
@@ -943,51 +1065,6 @@ export class TitleElasticsearchService implements OnModuleInit {
                     },
                 },
             },
-        }
-    }
-
-    async updateTitleWithFilmingLocations(
-        titleId: string,
-        filmingLocations: any[],
-    ): Promise<boolean> {
-        try {
-            const existingDoc = await this.getTitle(titleId)
-            if (!existingDoc) {
-                this.logger.warn(
-                    `Title ${titleId} not found in Elasticsearch. Cannot update filming locations.`,
-                )
-                return false
-            }
-
-            const updatedDetails = JSON.parse(
-                JSON.stringify(existingDoc.details),
-            )
-
-            updatedDetails.filming_locations = filmingLocations
-
-            const updateDoc = {
-                details: updatedDetails,
-                updatedAt: Date.now(),
-            }
-
-            const result = await this.elasticsearchService.updateDocument(
-                this.indexName,
-                titleId,
-                updateDoc,
-            )
-
-            if (result === null) return false
-
-            this.logger.log(
-                `Filming locations for title ${titleId} updated in Elasticsearch`,
-            )
-            return true
-        } catch (error) {
-            this.logger.error(
-                `Failed to update filming locations for title ${titleId} in Elasticsearch: ${error.message}`,
-                error,
-            )
-            return false
         }
     }
 }

@@ -45,6 +45,70 @@ export class TitleElasticsearchLocationSyncService {
         }
     }
 
+    async syncAddedFilmingLocation(
+        titleId: string,
+        titleFilmingLocation: any,
+    ): Promise<boolean> {
+        try {
+            const formatted = this.prepareFilmingLocationsForES([
+                titleFilmingLocation,
+            ])[0]
+            const result =
+                await this.titleElasticsearchService.addFilmingLocationToTitle(
+                    titleId,
+                    formatted,
+                )
+            if (result) {
+                this.logger.log(
+                    `Successfully synced added filming location for title ${titleId} in Elasticsearch`,
+                )
+            } else {
+                this.logger.warn(
+                    `Failed to sync added filming location for title ${titleId} in Elasticsearch`,
+                )
+            }
+            return result
+        } catch (error) {
+            this.logger.error(
+                `Error syncing added filming location for title ${titleId}: ${error.message}`,
+            )
+            return false
+        }
+    }
+
+    async syncUpdatedFilmingLocation(
+        titleId: string,
+        filmingLocationId: string,
+        titleFilmingLocation: any,
+    ): Promise<boolean> {
+        try {
+            const formatted = this.prepareFilmingLocationsForES([
+                titleFilmingLocation,
+            ])[0]
+            const result =
+                await this.titleElasticsearchService.updateFilmingLocationInTitle(
+                    titleId,
+                    filmingLocationId,
+                    formatted,
+                )
+            if (result) {
+                this.logger.log(
+                    `Successfully synced updated filming location ${filmingLocationId} for title ${titleId} in Elasticsearch`,
+                )
+            } else {
+                this.logger.warn(
+                    `Failed to sync updated filming location ${filmingLocationId} for title ${titleId} in Elasticsearch`,
+                )
+            }
+            return result
+        } catch (error) {
+            this.logger.error(
+                `Error syncing updated filming location ${filmingLocationId} for title ${titleId}: ${error.message}`,
+            )
+            return false
+        }
+    }
+
     private prepareFilmingLocationsForES(dbLocations: any[]): any[] {
         if (!dbLocations || dbLocations.length === 0) {
             return []
