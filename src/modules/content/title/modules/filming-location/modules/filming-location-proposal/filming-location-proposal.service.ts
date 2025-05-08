@@ -83,7 +83,15 @@ export class FilmingLocationProposalService {
                         country: true,
                     },
                 },
-                title: true,
+                title: {
+                    with: {
+                        translations: {
+                            with: {
+                                language: true,
+                            },
+                        },
+                    },
+                },
             },
         })
     }
@@ -305,6 +313,30 @@ export class FilmingLocationProposalService {
         } catch (error) {
             this.logger.warn(
                 'Error occured while updating filming location proposal status',
+                error,
+            )
+            return false
+        }
+    }
+
+    async deleteProposal(id: string, userId: string): Promise<boolean> {
+        const proposal = await this.findProposalById(id)
+
+        if (!proposal || proposal.userId !== userId) {
+            throw new NotFoundException(
+                'Filming location proposal not found or you do not have permission to delete it',
+            )
+        }
+
+        try {
+            await this.db
+                .delete(filmingLocationProposals)
+                .where(eq(filmingLocationProposals.id, id))
+
+            return true
+        } catch (error) {
+            this.logger.warn(
+                'Error occurred while deleting filming location proposal',
                 error,
             )
             return false

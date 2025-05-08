@@ -25,6 +25,7 @@ export interface TitleRelationsConfig {
                             language?: boolean
                         }
                     }
+                    user?: boolean
                 }
             }
         }
@@ -96,6 +97,7 @@ export class TitleRelationsConfigService {
                                 language: true,
                             },
                         },
+                        user: true,
                     },
                 },
             },

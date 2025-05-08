@@ -42,6 +42,22 @@ export class FilmingLocationProposalResolver {
         )
     }
 
+    @RbacProtected({
+        resource: Resource.FILMING_LOCATION,
+        action: Action.DELETE,
+        possession: 'own',
+    })
+    @Mutation(() => Boolean)
+    async deleteFilmingLocationProposal(
+        @Authorized() user: User,
+        @Args('id') id: string,
+    ): Promise<Boolean> {
+        return await this.filmingLocationProposalService.deleteProposal(
+            id,
+            user.id,
+        )
+    }
+
     @Authorization()
     @Query(() => [FilmingLocationProposal])
     async findUserFilmingLocationProposals(@Authorized() user: User) {

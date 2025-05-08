@@ -19,8 +19,8 @@ export class FilmingLocationProposal {
     @Field(() => String)
     address: string
 
-    @Field(() => Point)
-    coordinates: Point
+    @Field(() => Point, { nullable: true })
+    coordinates?: Point
 
     @Field(() => String, { nullable: true })
     description?: string

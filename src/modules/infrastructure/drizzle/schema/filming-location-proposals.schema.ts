@@ -25,7 +25,6 @@ export const filmingLocationProposals = pgTable(
         status: filmingLocationProposalStatusEnum('status')
             .notNull()
             .default(FilmingLocationProposalStatus.PENDING),
-
         address: text('address').notNull(),
         coordinates: point('coordinates', { mode: 'xy' }),
         description: text('description'),
