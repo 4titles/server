@@ -62,7 +62,6 @@ export class TitleTransformService {
                 ? (titleDetails as ExtendedMovieResponse).adult || false
                 : false,
             popularity: title.popularity || 0,
-            // details,
             voteCount: details.vote_count || 0,
             voteAverage: details.vote_average || 0.0,
             releaseDate: new Date(details.release_date) || null,
