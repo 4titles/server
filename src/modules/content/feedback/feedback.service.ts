@@ -6,7 +6,7 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/feedbacks.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { SessionMetadata } from '@/shared/types/session-metadata.types'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { and, avg, count, eq, isNotNull } from 'drizzle-orm'
 import { User } from '../../auth/account/models/user.model'
 import { NotificationService } from '../../infrastructure/notification/notification.service'
@@ -426,6 +426,24 @@ export class FeedbackService {
         }
 
         return false
+    }
+
+    async deleteFeedback(id: string, userId: string): Promise<boolean> {
+        const feedback = await this.findById(id)
+
+        if (!feedback || feedback.user.id !== userId) {
+            throw new NotFoundException(
+                'Feedback not found or you do not have permission to delete it',
+            )
+        }
+
+        try {
+            await this.db.delete(feedbacks).where(eq(feedbacks.id, id))
+            return true
+        } catch (error) {
+            this.logger.warn('Error occurred while deleting feedback', error)
+            return false
+        }
     }
 
     private async incrementFeedbackCounter(

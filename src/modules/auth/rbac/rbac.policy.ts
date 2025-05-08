@@ -13,6 +13,7 @@ RBAC_POLICY.grant(Role.USER)
     // Feedbacks
     .createOwn(Resource.FEEDBACK)
     .readOwn(Resource.FEEDBACK)
+    .deleteOwn(Resource.FEEDBACK)
     // Notifications
     .readOwn(Resource.NOTIFICATION)
     .updateOwn(Resource.NOTIFICATION)

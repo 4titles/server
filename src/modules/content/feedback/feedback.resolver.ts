@@ -1,5 +1,6 @@
 import { Action } from '@/modules/auth/rbac/enums/actions.enum'
 import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
+import { Authorization } from '@/shared/decorators/auth.decorator'
 import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { UserAgent } from '@/shared/decorators/user-agent.decorator'
 import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
@@ -113,5 +114,18 @@ export class FeedbackResolver {
         @Args('filters') filters: FilterFeedbackInput,
     ): Promise<FeedbackStats> {
         return await this.feedbackService.getStats(filters)
+    }
+
+    @RbacProtected({
+        resource: Resource.FEEDBACK,
+        action: Action.DELETE,
+        possession: 'own',
+    })
+    @Mutation(() => Boolean)
+    async deleteFeedback(
+        @Authorized() user: User,
+        @Args('id') id: string,
+    ): Promise<Boolean> {
+        return await this.feedbackService.deleteFeedback(id, user.id)
     }
 }
