@@ -222,6 +222,7 @@ export class FilmingLocationProposalService {
                                 address,
                                 description,
                             },
+                            userId,
                         )
 
                         const createdFilmingLocation =
