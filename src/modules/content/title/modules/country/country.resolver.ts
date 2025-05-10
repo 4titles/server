@@ -95,11 +95,6 @@ export class CountryResolver {
         return await this.countryService.create(input)
     }
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
     @Query(() => [CountryStatistics], { name: 'getCountriesStatistics' })
     async getCountriesStatistics(
         @Args('input', { nullable: true }) input?: CountryStatisticsInput,

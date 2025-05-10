@@ -7,6 +7,7 @@ import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { FavoriteType } from './enums/favorite-type.enum'
 import { FavoriteService } from './favorite.service'
+import { FindFavoritesInput } from './inputs/find-favorites-input'
 import { Favorite } from './models/favorite.model'
 
 @Resolver(() => Favorite)
@@ -105,14 +106,13 @@ export class FavoriteResolver {
         description:
             "Retrieves the current user's favorites, optionally filtered by type.",
     })
-    async myFavorites(
+    async findMyFavorites(
         @Authorized() user: User,
-        @Args('type', { type: () => FavoriteType, nullable: true })
-        type?: FavoriteType,
+        @Args('filters') input: FindFavoritesInput,
     ): Promise<Favorite[]> {
-        return (await this.favoriteService.getUserFavorites(
+        return (await this.favoriteService.findUserFavorites(
             user.id,
-            type,
+            input,
         )) as Favorite[]
     }
 }

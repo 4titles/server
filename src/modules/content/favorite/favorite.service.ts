@@ -6,13 +6,19 @@ import {
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { and, desc, eq, sql } from 'drizzle-orm'
+import { TitleQueryService } from '../title/services/title-query.service'
+import { TitleSearchService } from '../title/services/title-search.service'
 import { FavoriteType } from './enums/favorite-type.enum'
+import { FindFavoritesInput } from './inputs/find-favorites-input'
 
 @Injectable()
 export class FavoriteService {
     private readonly logger = new Logger(FavoriteService.name)
 
-    constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+    constructor(
+        @Inject(DRIZZLE) private readonly db: DrizzleDB,
+        private readonly titleQueryService: TitleQueryService,
+    ) {}
 
     async addToFavorites(
         userId: string,
@@ -117,6 +123,69 @@ export class FavoriteService {
         })
     }
 
+    async findUserFavorites(
+        userId: string,
+        input: FindFavoritesInput,
+    ): Promise<DbFavoriteSelect[]> {
+        const { type, take, skip } = input
+
+        const userFavorites = await this.db.query.favorites.findMany({
+            where: and(
+                eq(favorites.userId, userId),
+                type ? eq(favorites.type, type) : undefined,
+            ),
+            with: {
+                filmingLocation: {
+                    with: {
+                        descriptions: {
+                            with: {
+                                language: true,
+                            },
+                        },
+                        country: true,
+                        titleFilmingLocations: {
+                            with: {
+                                title: {
+                                    with: {
+                                        translations: true,
+                                        images: true,
+                                        countries: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: desc(favorites.createdAt),
+            ...(typeof take === 'number' && { limit: take }),
+            ...(typeof skip === 'number' && { offset: skip || 0 }),
+        })
+
+        return await Promise.all(
+            userFavorites.map(async (favorite) => {
+                if (favorite.titleId) {
+                    try {
+                        const title = await this.titleQueryService.getTitleById(
+                            favorite.titleId,
+                        )
+                        return {
+                            ...favorite,
+                            title,
+                        }
+                    } catch (error) {
+                        this.logger.warn(
+                            `Failed to get title data for titleId: ${favorite.titleId}`,
+                            error,
+                        )
+                        return favorite
+                    }
+                }
+                return favorite
+            }),
+        )
+    }
+
     async isFavorite(
         userId: string,
         type: FavoriteType,
@@ -136,40 +205,5 @@ export class FavoriteService {
             )
 
         return result[0]?.count > 0
-    }
-
-    async getUserFavorites(
-        userId: string,
-        type?: FavoriteType,
-    ): Promise<DbFavoriteSelect[]> {
-        return this.db.query.favorites.findMany({
-            where: and(
-                eq(favorites.userId, userId),
-                type ? eq(favorites.type, type) : undefined,
-            ),
-            with: {
-                title: {
-                    with: {
-                        images: true,
-                        translations: {
-                            with: {
-                                language: true,
-                            },
-                        },
-                    },
-                },
-                filmingLocation: {
-                    with: {
-                        descriptions: {
-                            with: {
-                                language: true,
-                            },
-                        },
-                        country: true,
-                    },
-                },
-            },
-            orderBy: desc(favorites.createdAt),
-        })
     }
 }

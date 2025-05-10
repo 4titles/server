@@ -1,5 +1,6 @@
 import { User } from '@/modules/auth/account/models/user.model'
 import { Field, ObjectType } from '@nestjs/graphql'
+import { TitleFilmingLocation } from '../../../models/title-filming-location.model'
 import { Country } from '../../country/models/country.model'
 import { FilmingLocationDescription } from './filming-location-description.model'
 
@@ -52,4 +53,7 @@ export class FilmingLocation {
 
     @Field(() => Country)
     country: Country
+
+    @Field(() => [TitleFilmingLocation], { nullable: true })
+    titleFilmingLocations?: TitleFilmingLocation[]
 }
