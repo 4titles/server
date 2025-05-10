@@ -23,6 +23,12 @@ export const favorites = pgTable(
                 onDelete: 'cascade',
             },
         ),
+        filmingLocationTitleId: uuid('filming_location_title_id').references(
+            () => titles.id,
+            {
+                onDelete: 'cascade',
+            },
+        ),
         ...timestamps,
     },
     (table) => ({
@@ -53,6 +59,10 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
     filmingLocation: one(filmingLocations, {
         fields: [favorites.filmingLocationId],
         references: [filmingLocations.id],
+    }),
+    filmingLocationTitle: one(titles, {
+        fields: [favorites.filmingLocationTitleId],
+        references: [titles.id],
     }),
 }))
 

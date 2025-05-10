@@ -21,6 +21,9 @@ export class Favorite {
     @Field(() => String, { nullable: true })
     filmingLocationId?: string
 
+    @Field(() => String, { nullable: true })
+    filmingLocationTitleId?: string
+
     @Field(() => Date)
     createdAt: Date
 
@@ -35,4 +38,7 @@ export class Favorite {
 
     @Field(() => FilmingLocation, { nullable: true })
     filmingLocation?: FilmingLocation
+
+    @Field(() => Title, { nullable: true })
+    filmingLocationTitle?: Title
 }

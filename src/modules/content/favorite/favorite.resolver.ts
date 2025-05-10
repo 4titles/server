@@ -5,9 +5,11 @@ import { DbFavoriteSelect } from '@/modules/infrastructure/drizzle/schema/favori
 import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
-import { FavoriteType } from './enums/favorite-type.enum'
 import { FavoriteService } from './favorite.service'
-import { FindFavoritesInput } from './inputs/find-favorites-input'
+import { AddToFavoritesInput } from './inputs/add-to-favorites.input'
+import { FindFavoritesInput } from './inputs/find-favorites.input'
+import { IsEntityFavoriteInput } from './inputs/is-entity-favorite.input'
+import { RemoveFromFavoritesInput } from './inputs/remove-from-favorites.input'
 import { Favorite } from './models/favorite.model'
 
 @Resolver(() => Favorite)
@@ -26,14 +28,9 @@ export class FavoriteResolver {
     })
     async addToFavorites(
         @Authorized() user: User,
-        @Args('type', { type: () => FavoriteType }) type: FavoriteType,
-        @Args('entityId', { type: () => String }) entityId: string,
+        @Args('input') input: AddToFavoritesInput,
     ): Promise<DbFavoriteSelect | null> {
-        return await this.favoriteService.addToFavorites(
-            user.id,
-            type,
-            entityId,
-        )
+        return await this.favoriteService.addToFavorites(user.id, input)
     }
 
     @RbacProtected({
@@ -47,14 +44,9 @@ export class FavoriteResolver {
     })
     async removeFromFavorites(
         @Authorized() user: User,
-        @Args('type', { type: () => FavoriteType }) type: FavoriteType,
-        @Args('entityId', { type: () => String }) entityId: string,
+        @Args('input') input: RemoveFromFavoritesInput,
     ): Promise<boolean> {
-        return await this.favoriteService.removeFromFavorites(
-            user.id,
-            type,
-            entityId,
-        )
+        return await this.favoriteService.removeFromFavorites(user.id, input)
     }
 
     @RbacProtected({
@@ -64,37 +56,13 @@ export class FavoriteResolver {
     })
     @Query(() => Boolean, {
         description:
-            "Checks if a specific title is in the current user's favorites.",
+            "Checks if a specific entity is in the current user's favorites.",
     })
-    async isTitleFavorite(
+    async isEntityFavorite(
         @Authorized() user: User,
-        @Args('titleId', { type: () => String }) titleId: string,
+        @Args('input') input: IsEntityFavoriteInput,
     ): Promise<boolean> {
-        return await this.favoriteService.isFavorite(
-            user.id,
-            FavoriteType.TITLE,
-            titleId,
-        )
-    }
-
-    @RbacProtected({
-        resource: Resource.USER,
-        action: Action.READ,
-        possession: 'own',
-    })
-    @Query(() => Boolean, {
-        description:
-            "Checks if a specific location is in the current user's favorites.",
-    })
-    async isLocationFavorite(
-        @Authorized() user: User,
-        @Args('locationId', { type: () => String }) locationId: string,
-    ): Promise<boolean> {
-        return await this.favoriteService.isFavorite(
-            user.id,
-            FavoriteType.LOCATION,
-            locationId,
-        )
+        return await this.favoriteService.isFavorite(user.id, input)
     }
 
     @RbacProtected({
