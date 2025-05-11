@@ -97,6 +97,17 @@ export class TitleResolver {
         )
     }
 
+    @Query(() => [TitleFilmingLocation])
+    async searchFilmingLocationsByIds(
+        @Args('locationIds', { type: () => [String] }) locationIds: string[],
+        @Args('query') query: string,
+    ): Promise<TitleFilmingLocation[]> {
+        return await this.titleSearchService.searchFilmingLocationsByIds(
+            locationIds,
+            query,
+        )
+    }
+
     @RbacProtected({
         resource: Resource.TITLE,
         action: Action.CREATE,
