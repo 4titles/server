@@ -29,10 +29,10 @@ export class TitleResolver {
         private readonly titleService: TitleService,
     ) {}
 
-    @Query(() => PaginatedTitleSearchResults)
+    @Query(() => [Title])
     async findTitles(
         @Args('filter', { nullable: true }) filter?: TitleFilterInput,
-    ): Promise<PaginatedTitleSearchResults> {
+    ): Promise<Title[]> {
         return await this.titleQueryService.getTitles(filter)
     }
 

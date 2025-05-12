@@ -8,16 +8,24 @@ import {
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { dateReviver } from '@/shared/utils/time/date-retriever.util'
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+    forwardRef,
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common'
 import { desc, eq, sql } from 'drizzle-orm'
 import { TitleRelationsConfigService } from '../config/title-relations.config'
 import { TitleCategory } from '../enums/title-category.enum'
 import { TitleType } from '../enums/title-type.enum'
 import { TitleFilterInput } from '../inputs/title-filter.input'
-import { PaginatedTitleSearchResults } from '../models/paginated-title-search-results.model'
+import { TitleSearchOptionsInput } from '../inputs/title-search-options.input'
+import { TitleSearchInput } from '../inputs/title-search.input'
 import { Title } from '../models/title.model'
 import { TitleDocumentES } from '../modules/elasticsearch/types/title-elasticsearch-document.interface'
 import { TitleElasticsearchSyncService } from './sync/title-elasticsearch-sync.service'
+import { TitleSearchService } from './title-search.service'
 import { TitleService } from './title.service'
 import { TitleTransformService } from './utils/title-transform.service'
 
@@ -41,26 +49,58 @@ export class TitleQueryService {
         private readonly titleTransformService: TitleTransformService,
         private readonly cacheService: CacheService,
         private readonly titleRelationsConfig: TitleRelationsConfigService,
+        @Inject(forwardRef(() => TitleSearchService))
+        private readonly titleSearchService: TitleSearchService,
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
     ) {}
 
-    async getTitles(
-        filter?: TitleFilterInput,
-    ): Promise<PaginatedTitleSearchResults> {
+    async getTitles(filter?: TitleFilterInput): Promise<Title[]> {
         const {
             type,
             category,
             withFilmingLocations,
-            limit = 10,
-            offset = 0,
+            searchTerm,
+            take = 12,
+            skip = 0,
+            releaseDateRange,
+            genreIds,
+            countryIsos,
+            name,
+            runtimeRange,
+            originalLanguageIsos,
+            voteAverageRange,
+            statuses,
+            sortBy,
         } = filter || {}
+
+        if (searchTerm && searchTerm.trim().length > 0) {
+            const searchInput = new TitleSearchInput()
+            searchInput.query = searchTerm
+            searchInput.options = new TitleSearchOptionsInput()
+            searchInput.options.from = skip
+            searchInput.options.size = take
+
+            const searchResult =
+                await this.titleSearchService.searchTitles(searchInput)
+            return searchResult.items
+        }
 
         const cacheKey = this.getTitlesListCacheKey({
             type,
             category,
             withFilmingLocations,
-            limit,
-            offset,
+            searchTerm,
+            take,
+            skip,
+            releaseDateRange,
+            genreIds,
+            countryIsos,
+            name,
+            runtimeRange,
+            originalLanguageIsos,
+            voteAverageRange,
+            statuses,
+            sortBy,
         })
 
         try {
@@ -69,27 +109,14 @@ export class TitleQueryService {
             if (cachedData) {
                 return JSON.parse(cachedData, (key, value) =>
                     dateReviver(this.CACHE_TITLE_DATE_KEYS, key, value),
-                ) as PaginatedTitleSearchResults
+                )
             }
 
-            const filters: Partial<DbTitle> = {}
-
-            if (type) {
-                filters.type = type
-            }
-            if (category) {
-                filters.category = category
-            }
-            if (withFilmingLocations) {
-                filters.hasLocations = true
-            }
-
-            const dbTitles = await this.titleService.findAll(filters, {
+            const dbTitles = await this.titleService.findAll(filter, {
                 customRelations: this.titleRelationsConfig.FULL,
             })
 
-            const total = dbTitles.length
-            const paginatedDbTitles = dbTitles.slice(offset, offset + limit)
+            const paginatedDbTitles = dbTitles.slice(skip, skip + take)
 
             const titles = await Promise.all(
                 paginatedDbTitles.map(async (dbTitle) => {
@@ -109,20 +136,13 @@ export class TitleQueryService {
                 }),
             )
 
-            const result: PaginatedTitleSearchResults = {
-                items: titles,
-                total,
-                hasNextPage: offset + limit < total,
-                hasPreviousPage: offset > 0,
-            }
-
             await this.cacheService.set(
                 cacheKey,
-                JSON.stringify(result),
+                JSON.stringify(titles),
                 this.TITLES_CACHE_TTL_SECONDS,
             )
 
-            return result
+            return titles
         } catch (error) {
             this.logger.error(`Error fetching filtered titles:`, error)
             throw error
@@ -344,13 +364,13 @@ export class TitleQueryService {
                     const filter: TitleFilterInput = {
                         type,
                         category,
-                        limit: remainingCount * 2,
-                        offset: 0,
+                        take: remainingCount * 2,
+                        skip: 0,
                     }
 
                     const results = await this.getTitles(filter)
 
-                    const uniqueNewItems = results.items.filter(
+                    const uniqueNewItems = results.filter(
                         (item) => !usedIds.has(item.id),
                     )
 
@@ -476,18 +496,68 @@ export class TitleQueryService {
         type?: string
         category?: string
         withFilmingLocations?: boolean
-        limit: number
-        offset: number
+        searchTerm?: string
+        take: number
+        skip: number
+        releaseDateRange?: any
+        genreIds?: string[]
+        countryIsos?: string[]
+        name?: string
+        runtimeRange?: any
+        originalLanguageIsos?: string[]
+        voteAverageRange?: any
+        statuses?: string[]
+        sortBy?: string
     }): string {
         const {
             type = 'all',
             category = 'all',
             withFilmingLocations,
-            limit,
-            offset,
+            searchTerm = '',
+            take,
+            skip,
+            releaseDateRange,
+            genreIds,
+            countryIsos,
+            name,
+            runtimeRange,
+            originalLanguageIsos,
+            voteAverageRange,
+            statuses,
+            sortBy,
         } = params
 
-        return `${this.TITLES_LIST_PREFIX}type-${type}:category-${category}:${withFilmingLocations ? 'withLoc' : 'allLoc'}:${limit}:${offset}`
+        let key = `${this.TITLES_LIST_PREFIX}type-${type}:category-${category}:${withFilmingLocations ? 'withLoc' : 'allLoc'}:search-${searchTerm}:${take}:${skip}`
+
+        if (releaseDateRange) {
+            key += `:date-${releaseDateRange.from || ''}-${releaseDateRange.to || ''}`
+        }
+        if (genreIds && genreIds.length) {
+            key += `:genres-${genreIds.join(',')}`
+        }
+        if (countryIsos && countryIsos.length) {
+            key += `:countries-${countryIsos.join(',')}`
+        }
+        if (name) {
+            key += `:name-${name}`
+        }
+        if (runtimeRange) {
+            key += `:runtime-${runtimeRange.from || ''}-${runtimeRange.to || ''}`
+        }
+        if (originalLanguageIsos && originalLanguageIsos.length) {
+            key += `:langs-${originalLanguageIsos.join(',')}`
+        }
+        if (voteAverageRange) {
+            key += `:vote-${voteAverageRange.from || ''}-${voteAverageRange.to || ''}`
+        }
+        if (statuses && statuses.length) {
+            key += `:status-${statuses.join(',')}`
+        }
+        if (sortBy) {
+            key += `:sort-${sortBy}`
+        }
+
+        return key
     }
 
     private getTitleCacheKey(id: string): string {

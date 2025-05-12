@@ -11,67 +11,37 @@ import { Language } from './models/language.model'
 export class LanguageResolver {
     constructor(private readonly languageService: LanguageService) {}
 
-    @RbacProtected({
-        resource: Resource.LANGUAGE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Language, { name: 'findLanguageById' })
+    @Query(() => Language)
     async findLanguageById(@Args('id') id: string) {
         return this.languageService.findById(id)
     }
 
-    @RbacProtected({
-        resource: Resource.LANGUAGE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Language, { name: 'findLanguageByISO' })
-    async findByISO(@Args('iso') iso: string) {
+    @Query(() => Language)
+    async findLanguageByISO(@Args('iso') iso: string) {
         return this.languageService.findByISO(iso)
     }
 
-    @RbacProtected({
-        resource: Resource.LANGUAGE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Language, { name: 'findLanguageByEnglishName' })
-    async findByEnglishName(
+    @Query(() => Language)
+    async findLanguageByEnglishName(
         @Args('englishName') englishName: string,
     ): Promise<Language> {
         return await this.languageService.findByEnglishName(englishName)
     }
 
-    @RbacProtected({
-        resource: Resource.LANGUAGE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Language, { name: 'findLanguageByNativeName' })
-    async findByNativeName(
+    @Query(() => Language)
+    async findLanguageByNativeName(
         @Args('nativeName') nativeName: string,
     ): Promise<Language> {
         return await this.languageService.findByNativeName(nativeName)
     }
 
-    @RbacProtected({
-        resource: Resource.LANGUAGE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => [Language], { name: 'findAllLanguages' })
-    async findAll(): Promise<Language[]> {
+    @Query(() => [Language])
+    async findAllLanguages(): Promise<Language[]> {
         return await this.languageService.findAll()
     }
 
-    @RbacProtected({
-        resource: Resource.LANGUAGE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => [Language], { name: 'findAllLanguagesWithRelations' })
-    async findAllWithRelations() {
+    @Query(() => [Language])
+    async findAllLanguagesWithRelations() {
         return await this.languageService.findAllWithRelations()
     }
 
@@ -80,8 +50,8 @@ export class LanguageResolver {
         action: Action.READ,
         possession: 'any',
     })
-    @Query(() => [TmdbLanguage], { name: 'getLanguagesListFromTmdb' })
-    async getListFromTmdb(): Promise<TmdbLanguage[]> {
+    @Query(() => [TmdbLanguage])
+    async getLanguagesListFromTmdb(): Promise<TmdbLanguage[]> {
         return await this.languageService.getLanguagesListFromTmdb()
     }
 
@@ -90,8 +60,10 @@ export class LanguageResolver {
         action: Action.CREATE,
         possession: 'any',
     })
-    @Mutation(() => Boolean, { name: 'createLanguage' })
-    async create(@Args('data') input: CreateLanguageInput): Promise<boolean> {
+    @Mutation(() => Boolean)
+    async createLanguage(
+        @Args('data') input: CreateLanguageInput,
+    ): Promise<boolean> {
         return await this.languageService.create(input)
     }
 }

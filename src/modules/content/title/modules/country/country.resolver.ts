@@ -13,65 +13,35 @@ import { Country } from './models/country.model'
 export class CountryResolver {
     constructor(private readonly countryService: CountryService) {}
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Country, { name: 'findCountryById' })
-    async findById(@Args('id') id: string): Promise<Country> {
+    @Query(() => Country)
+    async findCountryById(@Args('id') id: string): Promise<Country> {
         return await this.countryService.findById(id)
     }
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Country, { name: 'findCountryByISO' })
-    async findByISO(@Args('iso') iso: string): Promise<Country> {
+    @Query(() => Country)
+    async findCountryByISO(@Args('iso') iso: string): Promise<Country> {
         return await this.countryService.findById(iso)
     }
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Country, { name: 'findCountryByEnglishName' })
-    async findByEnglishName(
+    @Query(() => Country)
+    async findCountryByEnglishName(
         @Args('englishName') englishName: string,
     ): Promise<Country> {
         return await this.countryService.findByEnglishName(englishName)
     }
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Country, { name: 'findCountryByName' })
-    async findByName(@Args('name') name: string): Promise<Country> {
+    @Query(() => Country)
+    async findCountryByName(@Args('name') name: string): Promise<Country> {
         return await this.countryService.findByName(name)
     }
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => [Country], { name: 'findAllCountries' })
-    async findAll(): Promise<Country[]> {
+    @Query(() => [Country])
+    async findAllCountries(): Promise<Country[]> {
         return await this.countryService.findAll()
     }
 
-    @RbacProtected({
-        resource: Resource.COUNTRY,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => [Country], { name: 'findAllCountriesWithRelations' })
-    async findAllWithRelations() {
+    @Query(() => [Country])
+    async findAllCountriesWithRelations() {
         return await this.countryService.findAllWithRelations()
     }
 
@@ -80,9 +50,16 @@ export class CountryResolver {
         action: Action.READ,
         possession: 'any',
     })
-    @Query(() => [TmdbCountry], { name: 'getCountriesListFromTmdb' })
-    async getListFromTmdb(): Promise<TmdbCountry[]> {
+    @Query(() => [TmdbCountry])
+    async getCountriesListFromTmdb(): Promise<TmdbCountry[]> {
         return await this.countryService.getCountriesListFromTmdb()
+    }
+
+    @Query(() => [CountryStatistics])
+    async getCountriesStatistics(
+        @Args('input', { nullable: true }) input?: CountryStatisticsInput,
+    ): Promise<CountryStatistics[]> {
+        return await this.countryService.getCountriesStatistics(input || {})
     }
 
     @RbacProtected({
@@ -90,15 +67,10 @@ export class CountryResolver {
         action: Action.CREATE,
         possession: 'any',
     })
-    @Mutation(() => Boolean, { name: 'createCountry' })
-    async create(@Args('data') input: CreateCountryInput): Promise<boolean> {
+    @Mutation(() => Boolean)
+    async createCountry(
+        @Args('data') input: CreateCountryInput,
+    ): Promise<boolean> {
         return await this.countryService.create(input)
-    }
-
-    @Query(() => [CountryStatistics], { name: 'getCountriesStatistics' })
-    async getCountriesStatistics(
-        @Args('input', { nullable: true }) input?: CountryStatisticsInput,
-    ): Promise<CountryStatistics[]> {
-        return await this.countryService.getCountriesStatistics(input || {})
     }
 }

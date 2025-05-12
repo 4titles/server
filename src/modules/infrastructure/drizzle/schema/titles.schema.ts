@@ -65,7 +65,10 @@ export const titleRelations = relations(titles, ({ many }) => ({
     languages: many(titleLanguages),
     countries: many(titleCountries),
     comments: many(comments),
-    favorites: many(favorites),
+    favorites: many(favorites, { relationName: 'title' }),
+    favoritesFilmingLocation: many(favorites, {
+        relationName: 'filmingLocationTitle',
+    }),
     translations: many(titleTranslations),
     images: many(titleImages),
 }))

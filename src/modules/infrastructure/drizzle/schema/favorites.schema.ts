@@ -55,6 +55,7 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
     title: one(titles, {
         fields: [favorites.titleId],
         references: [titles.id],
+        relationName: 'title',
     }),
     filmingLocation: one(filmingLocations, {
         fields: [favorites.filmingLocationId],
@@ -63,6 +64,7 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
     filmingLocationTitle: one(titles, {
         fields: [favorites.filmingLocationTitleId],
         references: [titles.id],
+        relationName: 'filmingLocationTitle',
     }),
 }))
 

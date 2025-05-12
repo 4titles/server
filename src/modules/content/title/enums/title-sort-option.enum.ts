@@ -1,0 +1,20 @@
+import { registerEnumType } from '@nestjs/graphql'
+
+export enum TitleSortOption {
+    POPULARITY_DESC = 'POPULARITY_DESC',
+    POPULARITY_ASC = 'POPULARITY_ASC',
+    VOTE_AVERAGE_DESC = 'VOTE_AVERAGE_DESC',
+    VOTE_AVERAGE_ASC = 'VOTE_AVERAGE_ASC',
+    LOCATIONS_COUNT_DESC = 'LOCATIONS_COUNT_DESC',
+    LOCATIONS_COUNT_ASC = 'LOCATIONS_COUNT_ASC',
+    RELEASE_DATE_DESC = 'RELEASE_DATE_DESC',
+    RELEASE_DATE_ASC = 'RELEASE_DATE_ASC',
+    NAME_ASC = 'NAME_ASC',
+    NAME_DESC = 'NAME_DESC',
+    LAST_SYNCED_DESC = 'LAST_SYNCED_DESC',
+    LAST_SYNCED_ASC = 'LAST_SYNCED_ASC',
+}
+
+registerEnumType(TitleSortOption, {
+    name: 'TitleSortOption',
+})

@@ -5,7 +5,7 @@ import {
 } from '@/shared/types/pagination.interface'
 import { dateReviver } from '@/shared/utils/time/date-retriever.util'
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types'
-import { Injectable, Logger } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { TitleRelationsConfigService } from '../config/title-relations.config'
 import { TitleGeosearchInput } from '../inputs/title-geosearch.input'
 import { TitleSearchInput } from '../inputs/title-search.input'
@@ -21,17 +21,15 @@ export class TitleSearchService {
     private readonly logger = new Logger(TitleSearchService.name)
     private readonly CACHE_KEY_PREFIX = 'title:search:'
     private readonly CACHE_TTL_SECONDS = 60 * 30 // 30 min
-    private readonly cacheDateKeys: string[] = []
 
     constructor(
+        @Inject(forwardRef(() => TitleQueryService))
         private readonly titleQueryService: TitleQueryService,
         private readonly titleService: TitleService,
         private readonly cacheService: CacheService,
         private readonly titleElasticsearchService: TitleElasticsearchService,
         private readonly titleRelationsConfig: TitleRelationsConfigService,
-    ) {
-        this.cacheDateKeys = titleQueryService.getCacheTitleDateKeys()
-    }
+    ) {}
 
     async searchTitles(
         input: TitleSearchInput,
@@ -41,13 +39,14 @@ export class TitleSearchService {
         this.logger.debug(`Searching titles with query: ${query}`)
 
         const cacheKey = this.getSearchCacheKey(query, options)
+        const cacheDateKeys = this.titleQueryService.getCacheTitleDateKeys()
 
         try {
             const cachedResult = await this.cacheService.get<string>(cacheKey)
             if (cachedResult) {
                 this.logger.debug(`Cache hit for search query: ${query}`)
                 const result = JSON.parse(cachedResult, (key, value) =>
-                    dateReviver(this.cacheDateKeys, key, value),
+                    dateReviver(cacheDateKeys, key, value),
                 )
                 return result as PaginatedResult<Title>
             }
@@ -96,6 +95,7 @@ export class TitleSearchService {
         this.logger.debug(`Searching titles by location text query: ${query}`)
 
         const cacheKey = this.getLocationSearchCacheKey(query, options)
+        const cacheDateKeys = this.titleQueryService.getCacheTitleDateKeys()
 
         try {
             const cachedResult = await this.cacheService.get<string>(cacheKey)
@@ -104,7 +104,7 @@ export class TitleSearchService {
                     `Cache hit for location search query: ${query}`,
                 )
                 const result = JSON.parse(cachedResult, (key, value) =>
-                    dateReviver(this.cacheDateKeys, key, value),
+                    dateReviver(cacheDateKeys, key, value),
                 )
                 return result as PaginatedResult<Title>
             }
@@ -183,6 +183,7 @@ export class TitleSearchService {
             distance,
             options,
         )
+        const cacheDateKeys = this.titleQueryService.getCacheTitleDateKeys()
 
         try {
             const cachedResult = await this.cacheService.get<string>(cacheKey)
@@ -191,7 +192,7 @@ export class TitleSearchService {
                     `Cache hit for coordinates search: lat=${lat}, lon=${lon}`,
                 )
                 const result = JSON.parse(cachedResult, (key, value) =>
-                    dateReviver(this.cacheDateKeys, key, value),
+                    dateReviver(cacheDateKeys, key, value),
                 )
                 return result as PaginatedResult<Title>
             }
@@ -273,6 +274,7 @@ export class TitleSearchService {
         )
 
         const cacheKey = `${this.CACHE_KEY_PREFIX}locations:title:${titleId}:${query}`
+        const cacheDateKeys = this.titleQueryService.getCacheTitleDateKeys()
 
         try {
             const cachedResult = await this.cacheService.get<string>(cacheKey)
@@ -281,7 +283,7 @@ export class TitleSearchService {
                     `Cache hit for filming locations search in title ${titleId} with query: ${query}`,
                 )
                 const result = JSON.parse(cachedResult, (key, value) =>
-                    dateReviver(this.cacheDateKeys, key, value),
+                    dateReviver(cacheDateKeys, key, value),
                 )
                 return result as TitleFilmingLocation[]
             }
@@ -441,6 +443,7 @@ export class TitleSearchService {
         )
 
         const cacheKey = `${this.CACHE_KEY_PREFIX}locations:ids:${locationIds.join('_')}:${query || ''}`
+        const cacheDateKeys = this.titleQueryService.getCacheTitleDateKeys()
 
         try {
             const cachedResult = await this.cacheService.get<string>(cacheKey)
@@ -449,7 +452,7 @@ export class TitleSearchService {
                     `Cache hit for filming locations search by IDs with query: ${query || 'none'}`,
                 )
                 const result = JSON.parse(cachedResult, (key, value) =>
-                    dateReviver(this.cacheDateKeys, key, value),
+                    dateReviver(cacheDateKeys, key, value),
                 )
                 return result
             }
@@ -655,10 +658,10 @@ export class TitleSearchService {
                             multi_match: {
                                 query,
                                 fields: [
-                                    'details.title',
-                                    'details.name',
-                                    'details.original_title',
-                                    'details.original_name',
+                                    'details.title^5',
+                                    'details.name^5',
+                                    'details.original_title^4',
+                                    'details.original_name^4',
                                     'details.overview',
                                     'details.tagline',
                                 ],
@@ -673,7 +676,8 @@ export class TitleSearchService {
                                     multi_match: {
                                         query,
                                         fields: [
-                                            'details.translations.translations.title',
+                                            'details.translations.translations.title^3',
+                                            'details.translations.translations.name^3',
                                             'details.translations.translations.overview',
                                             'details.translations.translations.tagline',
                                         ],
@@ -692,6 +696,7 @@ export class TitleSearchService {
                                             {
                                                 query,
                                                 fuzziness: 'AUTO',
+                                                boost: 3,
                                             },
                                     },
                                 },
@@ -706,6 +711,7 @@ export class TitleSearchService {
                                         'details.keywords.keywords.name': {
                                             query,
                                             fuzziness: 'AUTO',
+                                            boost: 2,
                                         },
                                     },
                                 },
@@ -723,6 +729,7 @@ export class TitleSearchService {
                                             'details.credits.cast.character',
                                         ],
                                         fuzziness: 'AUTO',
+                                        boost: 0.8,
                                     },
                                 },
                             },
@@ -735,6 +742,7 @@ export class TitleSearchService {
                                         'details.credits.crew.name': {
                                             query,
                                             fuzziness: 'AUTO',
+                                            boost: 0.7,
                                         },
                                     },
                                 },
@@ -757,6 +765,7 @@ export class TitleSearchService {
                                             'details.filming_locations.enhancedDescription',
                                         ],
                                         fuzziness: 'AUTO',
+                                        boost: 0.5,
                                     },
                                 },
                             },

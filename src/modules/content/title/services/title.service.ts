@@ -1,4 +1,5 @@
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import { genres } from '@/modules/infrastructure/drizzle/schema/genres.schema'
 import {
     DbTitle,
     DbTitleInsert,
@@ -7,16 +8,43 @@ import {
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { generateSlug } from '@/shared/utils/common/slug.utils'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import {
+    and,
+    asc,
+    desc,
+    eq,
+    exists,
+    gte,
+    ilike,
+    inArray,
+    lte,
+    or,
+    SQL,
+    sql,
+} from 'drizzle-orm'
+import { countries } from 'src/modules/infrastructure/drizzle/schema/countries.schema'
 import { languages } from 'src/modules/infrastructure/drizzle/schema/languages.schema'
+import { titleCountries } from 'src/modules/infrastructure/drizzle/schema/title-countries.schema'
+import { titleFilmingLocations } from 'src/modules/infrastructure/drizzle/schema/title-filming-locations.schema'
+import { titleGenres } from 'src/modules/infrastructure/drizzle/schema/title-genres.schema'
+import { titleLanguages } from 'src/modules/infrastructure/drizzle/schema/title-languages.schema'
 import { titleTranslations } from 'src/modules/infrastructure/drizzle/schema/title-translations.schema'
 import {
     TitleRelationsConfig,
     TitleRelationsConfigService,
 } from '../config/title-relations.config'
 import { TitleCategory } from '../enums/title-category.enum'
+import { TitleLanguageType } from '../enums/title-language-type.enum'
 import { TitleLoadRelations } from '../enums/title-load-relations.enum'
+import { TitleSortOption } from '../enums/title-sort-option.enum'
+import { TitleStatus } from '../enums/title-status.enum'
 import { TitleType } from '../enums/title-type.enum'
+import { TitleFilterInput } from '../inputs/title-filter.input'
+import { CountryRelation } from '../modules/country/enums/country-relation.enum'
+import {
+    convertFilterToAdvanced,
+    TitleAdvancedFilters,
+} from './utils/title-filter.utils'
 import { TitleTransformService } from './utils/title-transform.service'
 
 interface FindTitleOptions {
@@ -154,33 +182,260 @@ export class TitleService {
     }
 
     async findAll(
-        filters: Partial<DbTitle> = {},
+        filterInput: Partial<DbTitle> | TitleFilterInput = {},
         options: FindTitleOptions = {},
     ): Promise<DbTitle[]> {
         const { loadRelations = TitleLoadRelations.NONE, customRelations } =
             options
         const withClause = this._buildWithClause(loadRelations, customRelations)
-        const orderBy = [desc(titles.popularity)]
 
-        const conditions = []
-        if (filters.type) {
-            conditions.push(eq(titles.type, filters.type))
+        const conditions: SQL[] = []
+        if ('type' in filterInput && filterInput.type) {
+            conditions.push(eq(titles.type, filterInput.type))
         }
-        if (filters.category) {
-            conditions.push(eq(titles.category, filters.category))
+        if ('category' in filterInput && filterInput.category) {
+            conditions.push(eq(titles.category, filterInput.category))
         }
-        if (filters.status) {
-            conditions.push(eq(titles.status, filters.status))
+        if ('status' in filterInput && filterInput.status) {
+            conditions.push(eq(titles.status, filterInput.status))
         }
-        if (filters.hasLocations) {
-            conditions.push(eq(titles.hasLocations, filters.hasLocations))
+        if (
+            'hasLocations' in filterInput &&
+            filterInput.hasLocations !== undefined
+        ) {
+            conditions.push(eq(titles.hasLocations, filterInput.hasLocations))
+        } else if (
+            'withFilmingLocations' in filterInput &&
+            filterInput.withFilmingLocations !== undefined
+        ) {
+            console.log('yea')
+            conditions.push(
+                eq(titles.hasLocations, filterInput.withFilmingLocations),
+            )
         }
 
-        return await this.db.query.titles.findMany({
+        const advancedFilters: TitleAdvancedFilters =
+            convertFilterToAdvanced(filterInput)
+        if (advancedFilters.releaseDateFrom) {
+            conditions.push(
+                gte(titles.releaseDate, advancedFilters.releaseDateFrom),
+            )
+        }
+        if (advancedFilters.releaseDateTo) {
+            conditions.push(
+                lte(titles.releaseDate, advancedFilters.releaseDateTo),
+            )
+        }
+        if (advancedFilters.runtimeFrom !== undefined) {
+            conditions.push(gte(titles.runtime, advancedFilters.runtimeFrom))
+        }
+        if (advancedFilters.runtimeTo !== undefined) {
+            conditions.push(lte(titles.runtime, advancedFilters.runtimeTo))
+        }
+        if (advancedFilters.voteAverageFrom !== undefined) {
+            conditions.push(
+                gte(titles.voteAverage, advancedFilters.voteAverageFrom),
+            )
+        }
+        if (advancedFilters.voteAverageTo !== undefined) {
+            conditions.push(
+                lte(titles.voteAverage, advancedFilters.voteAverageTo),
+            )
+        }
+        if (advancedFilters.statuses && advancedFilters.statuses.length > 0) {
+            const statusEnums = advancedFilters.statuses.map(
+                (status) => status as TitleStatus,
+            )
+            conditions.push(inArray(titles.status, statusEnums))
+        }
+
+        let nameConditions: SQL[] = []
+        if (advancedFilters.name) {
+            nameConditions.push(
+                ilike(titles.originalName, `%${advancedFilters.name}%`),
+            )
+
+            const nameSubquery = this.db
+                .select({ titleId: titleTranslations.titleId })
+                .from(titleTranslations)
+                .where(
+                    ilike(titleTranslations.title, `%${advancedFilters.name}%`),
+                )
+                .as('name_translations')
+
+            conditions.push(
+                or(
+                    ...nameConditions,
+                    exists(
+                        this.db
+                            .select()
+                            .from(nameSubquery)
+                            .where(eq(nameSubquery.titleId, titles.id)),
+                    ),
+                ),
+            )
+        }
+
+        let orderBy: SQL[] = [desc(titles.popularity)]
+
+        if (advancedFilters.sortBy) {
+            switch (advancedFilters.sortBy) {
+                case TitleSortOption.POPULARITY_DESC:
+                    orderBy = [desc(titles.popularity)]
+                    break
+                case TitleSortOption.POPULARITY_ASC:
+                    orderBy = [asc(titles.popularity)]
+                    break
+                case TitleSortOption.VOTE_AVERAGE_DESC:
+                    orderBy = [desc(titles.voteAverage)]
+                    break
+                case TitleSortOption.VOTE_AVERAGE_ASC:
+                    orderBy = [asc(titles.voteAverage)]
+                    break
+                case TitleSortOption.RELEASE_DATE_DESC:
+                    orderBy = [desc(titles.releaseDate)]
+                    break
+                case TitleSortOption.RELEASE_DATE_ASC:
+                    orderBy = [asc(titles.releaseDate)]
+                    break
+                case TitleSortOption.LAST_SYNCED_DESC:
+                    orderBy = [desc(titles.lastSyncedAt)]
+                    break
+                case TitleSortOption.LAST_SYNCED_ASC:
+                    orderBy = [asc(titles.lastSyncedAt)]
+                    break
+                case TitleSortOption.NAME_ASC:
+                    orderBy = [asc(titles.originalName)]
+                    break
+                case TitleSortOption.NAME_DESC:
+                    orderBy = [desc(titles.originalName)]
+                    break
+                default:
+                    orderBy = [desc(titles.popularity)]
+            }
+        }
+
+        let query = this.db.query.titles.findMany({
             where: conditions.length > 0 ? and(...conditions) : undefined,
             orderBy,
             with: withClause as any,
         })
+
+        let results = await query
+
+        if (advancedFilters.genreIds && advancedFilters.genreIds.length > 0) {
+            const titlesWithGenres = await this.db
+                .select({
+                    titleId: titleGenres.titleId,
+                })
+                .from(titleGenres)
+                .innerJoin(
+                    genres,
+                    and(
+                        eq(genres.id, titleGenres.genreId),
+                        inArray(genres.tmdbId, advancedFilters.genreIds),
+                    ),
+                )
+                .groupBy(titleGenres.titleId)
+                .having(
+                    sql`count(${titleGenres.genreId}) >= ${advancedFilters.genreIds.length}`,
+                )
+
+            const titleIdsWithGenres = new Set(
+                titlesWithGenres.map((t) => t.titleId),
+            )
+            results = results.filter((title) =>
+                titleIdsWithGenres.has(title.id),
+            )
+        }
+        if (
+            advancedFilters.countryIsos &&
+            advancedFilters.countryIsos.length > 0
+        ) {
+            const titlesWithCountries = await this.db
+                .select({
+                    titleId: titleCountries.titleId,
+                })
+                .from(titleCountries)
+                .innerJoin(
+                    countries,
+                    and(
+                        eq(countries.id, titleCountries.countryId),
+                        inArray(countries.iso, advancedFilters.countryIsos),
+                        eq(titleCountries.type, CountryRelation.PRODUCTION),
+                    ),
+                )
+                .groupBy(titleCountries.titleId)
+
+            const titleIdsWithCountries = new Set(
+                titlesWithCountries.map((t) => t.titleId),
+            )
+            results = results.filter((title) =>
+                titleIdsWithCountries.has(title.id),
+            )
+        }
+        if (
+            advancedFilters.originalLanguageIsos &&
+            advancedFilters.originalLanguageIsos.length > 0
+        ) {
+            const titlesWithOriginalLanguages = await this.db
+                .select({
+                    titleId: titleLanguages.titleId,
+                })
+                .from(titleLanguages)
+                .innerJoin(
+                    languages,
+                    and(
+                        eq(languages.id, titleLanguages.languageId),
+                        inArray(
+                            languages.iso,
+                            advancedFilters.originalLanguageIsos,
+                        ),
+                        eq(titleLanguages.type, TitleLanguageType.ORIGINAL),
+                    ),
+                )
+                .groupBy(titleLanguages.titleId)
+
+            const titleIdsWithOriginalLanguages = new Set(
+                titlesWithOriginalLanguages.map((t) => t.titleId),
+            )
+            results = results.filter((title) =>
+                titleIdsWithOriginalLanguages.has(title.id),
+            )
+        }
+        if (
+            advancedFilters.sortBy === TitleSortOption.LOCATIONS_COUNT_DESC ||
+            advancedFilters.sortBy === TitleSortOption.LOCATIONS_COUNT_ASC
+        ) {
+            const locationsCountByTitle = await this.db
+                .select({
+                    titleId: titleFilmingLocations.titleId,
+                    count: sql<number>`count(${titleFilmingLocations.id})`,
+                })
+                .from(titleFilmingLocations)
+                .groupBy(titleFilmingLocations.titleId)
+
+            const locationsCountMap = new Map<string, number>()
+            locationsCountByTitle.forEach((item) => {
+                locationsCountMap.set(item.titleId, item.count)
+            })
+
+            results.sort((a, b) => {
+                const countA = locationsCountMap.get(a.id) || 0
+                const countB = locationsCountMap.get(b.id) || 0
+
+                if (
+                    advancedFilters.sortBy ===
+                    TitleSortOption.LOCATIONS_COUNT_DESC
+                ) {
+                    return countB - countA
+                } else {
+                    return countA - countB
+                }
+            })
+        }
+
+        return results
     }
 
     async createFromTmdb(titleData: Partial<DbTitle>): Promise<DbTitle> {

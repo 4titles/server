@@ -11,43 +11,23 @@ import { GenresByLanguage } from './models/genres-by-language.model'
 export class GenreResolver {
     constructor(private readonly genreService: GenreService) {}
 
-    @RbacProtected({
-        resource: Resource.GENRE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Genre, { name: 'findGenreById' })
-    async findById(@Args('id') id: string): Promise<Genre> {
+    @Query(() => Genre)
+    async findGenreById(@Args('id') id: string): Promise<Genre> {
         return await this.genreService.findById(id)
     }
 
-    @RbacProtected({
-        resource: Resource.GENRE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Genre, { name: 'findGenreById' })
-    async findByTmdbId(@Args('tmdbId') tmdbId: string): Promise<Genre> {
+    @Query(() => Genre)
+    async findGenreByTmdbId(@Args('tmdbId') tmdbId: string): Promise<Genre> {
         return await this.genreService.findByTmdbId(tmdbId)
     }
 
-    @RbacProtected({
-        resource: Resource.GENRE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => Genre, { name: 'findAllGenres' })
-    async findAll(): Promise<Genre[]> {
+    @Query(() => [Genre])
+    async findAllGenres(): Promise<Genre[]> {
         return await this.genreService.findAll()
     }
 
-    @RbacProtected({
-        resource: Resource.GENRE,
-        action: Action.READ,
-        possession: 'any',
-    })
-    @Query(() => [Genre], { name: 'findAllGenresWithRelations' })
-    async findAllWithRelations() {
+    @Query(() => [Genre])
+    async findAllGenresWithRelations() {
         return await this.genreService.findAllWithRelations()
     }
 
@@ -56,8 +36,8 @@ export class GenreResolver {
         action: Action.READ,
         possession: 'any',
     })
-    @Query(() => [GenresByLanguage], { name: 'getGenresListFromTmdb' })
-    async getListFromTmdb(): Promise<GenresByLanguage> {
+    @Query(() => [GenresByLanguage])
+    async getGenresListFromTmdb(): Promise<GenresByLanguage> {
         return await this.genreService.getGenresListFromTmdb()
     }
 
@@ -66,8 +46,8 @@ export class GenreResolver {
         action: Action.CREATE,
         possession: 'any',
     })
-    @Mutation(() => Boolean, { name: 'createGenre' })
-    async create(@Args('data') input: CreateGenreInput): Promise<boolean> {
+    @Mutation(() => Boolean)
+    async createGenre(@Args('data') input: CreateGenreInput): Promise<boolean> {
         return await this.genreService.create(input)
     }
 }
