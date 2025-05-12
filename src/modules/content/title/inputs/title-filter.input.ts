@@ -117,4 +117,9 @@ export class TitleFilterInput {
     @IsOptional()
     @IsEnum(TitleSortOption)
     sortBy?: TitleSortOption
+
+    @Field(() => String, { nullable: true })
+    @IsOptional()
+    @IsString()
+    imdbId?: string
 }

@@ -71,6 +71,7 @@ export class TitleQueryService {
             voteAverageRange,
             statuses,
             sortBy,
+            imdbId,
         } = filter || {}
 
         if (searchTerm && searchTerm.trim().length > 0) {
@@ -101,6 +102,7 @@ export class TitleQueryService {
             voteAverageRange,
             statuses,
             sortBy,
+            imdbId,
         })
 
         try {
@@ -508,6 +510,7 @@ export class TitleQueryService {
         voteAverageRange?: any
         statuses?: string[]
         sortBy?: string
+        imdbId?: string
     }): string {
         const {
             type = 'all',
@@ -525,6 +528,7 @@ export class TitleQueryService {
             voteAverageRange,
             statuses,
             sortBy,
+            imdbId,
         } = params
 
         let key = `${this.TITLES_LIST_PREFIX}type-${type}:category-${category}:${withFilmingLocations ? 'withLoc' : 'allLoc'}:search-${searchTerm}:${take}:${skip}`
@@ -555,6 +559,9 @@ export class TitleQueryService {
         }
         if (sortBy) {
             key += `:sort-${sortBy}`
+        }
+        if (imdbId) {
+            key += `:imdbId-${imdbId}`
         }
 
         return key

@@ -213,6 +213,9 @@ export class TitleService {
                 eq(titles.hasLocations, filterInput.withFilmingLocations),
             )
         }
+        if ('imdbId' in filterInput && filterInput.imdbId) {
+            conditions.push(eq(titles.imdbId, filterInput.imdbId))
+        }
 
         const advancedFilters: TitleAdvancedFilters =
             convertFilterToAdvanced(filterInput)
