@@ -4,7 +4,6 @@ import { FavoriteType } from '@/modules/content/favorite/enums/favorite-type.enu
 import { FeedbackSource } from '@/modules/content/feedback/enums/feedback-source.enum'
 import { FeedbackStatus } from '@/modules/content/feedback/enums/feedback-status.enum'
 import { FeedbackType } from '@/modules/content/feedback/enums/feedback-type.enum'
-import { CommentableType } from '@/modules/content/title/enums/commentable-type.enum'
 import { TitleCategory } from '@/modules/content/title/enums/title-category.enum'
 import { TitleImageType } from '@/modules/content/title/enums/title-image-type.enum'
 import { TitleLanguageType } from '@/modules/content/title/enums/title-language-type.enum'
@@ -52,11 +51,6 @@ export const titleImageTypeEnum = pgEnum('title_image_type', [
     TitleImageType.LOGO,
 ])
 
-export const commentableTypeEnum = pgEnum('commentable_type', [
-    CommentableType.TITLE,
-    CommentableType.LOCATION,
-])
-
 export const tokenTypeEnum = pgEnum('token_type_enum', [
     TokenType.EMAIL_VERIFY,
     TokenType.PASSWORD_RESET,
@@ -83,6 +77,7 @@ export const feedbackTypeEnum = pgEnum('feedback_type_enum', [
     FeedbackType.BUG_REPORT,
     FeedbackType.FEATURE_REQUEST,
     FeedbackType.CONTENT_ISSUE,
+    FeedbackType.COMMENT_REPORT,
     FeedbackType.OTHER,
 ])
 

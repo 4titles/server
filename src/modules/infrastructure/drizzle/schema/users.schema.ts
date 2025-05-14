@@ -8,7 +8,6 @@ import {
     uuid,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
-import { comments } from './comments.schema'
 import { favorites } from './favorites.schema'
 import { feedbacks } from './feedbacks.schema'
 import { filmingLocations } from './filming-locations.schema'
@@ -16,6 +15,7 @@ import { follows } from './follows.schema'
 import { notifications, notificationSettings } from './notifications.schema'
 import { userRoles } from './roles-permissions.schema'
 import { socialLinks } from './social-links.schema'
+import { titleComments } from './title-comments.schema'
 import { tokens } from './tokens.schema'
 
 export const users = pgTable(
@@ -64,7 +64,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     followers: many(follows, { relationName: 'following' }),
     roles: many(userRoles),
     addedFilmingLocations: many(filmingLocations),
-    comments: many(comments),
+    comments: many(titleComments),
     favorites: many(favorites),
 }))
 
