@@ -6,24 +6,23 @@ import {
     IsString,
     IsUUID,
 } from 'class-validator'
-import { FavoriteType } from '../enums/favorite-type.enum'
+import { FavorableType } from '../enums/favorable-type.enum'
 
 @InputType()
 export class BaseFavoritesInput {
-    @Field(() => FavoriteType)
-    @IsEnum(FavoriteType)
-    type: FavoriteType
+    @Field(() => FavorableType)
+    @IsEnum(FavorableType)
+    favorableType: FavorableType
 
     @Field(() => String)
     @IsNotEmpty()
     @IsString()
     @IsUUID('4')
-    entityId: string
+    favorableId: string
 
     @Field(() => String, { nullable: true })
     @IsOptional()
-    @IsNotEmpty()
     @IsString()
     @IsUUID('4')
-    locationTitleId?: string
+    contextId?: string
 }

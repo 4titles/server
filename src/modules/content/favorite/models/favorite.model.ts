@@ -1,8 +1,8 @@
+import { User } from '@/modules/auth/account/models/user.model'
 import { Field, ObjectType } from '@nestjs/graphql'
-import { User } from '../../../auth/account/models/user.model'
 import { Title } from '../../title/models/title.model'
 import { FilmingLocation } from '../../title/modules/filming-location/models/filming-location.model'
-import { FavoriteType } from '../enums/favorite-type.enum'
+import { FavorableType } from '../enums/favorable-type.enum'
 
 @ObjectType()
 export class Favorite {
@@ -12,17 +12,14 @@ export class Favorite {
     @Field(() => String)
     userId: string
 
-    @Field(() => FavoriteType)
-    type: FavoriteType
+    @Field(() => FavorableType)
+    favorableType: FavorableType
+
+    @Field(() => String)
+    favorableId: string
 
     @Field(() => String, { nullable: true })
-    titleId?: string
-
-    @Field(() => String, { nullable: true })
-    filmingLocationId?: string
-
-    @Field(() => String, { nullable: true })
-    filmingLocationTitleId?: string
+    contextId?: string
 
     @Field(() => Date)
     createdAt: Date
@@ -30,8 +27,8 @@ export class Favorite {
     @Field(() => Date)
     updatedAt: Date
 
-    @Field(() => User)
-    user: User
+    @Field(() => User, { nullable: true })
+    user?: User
 
     @Field(() => Title, { nullable: true })
     title?: Title
@@ -40,5 +37,5 @@ export class Favorite {
     filmingLocation?: FilmingLocation
 
     @Field(() => Title, { nullable: true })
-    filmingLocationTitle?: Title
+    contextTitle?: Title
 }

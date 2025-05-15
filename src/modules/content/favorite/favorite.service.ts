@@ -1,19 +1,18 @@
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
-import {
-    DbFavoriteSelect,
-    favorites,
-} from '@/modules/infrastructure/drizzle/schema/favorites.schema'
+import { favorites } from '@/modules/infrastructure/drizzle/schema/favorites.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { Title } from '../title/models/title.model'
+import { FilmingLocationService } from '../title/modules/filming-location/services/filming-location.service'
 import { TitleQueryService } from '../title/services/title-query.service'
-import { FavoriteType } from './enums/favorite-type.enum'
+import { FavorableType } from './enums/favorable-type.enum'
 import { AddToFavoritesInput } from './inputs/add-to-favorites.input'
 import { FindFavoriteInput } from './inputs/find-favorite.input'
 import { FindFavoritesInput } from './inputs/find-favorites.input'
 import { IsEntityFavoriteInput } from './inputs/is-entity-favorite.input'
 import { RemoveFromFavoritesInput } from './inputs/remove-from-favorites.input'
+import { Favorite } from './models/favorite.model'
 
 @Injectable()
 export class FavoriteService {
@@ -22,119 +21,25 @@ export class FavoriteService {
     constructor(
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly titleQueryService: TitleQueryService,
+        private readonly filmingLocationService: FilmingLocationService,
     ) {}
-
-    async addToFavorites(
-        userId: string,
-        input: AddToFavoritesInput,
-    ): Promise<DbFavoriteSelect | null> {
-        const { type, entityId, locationTitleId } = input
-
-        const existingFavorite = await this.findFavorite(userId, input)
-        if (existingFavorite) {
-            this.logger.debug(
-                `Item already in favorites: userId=${userId}, type=${type}, entityId=${entityId}`,
-            )
-            return existingFavorite
-        }
-
-        const favoriteToInsert = {
-            userId,
-            type,
-            titleId: type === FavoriteType.TITLE ? entityId : null,
-            filmingLocationId: type === FavoriteType.LOCATION ? entityId : null,
-            filmingLocationTitleId:
-                type === FavoriteType.LOCATION ? locationTitleId : null,
-        }
-
-        try {
-            const [newFavorite] = await this.db
-                .insert(favorites)
-                .values(favoriteToInsert)
-                .returning()
-            this.logger.log(
-                `Added to favorites: userId=${userId}, type=${type}, entityId=${entityId}`,
-            )
-            return newFavorite
-        } catch (error) {
-            this.logger.error(
-                `Failed to add to favorites: userId=${userId}, type=${type}, entityId=${entityId}`,
-                error.stack,
-            )
-            if (error.code === '23505') {
-                return this.findFavorite(userId, {
-                    type,
-                    entityId,
-                    locationTitleId,
-                })
-            }
-            return null
-        }
-    }
-
-    async removeFromFavorites(
-        userId: string,
-        input: RemoveFromFavoritesInput,
-    ): Promise<boolean> {
-        const { type, entityId, locationTitleId } = input
-
-        const conditions = [
-            eq(favorites.userId, userId),
-            eq(favorites.type, type),
-        ]
-
-        if (type === FavoriteType.TITLE) {
-            conditions.push(eq(favorites.titleId, entityId))
-        } else if (type === FavoriteType.LOCATION) {
-            conditions.push(eq(favorites.filmingLocationId, entityId))
-            conditions.push(
-                eq(favorites.filmingLocationTitleId, locationTitleId),
-            )
-        }
-
-        try {
-            const result = await this.db
-                .delete(favorites)
-                .where(and(...conditions))
-
-            const success = result.rowCount > 0
-            if (success) {
-                this.logger.log(
-                    `Removed from favorites: userId=${userId}, type=${type}, entityId=${entityId}`,
-                )
-            } else {
-                this.logger.warn(
-                    `Favorite not found for removal: userId=${userId}, type=${type}, entityId=${entityId}`,
-                )
-            }
-            return success
-        } catch (error) {
-            this.logger.error(
-                `Failed to remove from favorites: userId=${userId}, type=${type}, entityId=${entityId}`,
-                error.stack,
-            )
-            return false
-        }
-    }
 
     async findFavorite(
         userId: string,
         input: FindFavoriteInput,
-    ): Promise<DbFavoriteSelect | null> {
-        const { type, entityId, locationTitleId } = input
+    ): Promise<Favorite> {
+        const { favorableType, favorableId, contextId } = input
 
         const conditions = [
             eq(favorites.userId, userId),
-            eq(favorites.type, type),
+            eq(favorites.favorableType, favorableType),
+            eq(favorites.favorableId, favorableId),
         ]
 
-        if (type === FavoriteType.TITLE) {
-            conditions.push(eq(favorites.titleId, entityId))
-        } else if (type === FavoriteType.LOCATION) {
-            conditions.push(eq(favorites.filmingLocationId, entityId))
-            conditions.push(
-                eq(favorites.filmingLocationTitleId, locationTitleId),
-            )
+        if (contextId) {
+            conditions.push(eq(favorites.contextId, contextId))
+        } else {
+            conditions.push(isNull(favorites.contextId))
         }
 
         return await this.db.query.favorites.findFirst({
@@ -145,100 +50,61 @@ export class FavoriteService {
     async findUserFavorites(
         userId: string,
         input: FindFavoritesInput,
-    ): Promise<DbFavoriteSelect[]> {
-        const { type, take, skip } = input
+    ): Promise<Favorite[]> {
+        const { favorableType, take, skip } = input
 
         const userFavorites = await this.db.query.favorites.findMany({
             where: and(
                 eq(favorites.userId, userId),
-                type ? eq(favorites.type, type) : undefined,
+                favorableType
+                    ? eq(favorites.favorableType, favorableType)
+                    : undefined,
             ),
-            with: {
-                filmingLocation: {
-                    with: {
-                        descriptions: {
-                            with: {
-                                language: true,
-                            },
-                        },
-                        country: true,
-                        titleFilmingLocations: {
-                            columns: {
-                                titleId: true,
-                            },
-                        },
-                    },
-                },
-            },
             orderBy: desc(favorites.createdAt),
             limit: take,
             offset: skip || 0,
         })
 
         const titleIds = new Set<string>()
+        const locationIds = new Set<string>()
+        const contextTitleIds = new Set<string>()
+
         userFavorites.forEach((favorite) => {
-            if (favorite.titleId) {
-                titleIds.add(favorite.titleId)
-            }
-            if (favorite.filmingLocationTitleId) {
-                titleIds.add(favorite.filmingLocationTitleId)
-            }
-            if (favorite.filmingLocation?.titleFilmingLocations) {
-                favorite.filmingLocation.titleFilmingLocations.forEach(
-                    (tfl) => {
-                        if (tfl.titleId) {
-                            titleIds.add(tfl.titleId)
-                        }
-                    },
-                )
+            if (favorite.favorableType === FavorableType.TITLE) {
+                titleIds.add(favorite.favorableId)
+            } else if (favorite.favorableType === FavorableType.LOCATION) {
+                locationIds.add(favorite.favorableId)
+                if (favorite.contextId) {
+                    contextTitleIds.add(favorite.contextId)
+                }
             }
         })
 
-        const titlePromises = Array.from(titleIds).map(async (titleId) => {
-            try {
-                const title = await this.titleQueryService.getTitleById(titleId)
-                return { titleId, title }
-            } catch (error) {
-                this.logger.warn(
-                    `Failed to get title data for titleId: ${titleId}`,
-                    error,
-                )
-                return { titleId, title: undefined }
-            }
-        })
-        const titleResults = await Promise.all(titlePromises)
-
-        const titleMap = new Map<string, Title | undefined>()
-        titleResults.forEach(({ titleId, title }) => {
-            titleMap.set(titleId, title)
-        })
+        const titleMap = await this.loadTitles([
+            ...titleIds,
+            ...contextTitleIds,
+        ])
+        const locationMap = await this.loadLocations([...locationIds])
 
         return userFavorites.map((favorite) => {
-            const enrichedFilmingLocation = favorite.filmingLocation
-                ? {
-                      ...favorite.filmingLocation,
-                      titleFilmingLocations:
-                          favorite.filmingLocation.titleFilmingLocations?.map(
-                              (tfl) => ({
-                                  ...tfl,
-                                  title: tfl.titleId
-                                      ? titleMap.get(tfl.titleId)
-                                      : undefined,
-                              }),
-                          ),
-                  }
-                : undefined
-
-            return {
+            const enrichedFavorite: Favorite = {
                 ...favorite,
-                title: favorite.titleId
-                    ? titleMap.get(favorite.titleId)
-                    : undefined,
-                filmingLocationTitle: favorite.filmingLocationTitleId
-                    ? titleMap.get(favorite.filmingLocationTitleId)
-                    : undefined,
-                filmingLocation: enrichedFilmingLocation,
             }
+
+            if (favorite.favorableType === FavorableType.TITLE) {
+                enrichedFavorite.title = titleMap.get(favorite.favorableId)
+            } else if (favorite.favorableType === FavorableType.LOCATION) {
+                enrichedFavorite.filmingLocation = locationMap.get(
+                    favorite.favorableId,
+                )
+                if (favorite.contextId) {
+                    enrichedFavorite.contextTitle = titleMap.get(
+                        favorite.contextId,
+                    )
+                }
+            }
+
+            return enrichedFavorite
         })
     }
 
@@ -246,27 +112,200 @@ export class FavoriteService {
         userId: string,
         input: IsEntityFavoriteInput,
     ): Promise<boolean> {
-        const { type, entityId, locationTitleId } = input
+        const { favorableType, favorableId, contextId } = input
+
+        const conditions = [
+            eq(favorites.userId, userId),
+            eq(favorites.favorableType, favorableType),
+            eq(favorites.favorableId, favorableId),
+        ]
+
+        if (contextId) {
+            conditions.push(eq(favorites.contextId, contextId))
+        } else {
+            conditions.push(isNull(favorites.contextId))
+        }
 
         const result = await this.db
             .select({ count: sql<number>`count(*)::int` })
             .from(favorites)
-            .where(
-                and(
-                    eq(favorites.userId, userId),
-                    eq(favorites.type, type),
-                    type === FavoriteType.TITLE
-                        ? eq(favorites.titleId, entityId)
-                        : and(
-                              eq(favorites.filmingLocationId, entityId),
-                              eq(
-                                  favorites.filmingLocationTitleId,
-                                  locationTitleId,
-                              ),
-                          ),
-                ),
-            )
+            .where(and(...conditions))
 
         return result[0]?.count > 0
+    }
+
+    async addToFavorites(
+        userId: string,
+        input: AddToFavoritesInput,
+    ): Promise<boolean> {
+        const { favorableType, favorableId, contextId } = input
+
+        const existingFavorite = await this.findFavorite(userId, input)
+        if (existingFavorite) {
+            this.logger.debug(
+                `Item already in favorites: userId=${userId}, type=${favorableType}, entityId=${favorableId}`,
+            )
+            return true
+        }
+
+        await this.verifyEntityExists(favorableType, favorableId, contextId)
+
+        const favoriteToInsert = {
+            userId,
+            favorableType,
+            favorableId,
+            contextId,
+        }
+
+        try {
+            await this.db.insert(favorites).values(favoriteToInsert)
+            this.logger.log(
+                `Added to favorites: userId=${userId}, type=${favorableType}, entityId=${favorableId}`,
+            )
+            return true
+        } catch (error) {
+            this.logger.error(
+                `Failed to add to favorites: userId=${userId}, type=${favorableType}, entityId=${favorableId}`,
+                error.stack,
+            )
+            return false
+        }
+    }
+
+    async removeFromFavorites(
+        userId: string,
+        input: RemoveFromFavoritesInput,
+    ): Promise<boolean> {
+        const { favorableType, favorableId, contextId } = input
+
+        const conditions = [
+            eq(favorites.userId, userId),
+            eq(favorites.favorableType, favorableType),
+            eq(favorites.favorableId, favorableId),
+        ]
+
+        if (contextId) {
+            conditions.push(eq(favorites.contextId, contextId))
+        } else {
+            conditions.push(isNull(favorites.contextId))
+        }
+
+        try {
+            const result = await this.db
+                .delete(favorites)
+                .where(and(...conditions))
+
+            const success = result.rowCount > 0
+            if (success) {
+                this.logger.log(
+                    `Removed from favorites: userId=${userId}, type=${favorableType}, entityId=${favorableId}`,
+                )
+            } else {
+                this.logger.warn(
+                    `Favorite not found for removal: userId=${userId}, type=${favorableType}, entityId=${favorableId}`,
+                )
+            }
+            return success
+        } catch (error) {
+            this.logger.error(
+                `Failed to remove from favorites: userId=${userId}, type=${favorableType}, entityId=${favorableId}`,
+                error.stack,
+            )
+            return false
+        }
+    }
+
+    private async verifyEntityExists(
+        favorableType: FavorableType,
+        favorableId: string,
+        contextId?: string,
+    ): Promise<void> {
+        switch (favorableType) {
+            case FavorableType.TITLE:
+                const title =
+                    await this.titleQueryService.getTitleById(favorableId)
+                if (!title) {
+                    throw new NotFoundException(
+                        `Title with ID ${favorableId} not found`,
+                    )
+                }
+                break
+            case FavorableType.LOCATION:
+                const location =
+                    await this.filmingLocationService.findById(favorableId)
+                if (!location) {
+                    throw new NotFoundException(
+                        `Location with ID ${favorableId} not found`,
+                    )
+                }
+
+                if (contextId) {
+                    const contextTitle =
+                        await this.titleQueryService.getTitleById(contextId)
+                    if (!contextTitle) {
+                        throw new NotFoundException(
+                            `Context title with ID ${contextId} not found`,
+                        )
+                    }
+
+                    const isAssociated = contextTitle.filmingLocations.map(
+                        (fl) => fl.id === location.id,
+                    )
+
+                    if (!isAssociated) {
+                        throw new NotFoundException(
+                            `The title with ID ${contextId} is not associated with location ${favorableId}`,
+                        )
+                    }
+                }
+                break
+            default:
+                throw new Error(`Unsupported favorable type: ${favorableType}`)
+        }
+    }
+
+    private async loadTitles(titleIds: string[]): Promise<Map<string, Title>> {
+        if (!titleIds.length) return new Map()
+
+        const titleMap = new Map<string, Title>()
+        await Promise.all(
+            titleIds.map(async (titleId) => {
+                try {
+                    const title =
+                        await this.titleQueryService.getTitleById(titleId)
+                    if (title) {
+                        titleMap.set(titleId, title)
+                    }
+                } catch (error) {
+                    this.logger.warn(`Failed to load title ${titleId}`, error)
+                }
+            }),
+        )
+        return titleMap
+    }
+
+    private async loadLocations(
+        locationIds: string[],
+    ): Promise<Map<string, any>> {
+        if (!locationIds.length) return new Map()
+
+        const locationMap = new Map<string, any>()
+        await Promise.all(
+            locationIds.map(async (locationId) => {
+                try {
+                    const location =
+                        await this.filmingLocationService.findById(locationId)
+                    if (location) {
+                        locationMap.set(locationId, location)
+                    }
+                } catch (error) {
+                    this.logger.warn(
+                        `Failed to load location ${locationId}`,
+                        error,
+                    )
+                }
+            }),
+        )
+        return locationMap
     }
 }

@@ -1,7 +1,7 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { Role } from '@/modules/auth/rbac/enums/roles.enum'
 import { CommentableType } from '@/modules/content/comment/enums/commentable-type.enum'
-import { FavoriteType } from '@/modules/content/favorite/enums/favorite-type.enum'
+import { FavorableType } from '@/modules/content/favorite/enums/favorable-type.enum'
 import { FeedbackSource } from '@/modules/content/feedback/enums/feedback-source.enum'
 import { FeedbackStatus } from '@/modules/content/feedback/enums/feedback-status.enum'
 import { FeedbackType } from '@/modules/content/feedback/enums/feedback-type.enum'
@@ -102,9 +102,10 @@ export const countryRelationTypeEnum = pgEnum('country_relation_type', [
     CountryRelation.ORIGIN,
 ])
 
-export const favoriteTypeEnum = pgEnum('favorite_type', [
-    FavoriteType.TITLE,
-    FavoriteType.LOCATION,
+export const favorableTypeEnum = pgEnum('favorable_type', [
+    FavorableType.TITLE,
+    FavorableType.LOCATION,
+    FavorableType.COLLECTION,
 ])
 
 export const filmingLocationProposalTypeEnum = pgEnum('proposal_type', [

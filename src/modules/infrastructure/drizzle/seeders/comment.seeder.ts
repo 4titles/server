@@ -1,3 +1,4 @@
+import { CommentableType } from '@/modules/content/comment/enums/commentable-type.enum'
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
 import { users } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
@@ -67,7 +68,8 @@ export class CommentSeeder {
                 commentsBatch.push({
                     id: commentId,
                     userId: user.id,
-                    titleId: title.id,
+                    commentableId: title.id,
+                    commentableType: CommentableType.TITLE,
                     message: faker.lorem.paragraph(),
                     createdAt,
                     updatedAt: createdAt,
@@ -114,8 +116,9 @@ export class CommentSeeder {
                 commentsBatch.push({
                     id: commentId,
                     userId: user.id,
-                    titleId: titleId,
-                    parentId: parentId,
+                    commentableId: titleId,
+                    commentableType: CommentableType.TITLE,
+                    parentId,
                     message: faker.lorem.sentences(2),
                     createdAt,
                     updatedAt: createdAt,
@@ -130,8 +133,6 @@ export class CommentSeeder {
                 if (options.withLikes) {
                     await this.seedLikes(commentsBatch, activeUsers)
                 }
-
-                const titleIds = Array.from(parentCommentsByTitle.keys())
             }
 
             this.logger.log(`Successfully seeded ${createdCount} comments`)

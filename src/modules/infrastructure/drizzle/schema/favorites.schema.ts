@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { index, pgTable, unique, uuid } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
-import { favoriteTypeEnum } from './enums.schema'
+import { favorableTypeEnum } from './enums.schema'
 import { filmingLocations } from './filming-locations.schema'
 import { titles } from './titles.schema'
 import { users } from './users.schema'
@@ -13,36 +13,25 @@ export const favorites = pgTable(
         userId: uuid('user_id')
             .references(() => users.id, { onDelete: 'cascade' })
             .notNull(),
-        type: favoriteTypeEnum('type').notNull(),
-        titleId: uuid('title_id').references(() => titles.id, {
-            onDelete: 'cascade',
-        }),
-        filmingLocationId: uuid('filming_location_id').references(
-            () => filmingLocations.id,
-            {
-                onDelete: 'cascade',
-            },
-        ),
-        filmingLocationTitleId: uuid('filming_location_title_id').references(
-            () => titles.id,
-            {
-                onDelete: 'cascade',
-            },
-        ),
+        favorableType: favorableTypeEnum('favorable_type').notNull(),
+        favorableId: uuid('favorable_id').notNull(),
+        contextId: uuid('context_id'),
         ...timestamps,
     },
     (table) => ({
         userIdIdx: index('favorites_user_id_idx').on(table.userId),
-        typeIdx: index('favorites_type_idx').on(table.type),
-        titleIdIdx: index('favorites_title_id_idx').on(table.titleId),
-        filmingLocationIdIdx: index('favorites_filming_location_id_idx').on(
-            table.filmingLocationId,
+        favorableTypeIdx: index('favorites_favorable_type_idx').on(
+            table.favorableType,
         ),
-        uniqueFavorite: unique('favorites_user_type_entity_unique').on(
+        favorableIdIdx: index('favorites_favorable_id_idx').on(
+            table.favorableId,
+        ),
+        contextIdIdx: index('favorites_context_id_idx').on(table.contextId),
+        uniqueFavorite: unique('favorites_user_favorable_context_unique').on(
             table.userId,
-            table.type,
-            table.titleId,
-            table.filmingLocationId,
+            table.favorableType,
+            table.favorableId,
+            table.contextId,
         ),
     }),
 )
@@ -53,18 +42,18 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
         references: [users.id],
     }),
     title: one(titles, {
-        fields: [favorites.titleId],
+        fields: [favorites.favorableId],
         references: [titles.id],
         relationName: 'title',
     }),
     filmingLocation: one(filmingLocations, {
-        fields: [favorites.filmingLocationId],
+        fields: [favorites.favorableId],
         references: [filmingLocations.id],
     }),
-    filmingLocationTitle: one(titles, {
-        fields: [favorites.filmingLocationTitleId],
+    contextTitle: one(titles, {
+        fields: [favorites.contextId],
         references: [titles.id],
-        relationName: 'filmingLocationTitle',
+        relationName: 'contextTitle',
     }),
 }))
 
