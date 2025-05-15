@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { CommentModule } from './comment/comment.module'
 import { ContentModerationModule } from './content-moderation/content-moderation.module'
 import { FavoriteModule } from './favorite/favorite.module'
 import { FeedbackModule } from './feedback/feedback.module'
@@ -12,6 +13,7 @@ import { TitleModule } from './title/title.module'
         FollowModule,
         ContentModerationModule,
         FavoriteModule,
+        CommentModule,
     ],
 })
 export class ContentModule {}

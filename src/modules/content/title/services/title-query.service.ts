@@ -7,7 +7,7 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/popular-titles.schema'
 import { DbTitle } from '@/modules/infrastructure/drizzle/schema/titles.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
-import { dateReviver } from '@/shared/utils/time/date-retriever.util'
+import { dateReviver } from '@/shared/utils/time/date-reviver.util'
 import {
     forwardRef,
     Inject,

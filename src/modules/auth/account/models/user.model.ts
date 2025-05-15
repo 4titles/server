@@ -1,3 +1,4 @@
+import { Comment } from '@/modules/content/comment/models/comment.model'
 import { Follow } from '@/modules/content/follow/models/follow.model'
 import { NotificationSettings } from '@/modules/infrastructure/notification/models/notification-settings.model'
 import { Notification } from '@/modules/infrastructure/notification/models/notification.model'
@@ -72,4 +73,7 @@ export class User {
 
     @Field(() => [Role], { nullable: true })
     roles?: Role[]
+
+    @Field(() => [Comment], { nullable: true })
+    comments?: Comment[]
 }

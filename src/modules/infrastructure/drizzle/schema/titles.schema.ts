@@ -11,13 +11,13 @@ import {
     uuid,
 } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
+import { comments } from './comments.schema'
 import {
     titleCategoryEnum,
     titleStatusEnum,
     titleTypeEnum,
 } from './enums.schema'
 import { favorites } from './favorites.schema'
-import { titleComments } from './title-comments.schema'
 import { titleCountries } from './title-countries.schema'
 import { titleFilmingLocations } from './title-filming-locations.schema'
 import { titleGenres } from './title-genres.schema'
@@ -64,7 +64,7 @@ export const titleRelations = relations(titles, ({ many }) => ({
     genres: many(titleGenres),
     languages: many(titleLanguages),
     countries: many(titleCountries),
-    comments: many(titleComments),
+    comments: many(comments),
     favorites: many(favorites, { relationName: 'title' }),
     favoritesFilmingLocation: many(favorites, {
         relationName: 'filmingLocationTitle',

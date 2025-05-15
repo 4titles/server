@@ -1,5 +1,6 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { Role } from '@/modules/auth/rbac/enums/roles.enum'
+import { CommentableType } from '@/modules/content/comment/enums/commentable-type.enum'
 import { FavoriteType } from '@/modules/content/favorite/enums/favorite-type.enum'
 import { FeedbackSource } from '@/modules/content/feedback/enums/feedback-source.enum'
 import { FeedbackStatus } from '@/modules/content/feedback/enums/feedback-status.enum'
@@ -116,4 +117,10 @@ export const filmingLocationProposalStatusEnum = pgEnum('proposal_status', [
     FilmingLocationProposalStatus.IN_PROGRESS,
     FilmingLocationProposalStatus.APPROVED,
     FilmingLocationProposalStatus.REJECTED,
+])
+
+export const commentableTypeEnum = pgEnum('commentable_type', [
+    CommentableType.TITLE,
+    CommentableType.LOCATION,
+    CommentableType.COLLECTION,
 ])

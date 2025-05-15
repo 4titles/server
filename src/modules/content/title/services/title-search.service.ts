@@ -3,7 +3,7 @@ import {
     PaginatedResult,
     SearchOptions,
 } from '@/shared/types/pagination.interface'
-import { dateReviver } from '@/shared/utils/time/date-retriever.util'
+import { dateReviver } from '@/shared/utils/time/date-reviver.util'
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types'
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common'
 import { TitleRelationsConfigService } from '../config/title-relations.config'

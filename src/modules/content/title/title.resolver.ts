@@ -1,7 +1,13 @@
+import { User } from '@/modules/auth/account/models/user.model'
 import { Action } from '@/modules/auth/rbac/enums/actions.enum'
 import { Resource } from '@/modules/auth/rbac/enums/resources.enum'
+import { Authorized } from '@/shared/decorators/authorized.decorator'
 import { RbacProtected } from '@/shared/guards/rbac-protected.guard'
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql'
+import { CommentableType } from '../comment/enums/commentable-type.enum'
+import { CommentFilterInput } from '../comment/inputs/comment-filter.input'
+import { Comment } from '../comment/models/comment.model'
+import { CommentService } from '../comment/services/comment.service'
 import { TitleCategory } from './enums/title-category.enum'
 import { TitleSyncSource } from './enums/title-sync-source.enum'
 import { TitleType } from './enums/title-type.enum'
@@ -27,6 +33,7 @@ export class TitleResolver {
         private readonly titleSearchService: TitleSearchService,
         private readonly titleElasticsearchService: TitleElasticsearchService,
         private readonly titleService: TitleService,
+        private readonly commentService: CommentService,
     ) {}
 
     @Query(() => [Title])
@@ -105,6 +112,20 @@ export class TitleResolver {
         return await this.titleSearchService.searchFilmingLocationsByIds(
             locationIds,
             query,
+        )
+    }
+
+    @Query(() => [Comment])
+    async findTitleComments(
+        @Args('filter') filter: CommentFilterInput,
+        @Authorized() user?: User,
+    ): Promise<Comment[]> {
+        return await this.commentService.findComments(
+            {
+                ...filter,
+                commentableType: CommentableType.TITLE,
+            },
+            user?.id,
         )
     }
 
