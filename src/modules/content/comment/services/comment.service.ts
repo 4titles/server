@@ -4,8 +4,9 @@ import { comments } from '@/modules/infrastructure/drizzle/schema/comments.schem
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { dateReviver } from '@/shared/utils/time/date-reviver.util'
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { and, count, desc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, sql, SQL } from 'drizzle-orm'
 import { TitleService } from '../../title/services/title.service'
+import { CommentSortOption } from '../enums/comment-sort-option.enum'
 import { CommentableType } from '../enums/commentable-type.enum'
 import { CommentFilterInput } from '../inputs/comment-filter.input'
 import { CreateCommentInput } from '../inputs/create-comment.input'
@@ -37,13 +38,6 @@ export class CommentService {
                         likes: true,
                     },
                 },
-                replies: {
-                    with: {
-                        user: true,
-                        likes: true,
-                    },
-                    orderBy: [desc(comments.createdAt)],
-                },
                 likes: true,
             },
         })
@@ -63,11 +57,8 @@ export class CommentService {
             )
         }
 
-        if (enrichedComment.replies?.length) {
-            enrichedComment.replies = enrichedComment.replies.map((reply) =>
-                this.enrichCommentWithLikesData(reply, userId),
-            )
-        }
+        const replies = await this.loadRepliesRecursively(commentId, userId)
+        enrichedComment.replies = replies
 
         return enrichedComment
     }
@@ -76,10 +67,10 @@ export class CommentService {
         input: CommentFilterInput,
         userId?: string,
     ): Promise<Comment[]> {
-        const { commentableType, commentableId, take, skip } = input
+        const { commentableType, commentableId, take, skip, sortBy } = input
 
         try {
-            const cacheKey = `${commentableType}:${commentableId}`
+            const cacheKey = this.commentCacheService.getCommentsCacheKey(input)
             const cachedComments =
                 await this.commentCacheService.getComments(input)
             if (cachedComments && !userId) {
@@ -89,51 +80,82 @@ export class CommentService {
                 )
             }
 
-            const commentsWithRelations = await this.db.query.comments.findMany(
-                {
-                    where: and(
-                        eq(comments.commentableType, commentableType),
-                        eq(comments.commentableId, commentableId),
-                        isNull(comments.parentId),
-                    ),
-                    with: {
-                        user: true,
-                        replies: {
-                            with: {
-                                user: true,
-                                likes: true,
-                            },
-                            orderBy: [desc(comments.createdAt)],
-                        },
-                        likes: true,
-                    },
-                    orderBy: [desc(comments.createdAt)],
-                    limit: take,
-                    offset: skip,
+            let orderBy: SQL[] = [desc(comments.createdAt)]
+
+            if (sortBy) {
+                switch (sortBy) {
+                    case CommentSortOption.LIKES_DESC:
+                        orderBy = [
+                            sql`(SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = comments.id) DESC`,
+                            desc(comments.createdAt),
+                        ]
+                        break
+                    case CommentSortOption.LIKES_ASC:
+                        orderBy = [
+                            sql`(SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = comments.id) ASC`,
+                            desc(comments.createdAt),
+                        ]
+                        break
+                    case CommentSortOption.DATE_DESC:
+                        orderBy = [desc(comments.createdAt)]
+                        break
+                    case CommentSortOption.DATE_ASC:
+                        orderBy = [asc(comments.createdAt)]
+                        break
+                    case CommentSortOption.REPLIES_DESC:
+                        orderBy = [
+                            sql`(SELECT COUNT(*) FROM comments replies WHERE replies.parent_id = comments.id) DESC`,
+                            desc(comments.createdAt),
+                        ]
+                        break
+                    case CommentSortOption.REPLIES_ASC:
+                        orderBy = [
+                            sql`(SELECT COUNT(*) FROM comments replies WHERE replies.parent_id = comments.id) ASC`,
+                            desc(comments.createdAt),
+                        ]
+                        break
+                    default:
+                        orderBy = [desc(comments.createdAt)]
+                }
+            }
+
+            const parentComments = await this.db.query.comments.findMany({
+                where: and(
+                    eq(comments.commentableType, commentableType),
+                    eq(comments.commentableId, commentableId),
+                    isNull(comments.parentId),
+                ),
+                with: {
+                    user: true,
+                    title: true,
+                    likes: true,
                 },
+                orderBy,
+                limit: take,
+                offset: skip,
+            })
+
+            const enrichedParentComments = parentComments.map((comment) =>
+                this.enrichCommentWithLikesData(comment, userId),
             )
 
-            const enrichedComments = commentsWithRelations.map((comment) => {
-                const enrichedComment = this.enrichCommentWithLikesData(
-                    comment,
+            for (const comment of enrichedParentComments) {
+                comment.replies = await this.loadRepliesRecursively(
+                    comment.id,
                     userId,
                 )
 
-                enrichedComment.replies = comment.replies.map((reply) =>
-                    this.enrichCommentWithLikesData(reply, userId),
-                )
-
-                return enrichedComment
-            })
+                comment['totalReplies'] = this.countTotalReplies(comment)
+            }
 
             if (!userId) {
                 await this.commentCacheService.storeComments(
                     input,
-                    enrichedComments,
+                    enrichedParentComments,
                 )
             }
 
-            return enrichedComments
+            return enrichedParentComments
         } catch (error) {
             this.logger.error(
                 `Error fetching comments for ${input.commentableType} ${input.commentableId}:`,
@@ -222,7 +244,7 @@ export class CommentService {
                 .where(eq(comments.id, commentId))
 
             await this.commentCacheService.invalidateCommentsCache(
-                comment.type,
+                comment.commentableType,
                 comment.commentableId,
             )
 
@@ -252,7 +274,7 @@ export class CommentService {
                 throw new Error('You can only delete your own comments')
             }
 
-            const commentableType = comment.type
+            const commentableType = comment.commentableType
             const commentableId = comment.commentableId
 
             await this.db.delete(comments).where(eq(comments.id, commentId))
@@ -312,7 +334,7 @@ export class CommentService {
             }
 
             await this.commentCacheService.invalidateCommentsCache(
-                comment.type,
+                comment.commentableType,
                 comment.commentableId,
             )
 
@@ -363,5 +385,48 @@ export class CommentService {
             likeCount,
             likedByMe,
         }
+    }
+
+    private async loadRepliesRecursively(
+        parentId: string,
+        userId?: string,
+    ): Promise<Comment[]> {
+        const directReplies = await this.db.query.comments.findMany({
+            where: eq(comments.parentId, parentId),
+            with: {
+                user: true,
+                likes: true,
+            },
+            orderBy: [desc(comments.createdAt)],
+        })
+
+        if (!directReplies.length) {
+            return []
+        }
+
+        const enrichedReplies = directReplies.map((reply) =>
+            this.enrichCommentWithLikesData(reply, userId),
+        )
+
+        for (const reply of enrichedReplies) {
+            reply.replies = await this.loadRepliesRecursively(reply.id, userId)
+            reply.totalReplies = this.countTotalReplies(reply)
+        }
+
+        return enrichedReplies
+    }
+
+    private countTotalReplies(comment: Comment): number {
+        if (!comment.replies || comment.replies.length === 0) {
+            return 0
+        }
+
+        let count = comment.replies.length
+
+        for (const reply of comment.replies) {
+            count += this.countTotalReplies(reply)
+        }
+
+        return count
     }
 }

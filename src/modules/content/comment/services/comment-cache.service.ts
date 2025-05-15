@@ -10,9 +10,9 @@ export class CommentCacheService {
 
     constructor(private readonly cacheService: CacheService) {}
 
-    private getCommentsCacheKey(input: CommentFilterInput): string {
-        const { commentableType, commentableId, take, skip } = input
-        return `comments:${commentableType}:${commentableId}:${take}:${skip}`
+    getCommentsCacheKey(input: CommentFilterInput): string {
+        const { commentableType, commentableId, take, skip, sortBy } = input
+        return `comments:${commentableType}:${commentableId}:${take}:${skip}:${sortBy}`
     }
 
     async getComments(input: CommentFilterInput): Promise<string | null> {

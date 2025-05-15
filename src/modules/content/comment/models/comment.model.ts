@@ -19,7 +19,7 @@ export class Comment {
     parentId?: string
 
     @Field(() => CommentableType)
-    type: CommentableType
+    commentableType: CommentableType
 
     @Field(() => String)
     message: string
@@ -27,7 +27,7 @@ export class Comment {
     @Field(() => User)
     user?: User
 
-    @Field(() => Title)
+    @Field(() => Title, { nullable: true })
     title?: Partial<Title>
 
     @Field(() => Comment, { nullable: true })
@@ -44,6 +44,9 @@ export class Comment {
 
     @Field(() => Boolean)
     likedByMe: boolean
+
+    @Field(() => Int, { defaultValue: 0 })
+    totalReplies: number
 
     @Field(() => Date)
     createdAt: Date

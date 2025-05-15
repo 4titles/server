@@ -1,5 +1,6 @@
 import { Field, InputType, Int } from '@nestjs/graphql'
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID } from 'class-validator'
+import { CommentSortOption } from '../enums/comment-sort-option.enum'
 import { CommentableType } from '../enums/commentable-type.enum'
 
 @InputType()
@@ -12,6 +13,14 @@ export class CommentFilterInput {
     @IsString()
     @IsUUID('4')
     commentableId: string
+
+    @Field(() => CommentSortOption, {
+        nullable: true,
+        defaultValue: CommentSortOption.DATE_DESC,
+    })
+    @IsOptional()
+    @IsEnum(CommentSortOption)
+    sortBy?: CommentSortOption = CommentSortOption.DATE_DESC
 
     @Field(() => Int, { nullable: true })
     @IsOptional()
