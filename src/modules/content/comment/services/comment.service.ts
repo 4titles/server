@@ -3,8 +3,15 @@ import { commentLikes } from '@/modules/infrastructure/drizzle/schema/comment-li
 import { comments } from '@/modules/infrastructure/drizzle/schema/comments.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { dateReviver } from '@/shared/utils/time/date-reviver.util'
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+    ConflictException,
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common'
 import { and, asc, desc, eq, isNull, or, sql, SQL } from 'drizzle-orm'
+import { ContentModerationService } from '../../content-moderation/services/content-moderation.service'
 import { TitleService } from '../../title/services/title.service'
 import { CommentSortOption } from '../enums/comment-sort-option.enum'
 import { CommentableType } from '../enums/commentable-type.enum'
@@ -25,6 +32,7 @@ export class CommentService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly titleService: TitleService,
         private readonly commentCacheService: CommentCacheService,
+        private readonly contentModerationService: ContentModerationService,
     ) {}
 
     async findById(commentId: string, userId?: string): Promise<Comment> {
@@ -270,6 +278,11 @@ export class CommentService {
         const { commentableType, commentableId, parentId, message } = input
 
         try {
+            const validation = await this.validateCommentMessage(message)
+            if (!validation.isValid) {
+                throw new ConflictException(validation.errorMessage)
+            }
+
             await this.verifyCommentableEntityExists(
                 commentableType,
                 commentableId,
@@ -328,6 +341,11 @@ export class CommentService {
                 throw new NotFoundException(
                     `Comment with ID ${commentId} not found`,
                 )
+            }
+
+            const validation = await this.validateCommentMessage(message)
+            if (!validation.isValid) {
+                throw new ConflictException(validation.errorMessage)
             }
 
             if (comment.userId !== userId) {
@@ -572,5 +590,25 @@ export class CommentService {
         }
 
         return count
+    }
+
+    private async validateCommentMessage(
+        message: string,
+    ): Promise<{ isValid: boolean; errorMessage?: string }> {
+        const isMessageValid =
+            await this.contentModerationService.validateContent({
+                text: message,
+            })
+
+        if (!isMessageValid) {
+            return {
+                isValid: false,
+                errorMessage: 'Comment contains prohibited content',
+            }
+        }
+
+        return {
+            isValid: true,
+        }
     }
 }
