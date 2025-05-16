@@ -16,24 +16,41 @@ export class CommentSeeder {
     constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
     async seed(
-        count: number = 50,
-        options: { withLikes: boolean } = { withLikes: true },
+        count: number = 100,
+        options: {
+            withLikes: boolean
+            withReplies: boolean
+            replyProbability: number
+            maxRepliesPerComment: number
+        } = {
+            withLikes: true,
+            withReplies: true,
+            replyProbability: 0.4,
+            maxRepliesPerComment: 5,
+        },
     ): Promise<number> {
         this.logger.log(`Starting to seed ${count} comments`)
 
         try {
             const titlesData = await this.db.query.titles.findMany({
-                limit: 50,
+                limit: 150,
             })
 
-            if (!titlesData.length) {
-                this.logger.warn('No titles found to seed comments')
+            const filmingLocationsData =
+                await this.db.query.filmingLocations.findMany({
+                    limit: 150,
+                })
+
+            if (!titlesData.length && !filmingLocationsData.length) {
+                this.logger.warn(
+                    'No titles or filming locations found to seed comments',
+                )
                 return 0
             }
 
             const activeUsers = await this.db.query.users.findMany({
                 where: eq(users.isDeactivated, false),
-                limit: 30,
+                limit: 50,
             })
 
             if (!activeUsers.length) {
@@ -45,86 +62,51 @@ export class CommentSeeder {
 
             const commentsBatch = []
             let createdCount = 0
-            const now = new Date()
 
-            const parentCommentsByTitle = new Map<string, string[]>()
+            const parentCommentsByCommentable = new Map<
+                string,
+                Array<{ id: string; createdAt: Date }>
+            >()
 
-            const parentCommentsCount = Math.floor(count * 0.7)
+            const titleCommentsCount =
+                titlesData.length > 0
+                    ? Math.floor(
+                          count * (filmingLocationsData.length > 0 ? 0.6 : 1),
+                      )
+                    : 0
 
-            for (let i = 0; i < parentCommentsCount; i++) {
-                const randomTitleIndex = Math.floor(
-                    Math.random() * titlesData.length,
-                )
-                const title = titlesData[randomTitleIndex]
+            const locationCommentsCount = count - titleCommentsCount
 
-                const randomUserIndex = Math.floor(
-                    Math.random() * activeUsers.length,
-                )
-                const user = activeUsers[randomUserIndex]
+            await this.createParentComments(
+                titlesData,
+                activeUsers,
+                titleCommentsCount,
+                CommentableType.TITLE,
+                parentCommentsByCommentable,
+                commentsBatch,
+            )
 
-                const commentId = uuidv4()
-                const createdAt = faker.date.past({ years: 1 })
+            await this.createParentComments(
+                filmingLocationsData,
+                activeUsers,
+                locationCommentsCount,
+                CommentableType.LOCATION,
+                parentCommentsByCommentable,
+                commentsBatch,
+            )
 
-                commentsBatch.push({
-                    id: commentId,
-                    userId: user.id,
-                    commentableId: title.id,
-                    commentableType: CommentableType.TITLE,
-                    message: faker.lorem.paragraph(),
-                    createdAt,
-                    updatedAt: createdAt,
-                })
+            createdCount = commentsBatch.length
 
-                if (!parentCommentsByTitle.has(title.id)) {
-                    parentCommentsByTitle.set(title.id, [])
-                }
-                parentCommentsByTitle.get(title.id).push(commentId)
-
-                createdCount++
-            }
-
-            const childCommentsCount = count - parentCommentsCount
-
-            for (let i = 0; i < childCommentsCount; i++) {
-                const titlesWithComments = Array.from(
-                    parentCommentsByTitle.keys(),
+            if (options.withReplies) {
+                const replyCommentsBatch = await this.createReplyComments(
+                    parentCommentsByCommentable,
+                    activeUsers,
+                    options.replyProbability,
+                    options.maxRepliesPerComment,
                 )
 
-                if (titlesWithComments.length === 0) {
-                    break
-                }
-
-                const randomTitleIndex = Math.floor(
-                    Math.random() * titlesWithComments.length,
-                )
-                const titleId = titlesWithComments[randomTitleIndex]
-
-                const parentComments = parentCommentsByTitle.get(titleId)
-                const randomParentIndex = Math.floor(
-                    Math.random() * parentComments.length,
-                )
-                const parentId = parentComments[randomParentIndex]
-
-                const randomUserIndex = Math.floor(
-                    Math.random() * activeUsers.length,
-                )
-                const user = activeUsers[randomUserIndex]
-
-                const commentId = uuidv4()
-                const createdAt = faker.date.past({ years: 1 })
-
-                commentsBatch.push({
-                    id: commentId,
-                    userId: user.id,
-                    commentableId: titleId,
-                    commentableType: CommentableType.TITLE,
-                    parentId,
-                    message: faker.lorem.sentences(2),
-                    createdAt,
-                    updatedAt: createdAt,
-                })
-
-                createdCount++
+                commentsBatch.push(...replyCommentsBatch)
+                createdCount = commentsBatch.length
             }
 
             if (commentsBatch.length > 0) {
@@ -146,32 +128,172 @@ export class CommentSeeder {
         }
     }
 
+    private async createParentComments(
+        commentableItems: any[],
+        activeUsers: any[],
+        count: number,
+        commentableType: CommentableType,
+        parentCommentsByCommentable: Map<
+            string,
+            Array<{ id: string; createdAt: Date }>
+        >,
+        commentsBatch: any[],
+    ): Promise<void> {
+        if (commentableItems.length === 0 || count === 0) return
+
+        const commentsPerItem = Math.max(
+            1,
+            Math.floor(count / commentableItems.length),
+        )
+
+        for (const item of commentableItems) {
+            const itemCommentsCount = Math.min(
+                commentsPerItem + Math.floor(Math.random() * 3) - 1,
+                Math.ceil((count / commentableItems.length) * 2),
+            )
+
+            for (let i = 0; i < itemCommentsCount; i++) {
+                const randomUserIndex = Math.floor(
+                    Math.random() * activeUsers.length,
+                )
+                const user = activeUsers[randomUserIndex]
+
+                const commentId = uuidv4()
+                const message =
+                    commentableType === CommentableType.TITLE
+                        ? faker.lorem.paragraph(
+                              1 + Math.floor(Math.random() * 3),
+                          )
+                        : faker.lorem.sentences(
+                              1 + Math.floor(Math.random() * 4),
+                          )
+
+                const createdAt = faker.date.past({ years: 1 })
+
+                commentsBatch.push({
+                    id: commentId,
+                    userId: user.id,
+                    commentableId: item.id,
+                    commentableType,
+                    message,
+                    createdAt,
+                    updatedAt: createdAt,
+                })
+
+                const key = `${commentableType}:${item.id}`
+                if (!parentCommentsByCommentable.has(key)) {
+                    parentCommentsByCommentable.set(key, [])
+                }
+                parentCommentsByCommentable
+                    .get(key)
+                    .push({ id: commentId, createdAt })
+            }
+        }
+    }
+
+    private async createReplyComments(
+        parentCommentsByCommentable: Map<
+            string,
+            Array<{ id: string; createdAt: Date }>
+        >,
+        activeUsers: any[],
+        replyProbability: number,
+        maxRepliesPerComment: number,
+    ): Promise<any[]> {
+        const replyCommentsBatch = []
+        const parentCommentsToFetch = []
+
+        for (const [
+            commentableKey,
+            parentComments,
+        ] of parentCommentsByCommentable.entries()) {
+            const [commentableType, commentableId] = commentableKey.split(':')
+
+            for (const parentComment of parentComments) {
+                if (Math.random() <= replyProbability) {
+                    parentCommentsToFetch.push(parentComment.id)
+
+                    const repliesCount =
+                        2 +
+                        Math.floor(Math.random() * (maxRepliesPerComment - 1))
+
+                    for (let i = 0; i < repliesCount; i++) {
+                        const randomUserIndex = Math.floor(
+                            Math.random() * activeUsers.length,
+                        )
+                        const user = activeUsers[randomUserIndex]
+
+                        const createdAt = new Date(
+                            parentComment.createdAt.getTime() +
+                                Math.random() *
+                                    (Date.now() -
+                                        parentComment.createdAt.getTime()),
+                        )
+
+                        replyCommentsBatch.push({
+                            id: uuidv4(),
+                            userId: user.id,
+                            commentableId: commentableId,
+                            commentableType: commentableType as CommentableType,
+                            parentId: parentComment.id,
+                            message: this.generateReplyMessage(i, repliesCount),
+                            createdAt,
+                            updatedAt: createdAt,
+                        })
+                    }
+                }
+            }
+        }
+
+        return replyCommentsBatch
+    }
+
+    private generateReplyMessage(index: number, totalReplies: number): string {
+        if (index === 0) {
+            return faker.lorem.sentences(1 + Math.floor(Math.random() * 3))
+        } else if (index === totalReplies - 1) {
+            return faker.lorem.sentence()
+        } else {
+            return faker.lorem.sentences(1 + Math.floor(Math.random() * 2))
+        }
+    }
+
     private async seedLikes(
-        comments: any[],
+        commentBatch: any[],
         activeUsers: any[],
     ): Promise<void> {
         try {
             const likesBatch = []
             let likeCount = 0
 
-            for (const comment of comments) {
-                const numberOfLikes = Math.floor(Math.random() * 6)
+            for (const comment of commentBatch) {
+                const maxLikes = comment.parentId ? 3 : 8
+                const numberOfLikes = Math.floor(Math.random() * maxLikes)
 
-                const shuffledUsers = [...activeUsers].sort(
-                    () => Math.random() - 0.5,
-                )
-                const usersForLikes = shuffledUsers.slice(0, numberOfLikes)
+                if (Math.random() > 0.7 && numberOfLikes > 0) {
+                    const shuffledUsers = [...activeUsers].sort(
+                        () => Math.random() - 0.5,
+                    )
+                    const usersForLikes = shuffledUsers.slice(0, numberOfLikes)
 
-                for (const user of usersForLikes) {
-                    if (user.id === comment.userId) continue
+                    for (const user of usersForLikes) {
+                        if (user.id === comment.userId) continue
 
-                    likesBatch.push({
-                        userId: user.id,
-                        commentId: comment.id,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    })
-                    likeCount++
+                        const timeSinceComment =
+                            Date.now() - comment.createdAt.getTime()
+                        const likeCreatedAt = new Date(
+                            comment.createdAt.getTime() +
+                                Math.random() * timeSinceComment,
+                        )
+
+                        likesBatch.push({
+                            userId: user.id,
+                            commentId: comment.id,
+                            createdAt: likeCreatedAt,
+                            updatedAt: likeCreatedAt,
+                        })
+                        likeCount++
+                    }
                 }
             }
 
