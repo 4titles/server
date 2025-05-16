@@ -11,6 +11,7 @@ import { CommentableType } from '../enums/commentable-type.enum'
 import { CommentFilterInput } from '../inputs/comment-filter.input'
 import { CreateCommentInput } from '../inputs/create-comment.input'
 import { DeleteCommentInput } from '../inputs/delete-comment.input'
+import { GetCommentCountInput } from '../inputs/get-comment-count.input'
 import { ToggleLikeCommentInput } from '../inputs/toggle-like-comment.input'
 import { UpdateCommentInput } from '../inputs/update-comment.input'
 import { Comment } from '../models/comment.model'
@@ -231,6 +232,37 @@ export class CommentService {
                 error,
             )
             throw error
+        }
+    }
+
+    async getCommentCount(input: GetCommentCountInput): Promise<number> {
+        const { commentableId, commentableType } = input
+
+        try {
+            const result = await this.db.execute(
+                sql`
+                WITH RECURSIVE all_comments AS (
+                    SELECT id, parent_id 
+                    FROM comments 
+                    WHERE commentable_type = ${commentableType} 
+                    AND commentable_id = ${commentableId}
+                )
+                SELECT COUNT(*) AS total_count FROM all_comments
+                `,
+            )
+
+            const totalCount = parseInt(
+                result.rows[0]?.total_count?.toString() || '0',
+                10,
+            )
+
+            return totalCount
+        } catch (error) {
+            this.logger.error(
+                `Error counting comments for ${commentableType} ${commentableId}:`,
+                error,
+            )
+            return 0
         }
     }
 

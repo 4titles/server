@@ -8,6 +8,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql'
 import { CommentFilterInput } from './inputs/comment-filter.input'
 import { CreateCommentInput } from './inputs/create-comment.input'
 import { DeleteCommentInput } from './inputs/delete-comment.input'
+import { GetCommentCountInput } from './inputs/get-comment-count.input'
 import { ToggleLikeCommentInput } from './inputs/toggle-like-comment.input'
 import { UpdateCommentInput } from './inputs/update-comment.input'
 import { Comment } from './models/comment.model'
@@ -32,6 +33,13 @@ export class CommentResolver {
         @Authorized() user?: User,
     ): Promise<Comment> {
         return await this.commentService.findById(id, user?.id)
+    }
+
+    @Query(() => Number)
+    async getCommentCount(
+        @Args('input') input: GetCommentCountInput,
+    ): Promise<number> {
+        return await this.commentService.getCommentCount(input)
     }
 
     // @RbacProtected({
