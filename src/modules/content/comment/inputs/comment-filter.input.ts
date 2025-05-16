@@ -22,6 +22,11 @@ export class CommentFilterInput {
     @IsEnum(CommentSortOption)
     sortBy?: CommentSortOption = CommentSortOption.DATE_DESC
 
+    @Field(() => String, { nullable: true })
+    @IsOptional()
+    @IsString()
+    search?: string
+
     @Field(() => Int, { nullable: true })
     @IsOptional()
     @IsInt()

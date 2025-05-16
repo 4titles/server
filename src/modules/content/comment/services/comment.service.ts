@@ -4,7 +4,7 @@ import { comments } from '@/modules/infrastructure/drizzle/schema/comments.schem
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { dateReviver } from '@/shared/utils/time/date-reviver.util'
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { and, asc, desc, eq, isNull, sql, SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, or, sql, SQL } from 'drizzle-orm'
 import { TitleService } from '../../title/services/title.service'
 import { CommentSortOption } from '../enums/comment-sort-option.enum'
 import { CommentableType } from '../enums/commentable-type.enum'
@@ -67,13 +67,14 @@ export class CommentService {
         input: CommentFilterInput,
         userId?: string,
     ): Promise<Comment[]> {
-        const { commentableType, commentableId, take, skip, sortBy } = input
+        const { commentableType, commentableId, take, skip, sortBy, search } =
+            input
 
         try {
             const cacheKey = this.commentCacheService.getCommentsCacheKey(input)
             const cachedComments =
                 await this.commentCacheService.getComments(input)
-            if (cachedComments && !userId) {
+            if (cachedComments && !userId && !search) {
                 this.logger.debug(`Cache hit for comments: ${cacheKey}`)
                 return JSON.parse(cachedComments, (key, value) =>
                     dateReviver(['createdAt', 'updatedAt'], key, value),
@@ -104,13 +105,33 @@ export class CommentService {
                         break
                     case CommentSortOption.REPLIES_DESC:
                         orderBy = [
-                            sql`(SELECT COUNT(*) FROM comments replies WHERE replies.parent_id = comments.id) DESC`,
+                            sql`(WITH RECURSIVE comment_tree AS (
+                                SELECT c.id, c.parent_id, 0 AS depth
+                                FROM comments c
+                                WHERE c.id = comments.id
+                                UNION ALL
+                                SELECT c.id, c.parent_id, ct.depth + 1
+                                FROM comments c
+                                JOIN comment_tree ct ON c.parent_id = ct.id
+                                WHERE c.parent_id IS NOT NULL
+                            )
+                            SELECT COUNT(*) FROM comment_tree WHERE id != comments.id) DESC`,
                             desc(comments.createdAt),
                         ]
                         break
                     case CommentSortOption.REPLIES_ASC:
                         orderBy = [
-                            sql`(SELECT COUNT(*) FROM comments replies WHERE replies.parent_id = comments.id) ASC`,
+                            sql`(WITH RECURSIVE comment_tree AS (
+                                SELECT c.id, c.parent_id, 0 AS depth
+                                FROM comments c
+                                WHERE c.id = comments.id
+                                UNION ALL
+                                SELECT c.id, c.parent_id, ct.depth + 1
+                                FROM comments c
+                                JOIN comment_tree ct ON c.parent_id = ct.id
+                                WHERE c.parent_id IS NOT NULL
+                            )
+                            SELECT COUNT(*) FROM comment_tree WHERE id != comments.id) ASC`,
                             desc(comments.createdAt),
                         ]
                         break
@@ -119,12 +140,46 @@ export class CommentService {
                 }
             }
 
-            const parentComments = await this.db.query.comments.findMany({
-                where: and(
-                    eq(comments.commentableType, commentableType),
-                    eq(comments.commentableId, commentableId),
-                    isNull(comments.parentId),
-                ),
+            const conditions = [
+                eq(comments.commentableType, commentableType),
+                eq(comments.commentableId, commentableId),
+            ]
+
+            if (!search || !search.trim()) {
+                conditions.push(isNull(comments.parentId))
+            }
+
+            if (search && search.trim()) {
+                const searchTerm = `%${search.trim().toLowerCase()}%`
+
+                if (!search.startsWith('@')) {
+                    conditions.push(
+                        or(
+                            sql`LOWER(${comments.message}) LIKE ${searchTerm}`,
+                            sql`EXISTS (
+                                SELECT 1 FROM users u 
+                                WHERE u.id = ${comments.userId} AND (
+                                    LOWER(u.username) LIKE ${searchTerm} OR 
+                                    LOWER(u.display_name) LIKE ${searchTerm}
+                                )
+                            )`,
+                        ),
+                    )
+                } else {
+                    const usernameSearch = `%${search.trim().substring(1).toLowerCase()}%`
+                    conditions.push(
+                        sql`EXISTS (
+                            SELECT 1 FROM users u 
+                            WHERE u.id = ${comments.userId} AND (
+                                LOWER(u.username) LIKE ${usernameSearch}
+                            )
+                        )`,
+                    )
+                }
+            }
+
+            const commentsQuery = this.db.query.comments.findMany({
+                where: and(...conditions),
                 with: {
                     user: true,
                     title: true,
@@ -135,20 +190,34 @@ export class CommentService {
                 offset: skip,
             })
 
+            let parentComments: any[] = await commentsQuery
+
             const enrichedParentComments = parentComments.map((comment) =>
                 this.enrichCommentWithLikesData(comment, userId),
             )
 
             for (const comment of enrichedParentComments) {
-                comment.replies = await this.loadRepliesRecursively(
-                    comment.id,
-                    userId,
-                )
+                if (
+                    search?.trim() &&
+                    !comment.message
+                        .toLowerCase()
+                        .includes(search.trim().toLowerCase())
+                ) {
+                    comment.replies = []
+                } else {
+                    comment.replies = await this.loadRepliesRecursively(
+                        comment.id,
+                        userId,
+                        search,
+                    )
+                }
 
-                comment['totalReplies'] = this.countTotalReplies(comment)
+                comment.totalReplies = search?.trim()
+                    ? comment.replies.length
+                    : this.countTotalReplies(comment)
             }
 
-            if (!userId) {
+            if (!userId && !search) {
                 await this.commentCacheService.storeComments(
                     input,
                     enrichedParentComments,
@@ -390,8 +459,9 @@ export class CommentService {
     private async loadRepliesRecursively(
         parentId: string,
         userId?: string,
+        search?: string,
     ): Promise<Comment[]> {
-        const directReplies = await this.db.query.comments.findMany({
+        let repliesQuery = this.db.query.comments.findMany({
             where: eq(comments.parentId, parentId),
             with: {
                 user: true,
@@ -399,6 +469,44 @@ export class CommentService {
             },
             orderBy: [desc(comments.createdAt)],
         })
+
+        if (search && search.trim()) {
+            const searchTerm = `%${search.trim().toLowerCase()}%`
+
+            let searchCondition: SQL
+
+            if (!search.startsWith('@')) {
+                searchCondition = or(
+                    sql`LOWER(${comments.message}) LIKE ${searchTerm}`,
+                    sql`EXISTS (
+                        SELECT 1 FROM users u 
+                        WHERE u.id = ${comments.userId} AND (
+                            LOWER(u.username) LIKE ${searchTerm} OR 
+                            LOWER(u.display_name) LIKE ${searchTerm}
+                        )
+                    )`,
+                )
+            } else {
+                const usernameSearch = `%${search.trim().substring(1).toLowerCase()}%`
+                searchCondition = sql`EXISTS (
+                    SELECT 1 FROM users u 
+                    WHERE u.id = ${comments.userId} AND (
+                        LOWER(u.username) LIKE ${usernameSearch}
+                    )
+                )`
+            }
+
+            repliesQuery = this.db.query.comments.findMany({
+                where: and(eq(comments.parentId, parentId), searchCondition),
+                with: {
+                    user: true,
+                    likes: true,
+                },
+                orderBy: [desc(comments.createdAt)],
+            })
+        }
+
+        const directReplies = await repliesQuery
 
         if (!directReplies.length) {
             return []
@@ -409,7 +517,11 @@ export class CommentService {
         )
 
         for (const reply of enrichedReplies) {
-            reply.replies = await this.loadRepliesRecursively(reply.id, userId)
+            reply.replies = await this.loadRepliesRecursively(
+                reply.id,
+                userId,
+                search,
+            )
             reply.totalReplies = this.countTotalReplies(reply)
         }
 
