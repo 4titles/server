@@ -13,4 +13,5 @@ export enum Resource {
     GEOCODING = 'geocoding',
     FILMING_LOCATION = 'filming_location',
     COMMENT = 'comment',
+    COLLECTION = 'collection',
 }

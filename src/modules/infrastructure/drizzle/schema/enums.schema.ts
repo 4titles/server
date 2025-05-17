@@ -1,5 +1,6 @@
 import { TokenType } from '@/modules/auth/account/enums/token-type.enum'
 import { Role } from '@/modules/auth/rbac/enums/roles.enum'
+import { CollectionType } from '@/modules/content/collection/enums/collection-type.enum'
 import { CommentableType } from '@/modules/content/comment/enums/commentable-type.enum'
 import { FavorableType } from '@/modules/content/favorite/enums/favorable-type.enum'
 import { FeedbackSource } from '@/modules/content/feedback/enums/feedback-source.enum'
@@ -124,4 +125,9 @@ export const commentableTypeEnum = pgEnum('commentable_type', [
     CommentableType.TITLE,
     CommentableType.LOCATION,
     CommentableType.COLLECTION,
+])
+
+export const collectionTypeEnum = pgEnum('collection_type', [
+    CollectionType.TITLE,
+    CollectionType.LOCATION,
 ])

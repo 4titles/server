@@ -1,6 +1,7 @@
 import { AiModule } from '@/modules/infrastructure/ai/ai.module'
 import { BullModule } from '@nestjs/bullmq'
 import { Module, forwardRef } from '@nestjs/common'
+import { CollectionModule } from '../collection/collection.module'
 import { CommentModule } from '../comment/comment.module'
 import { FavoriteModule } from '../favorite/favorite.module'
 import { TitleRelationsConfigService } from './config/title-relations.config'
@@ -63,6 +64,7 @@ import { TitleResolver } from './title.resolver'
         AiModule,
         forwardRef(() => FavoriteModule),
         forwardRef(() => CommentModule),
+        forwardRef(() => CollectionModule),
     ],
     providers: [
         TitleResolver,

@@ -5,12 +5,14 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/filming-locations.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { and, eq, ilike, or, SQL } from 'drizzle-orm'
 import { CountryService } from '../../country/country.service'
 import { Country } from '../../country/models/country.model'
 import { GeocodingService } from '../../geocoding/geocoding.service'
 import { GeocodingResult } from '../../geocoding/models/geocoding-result.model'
+import { FindFilmingLocationsInput } from '../inputs/find-filming-locations.input'
 import { RawLocation } from '../interfaces/raw-location.interface'
+import { FilmingLocation } from '../models/filming-location.model'
 
 @Injectable()
 export class FilmingLocationService {
@@ -60,6 +62,55 @@ export class FilmingLocationService {
                 },
             },
         })
+    }
+
+    async findFilmingLocations(
+        input: FindFilmingLocationsInput,
+    ): Promise<FilmingLocation[]> {
+        const { take = 10, skip = 0, search } = input
+
+        const conditions: SQL[] = []
+
+        if (search) {
+            conditions.push(
+                or(
+                    ilike(filmingLocations.address, `%${search}%`),
+                    ilike(filmingLocations.formattedAddress, `%${search}%`),
+                    ilike(filmingLocations.placeId, `%${search}%`),
+                    ilike(filmingLocations.city, `%${search}%`),
+                    ilike(filmingLocations.state, `%${search}%`),
+                    ilike(filmingLocations.description, `%${search}%`),
+                ),
+            )
+        }
+
+        return (await this.db.query.filmingLocations.findMany({
+            where: conditions.length > 0 ? and(...conditions) : undefined,
+            limit: take,
+            offset: skip,
+            with: {
+                country: true,
+                descriptions: {
+                    with: {
+                        language: true,
+                    },
+                },
+                titleFilmingLocations: {
+                    with: {
+                        filmingLocation: true,
+                        title: {
+                            with: {
+                                translations: {
+                                    with: {
+                                        language: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        })) as unknown as FilmingLocation[]
     }
 
     async geocodeLocationsByAddress(

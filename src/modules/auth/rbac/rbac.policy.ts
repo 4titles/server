@@ -31,6 +31,16 @@ RBAC_POLICY.grant(Role.USER)
     .updateOwn(Resource.CONTENT)
     .deleteOwn(Resource.CONTENT)
     .readAny(Resource.CONTENT)
+    // Comments
+    .readAny(Resource.COMMENT)
+    .createOwn(Resource.COMMENT)
+    .updateOwn(Resource.COMMENT)
+    .deleteOwn(Resource.COMMENT)
+    // Collections
+    .readAny(Resource.COLLECTION)
+    .createOwn(Resource.COLLECTION)
+    .updateOwn(Resource.COLLECTION)
+    .deleteOwn(Resource.COLLECTION)
 
 RBAC_POLICY.grant(Role.MODERATOR)
     .extend(Role.USER)

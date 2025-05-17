@@ -1,8 +1,15 @@
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
 import { favorites } from '@/modules/infrastructure/drizzle/schema/favorites.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import {
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException,
+    forwardRef,
+} from '@nestjs/common'
+import { and, count, desc, eq, isNull, sql } from 'drizzle-orm'
+import { CollectionService } from '../collection/collection.service'
 import { Title } from '../title/models/title.model'
 import { FilmingLocationService } from '../title/modules/filming-location/services/filming-location.service'
 import { TitleQueryService } from '../title/services/title-query.service'
@@ -22,6 +29,8 @@ export class FavoriteService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly titleQueryService: TitleQueryService,
         private readonly filmingLocationService: FilmingLocationService,
+        @Inject(forwardRef(() => CollectionService))
+        private readonly collectionService: CollectionService,
     ) {}
 
     async findFavorite(
@@ -132,6 +141,31 @@ export class FavoriteService {
             .where(and(...conditions))
 
         return result[0]?.count > 0
+    }
+
+    async getFavoritesCount(
+        favorableId: string,
+        favorableType: FavorableType,
+    ): Promise<number> {
+        try {
+            const result = await this.db
+                .select({ count: count() })
+                .from(favorites)
+                .where(
+                    and(
+                        eq(favorites.favorableId, favorableId),
+                        eq(favorites.favorableType, favorableType),
+                    ),
+                )
+
+            return result[0]?.count || 0
+        } catch (error) {
+            this.logger.error(
+                `Failed to get favorites count for ${favorableType} ${favorableId}`,
+                error.stack,
+            )
+            return 0
+        }
     }
 
     async addToFavorites(
@@ -257,6 +291,15 @@ export class FavoriteService {
                             `The title with ID ${contextId} is not associated with location ${favorableId}`,
                         )
                     }
+                }
+                break
+            case FavorableType.COLLECTION:
+                const collection =
+                    await this.collectionService.findById(favorableId)
+                if (!collection) {
+                    throw new NotFoundException(
+                        `Collection with ID ${favorableId} not found`,
+                    )
                 }
                 break
             default:

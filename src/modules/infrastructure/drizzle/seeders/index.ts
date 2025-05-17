@@ -1,3 +1,4 @@
+export { CollectionSeeder } from './collection.seeder'
 export { CommentSeeder } from './comment.seeder'
 export { DatabaseSeeder } from './database.seeder'
 export { FollowSeeder } from './follow.seeder'

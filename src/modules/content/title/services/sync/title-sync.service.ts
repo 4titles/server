@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { Cron } from '@nestjs/schedule'
+import { Cron, CronExpression } from '@nestjs/schedule'
 import {
     defaultTitleSyncConfig,
     TitleSyncConfig,
@@ -32,24 +32,28 @@ export class TitleSyncService {
         private readonly titleElasticsearchSyncService: TitleElasticsearchSyncService,
     ) {}
 
-    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.POPULAR])
-    async syncPopularTitles(): Promise<void> {
-        try {
-            this.logger.warn('Starting popular titles sync')
-            await this.titleSyncQueueService.addCategorySyncJob(
-                TitleCategory.POPULAR,
-            )
-            await this.titleCacheService.setCategorySyncTimestamp(
-                TitleCategory.POPULAR,
-                TitleSyncTimestamp.START,
-            )
-        } catch (error) {
-            this.logger.fatal('Failed to start popular titles sync: ', error)
-            throw error
+    async syncByCategory(category?: TitleCategory): Promise<void> {
+        switch (category) {
+            case TitleCategory.TOP_RATED:
+                return this.syncTopRatedTitles()
+            case TitleCategory.POPULAR:
+                return this.syncPopularTitles()
+            case TitleCategory.TRENDING:
+                return this.syncTrendingTitles()
+            case TitleCategory.AIRING:
+                return this.syncAiringTitles()
+            case TitleCategory.UPCOMING:
+                return this.syncUpcomingTitles()
+            case TitleCategory.REGULAR:
+                return this.checkRegularTitlesChanges()
+            default:
+                this.syncAll()
+                return
         }
     }
 
-    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.TOP_RATED])
+    @Cron(CronExpression.EVERY_YEAR)
+    // @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.TOP_RATED])
     async syncTopRatedTitles(): Promise<void> {
         try {
             this.logger.warn('Starting top rated titles sync')
@@ -66,7 +70,26 @@ export class TitleSyncService {
         }
     }
 
-    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.TRENDING])
+    @Cron(CronExpression.EVERY_YEAR)
+    // @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.POPULAR])
+    async syncPopularTitles(): Promise<void> {
+        try {
+            this.logger.warn('Starting popular titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.POPULAR,
+            )
+            await this.titleCacheService.setCategorySyncTimestamp(
+                TitleCategory.POPULAR,
+                TitleSyncTimestamp.START,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start popular titles sync: ', error)
+            throw error
+        }
+    }
+
+    @Cron(CronExpression.EVERY_YEAR)
+    // @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.TRENDING])
     async syncTrendingTitles(): Promise<void> {
         try {
             this.logger.warn('Starting trending titles sync')
@@ -83,24 +106,8 @@ export class TitleSyncService {
         }
     }
 
-    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.UPCOMING])
-    async syncUpcomingTitles(): Promise<void> {
-        try {
-            this.logger.warn('Starting upcoming titles sync')
-            await this.titleSyncQueueService.addCategorySyncJob(
-                TitleCategory.UPCOMING,
-            )
-            await this.titleCacheService.setCategorySyncTimestamp(
-                TitleCategory.UPCOMING,
-                TitleSyncTimestamp.START,
-            )
-        } catch (error) {
-            this.logger.fatal('Failed to start upcoming titles sync: ', error)
-            throw error
-        }
-    }
-
-    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.AIRING])
+    @Cron(CronExpression.EVERY_YEAR)
+    // @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.AIRING])
     async syncAiringTitles(): Promise<void> {
         try {
             this.logger.warn('Starting airing titles sync')
@@ -117,7 +124,26 @@ export class TitleSyncService {
         }
     }
 
-    @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.REGULAR])
+    @Cron(CronExpression.EVERY_YEAR)
+    // @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.UPCOMING])
+    async syncUpcomingTitles(): Promise<void> {
+        try {
+            this.logger.warn('Starting upcoming titles sync')
+            await this.titleSyncQueueService.addCategorySyncJob(
+                TitleCategory.UPCOMING,
+            )
+            await this.titleCacheService.setCategorySyncTimestamp(
+                TitleCategory.UPCOMING,
+                TitleSyncTimestamp.START,
+            )
+        } catch (error) {
+            this.logger.fatal('Failed to start upcoming titles sync: ', error)
+            throw error
+        }
+    }
+
+    @Cron(CronExpression.EVERY_YEAR)
+    // @Cron(defaultTitleSyncConfig.cronExpressions[TitleCategory.REGULAR])
     async checkRegularTitlesChanges(): Promise<void> {
         try {
             this.logger.log('Starting regular titles changes check')
