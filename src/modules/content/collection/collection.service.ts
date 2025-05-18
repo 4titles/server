@@ -15,7 +15,6 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/title-collection-items.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { S3Service } from '@/modules/infrastructure/s3/s3.service'
-import { generateSlug } from '@/shared/utils/common/slug.utils'
 import {
     BadRequestException,
     ConflictException,
@@ -209,7 +208,7 @@ export class CollectionService {
 
         await this.validateCollectionContent(title, description)
 
-        const collectionSlug = slug(`${title + user.username}`, {
+        const collectionSlug = slug(`${title + '-' + user.username}`, {
             fallback: true,
         })
 
@@ -337,7 +336,6 @@ export class CollectionService {
             .update(collections)
             .set(updateData)
             .where(eq(collections.id, id))
-            .returning()
 
         if (
             existingCollection.type === CollectionType.TITLE &&
@@ -358,7 +356,7 @@ export class CollectionService {
             user.id,
         )
 
-        return this.mapCollectionToModel(updatedCollection[0], metadata)
+        return this.mapCollectionToModel(updatedCollection, metadata)
     }
 
     async delete(user: User, id: string): Promise<boolean> {
@@ -534,8 +532,18 @@ export class CollectionService {
             )
         }
 
-        await this.s3Service.remove(collection.coverImage)
-        return true
+        try {
+            await this.s3Service.remove(collection.coverImage)
+
+            await this.db
+                .update(collections)
+                .set({ coverImage: null } as Partial<DbCollection>)
+                .where(eq(collections.id, collection.id))
+
+            return true
+        } catch {
+            return false
+        }
     }
 
     async getCollectionItemsCount(

@@ -22,11 +22,17 @@ export class CommentSeeder {
             withReplies: boolean
             replyProbability: number
             maxRepliesPerComment: number
+            distributionRatio?: {
+                title: number
+                location: number
+                collection: number
+            }
         } = {
             withLikes: true,
             withReplies: true,
             replyProbability: 0.4,
             maxRepliesPerComment: 5,
+            distributionRatio: { title: 0.5, location: 0.3, collection: 0.2 },
         },
     ): Promise<number> {
         this.logger.log(`Starting to seed ${count} comments`)
@@ -41,9 +47,17 @@ export class CommentSeeder {
                     limit: 150,
                 })
 
-            if (!titlesData.length && !filmingLocationsData.length) {
+            const collectionsData = await this.db.query.collections.findMany({
+                limit: 150,
+            })
+
+            if (
+                !titlesData.length &&
+                !filmingLocationsData.length &&
+                !collectionsData.length
+            ) {
                 this.logger.warn(
-                    'No titles or filming locations found to seed comments',
+                    'No titles, filming locations, or collections found to seed comments',
                 )
                 return 0
             }
@@ -68,14 +82,20 @@ export class CommentSeeder {
                 Array<{ id: string; createdAt: Date }>
             >()
 
-            const titleCommentsCount =
-                titlesData.length > 0
-                    ? Math.floor(
-                          count * (filmingLocationsData.length > 0 ? 0.6 : 1),
-                      )
-                    : 0
+            const {
+                title: titleRatio,
+                location: locationRatio,
+                collection: collectionRatio,
+            } = this.adjustDistributionRatio(options.distributionRatio, {
+                titlesAvailable: titlesData.length > 0,
+                locationsAvailable: filmingLocationsData.length > 0,
+                collectionsAvailable: collectionsData.length > 0,
+            })
 
-            const locationCommentsCount = count - titleCommentsCount
+            const titleCommentsCount = Math.floor(count * titleRatio)
+            const locationCommentsCount = Math.floor(count * locationRatio)
+            const collectionCommentsCount =
+                count - titleCommentsCount - locationCommentsCount
 
             await this.createParentComments(
                 titlesData,
@@ -91,6 +111,15 @@ export class CommentSeeder {
                 activeUsers,
                 locationCommentsCount,
                 CommentableType.LOCATION,
+                parentCommentsByCommentable,
+                commentsBatch,
+            )
+
+            await this.createParentComments(
+                collectionsData,
+                activeUsers,
+                collectionCommentsCount,
+                CommentableType.COLLECTION,
                 parentCommentsByCommentable,
                 commentsBatch,
             )
@@ -128,6 +157,48 @@ export class CommentSeeder {
         }
     }
 
+    private adjustDistributionRatio(
+        ratio: { title: number; location: number; collection: number },
+        available: {
+            titlesAvailable: boolean
+            locationsAvailable: boolean
+            collectionsAvailable: boolean
+        },
+    ): { title: number; location: number; collection: number } {
+        const { titlesAvailable, locationsAvailable, collectionsAvailable } =
+            available
+
+        if (titlesAvailable && locationsAvailable && collectionsAvailable) {
+            return ratio
+        }
+
+        let adjustedRatio = { title: 0, location: 0, collection: 0 }
+        let totalAvailableRatio = 0
+
+        if (titlesAvailable) {
+            adjustedRatio.title = ratio.title
+            totalAvailableRatio += ratio.title
+        }
+
+        if (locationsAvailable) {
+            adjustedRatio.location = ratio.location
+            totalAvailableRatio += ratio.location
+        }
+
+        if (collectionsAvailable) {
+            adjustedRatio.collection = ratio.collection
+            totalAvailableRatio += ratio.collection
+        }
+
+        if (totalAvailableRatio > 0) {
+            adjustedRatio.title /= totalAvailableRatio
+            adjustedRatio.location /= totalAvailableRatio
+            adjustedRatio.collection /= totalAvailableRatio
+        }
+
+        return adjustedRatio
+    }
+
     private async createParentComments(
         commentableItems: any[],
         activeUsers: any[],
@@ -159,14 +230,7 @@ export class CommentSeeder {
                 const user = activeUsers[randomUserIndex]
 
                 const commentId = uuidv4()
-                const message =
-                    commentableType === CommentableType.TITLE
-                        ? faker.lorem.paragraph(
-                              1 + Math.floor(Math.random() * 3),
-                          )
-                        : faker.lorem.sentences(
-                              1 + Math.floor(Math.random() * 4),
-                          )
+                const message = this.generateCommentMessage(commentableType)
 
                 const createdAt = faker.date.past({ years: 1 })
 
@@ -188,6 +252,24 @@ export class CommentSeeder {
                     .get(key)
                     .push({ id: commentId, createdAt })
             }
+        }
+    }
+
+    private generateCommentMessage(commentableType: CommentableType): string {
+        switch (commentableType) {
+            case CommentableType.TITLE:
+                return faker.lorem.paragraph(1 + Math.floor(Math.random() * 3))
+            case CommentableType.LOCATION:
+                return faker.lorem.sentences(1 + Math.floor(Math.random() * 4))
+            case CommentableType.COLLECTION:
+                return faker.helpers.arrayElement([
+                    faker.lorem.paragraph(1 + Math.floor(Math.random() * 2)),
+                    `Great collection! ${faker.lorem.sentence()}`,
+                    `I love how these are organized. ${faker.lorem.sentences(1)}`,
+                    faker.lorem.sentences(2 + Math.floor(Math.random() * 2)),
+                ])
+            default:
+                return faker.lorem.sentences(1 + Math.floor(Math.random() * 3))
         }
     }
 
@@ -236,7 +318,11 @@ export class CommentSeeder {
                             commentableId: commentableId,
                             commentableType: commentableType as CommentableType,
                             parentId: parentComment.id,
-                            message: this.generateReplyMessage(i, repliesCount),
+                            message: this.generateReplyMessage(
+                                i,
+                                repliesCount,
+                                commentableType as CommentableType,
+                            ),
                             createdAt,
                             updatedAt: createdAt,
                         })
@@ -248,7 +334,29 @@ export class CommentSeeder {
         return replyCommentsBatch
     }
 
-    private generateReplyMessage(index: number, totalReplies: number): string {
+    private generateReplyMessage(
+        index: number,
+        totalReplies: number,
+        commentableType: CommentableType,
+    ): string {
+        if (
+            commentableType === CommentableType.COLLECTION &&
+            Math.random() > 0.7
+        ) {
+            const collectionReplies = [
+                'I really appreciate your thoughts on this collection.',
+                'Have you seen the other items in this collection?',
+                'This is actually one of my favorite collections too!',
+                'Would you recommend this collection to beginners?',
+                "Good point about this collection's organization.",
+            ]
+            return (
+                faker.helpers.arrayElement(collectionReplies) +
+                ' ' +
+                faker.lorem.sentence()
+            )
+        }
+
         if (index === 0) {
             return faker.lorem.sentences(1 + Math.floor(Math.random() * 3))
         } else if (index === totalReplies - 1) {
@@ -267,10 +375,20 @@ export class CommentSeeder {
             let likeCount = 0
 
             for (const comment of commentBatch) {
-                const maxLikes = comment.parentId ? 3 : 8
+                const isCollectionComment =
+                    comment.commentableType === CommentableType.COLLECTION
+                const maxLikes = comment.parentId
+                    ? isCollectionComment
+                        ? 5
+                        : 3
+                    : isCollectionComment
+                      ? 12
+                      : 8
+
+                const likeChance = isCollectionComment ? 0.8 : 0.7
                 const numberOfLikes = Math.floor(Math.random() * maxLikes)
 
-                if (Math.random() > 0.7 && numberOfLikes > 0) {
+                if (Math.random() > 1 - likeChance && numberOfLikes > 0) {
                     const shuffledUsers = [...activeUsers].sort(
                         () => Math.random() - 0.5,
                     )

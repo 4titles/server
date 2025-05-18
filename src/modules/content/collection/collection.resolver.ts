@@ -85,12 +85,16 @@ export class CollectionResolver {
         input: CreateCollectionInput,
         @Args(
             'coverImage',
-            { type: () => GraphQLUploadScalar },
+            { type: () => GraphQLUploadScalar, nullable: true },
             FileValidationPipe,
         )
-        coverImage: Upload,
+        coverImage?: Upload,
     ): Promise<Collection> {
-        return await this.collectionService.create(user, input, coverImage.file)
+        return await this.collectionService.create(
+            user,
+            input,
+            coverImage?.file,
+        )
     }
 
     @RbacProtected({
@@ -109,7 +113,11 @@ export class CollectionResolver {
         )
         coverImage?: Upload,
     ): Promise<Collection> {
-        return await this.collectionService.update(user, input, coverImage.file)
+        return await this.collectionService.update(
+            user,
+            input,
+            coverImage?.file,
+        )
     }
 
     @RbacProtected({

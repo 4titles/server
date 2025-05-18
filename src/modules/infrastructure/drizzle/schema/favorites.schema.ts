@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { index, pgTable, unique, uuid } from 'drizzle-orm/pg-core'
 import { timestamps } from '../helpers/column.helpers'
+import { collections } from './collections.schema'
 import { favorableTypeEnum } from './enums.schema'
 import { filmingLocations } from './filming-locations.schema'
 import { titles } from './titles.schema'
@@ -54,6 +55,10 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
         fields: [favorites.contextId],
         references: [titles.id],
         relationName: 'contextTitle',
+    }),
+    collection: one(collections, {
+        fields: [favorites.favorableId],
+        references: [collections.id],
     }),
 }))
 

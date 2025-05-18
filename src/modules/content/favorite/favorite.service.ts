@@ -1,5 +1,6 @@
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
 import { favorites } from '@/modules/infrastructure/drizzle/schema/favorites.schema'
+import { users } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import {
     Inject,
@@ -76,6 +77,7 @@ export class FavoriteService {
 
         const titleIds = new Set<string>()
         const locationIds = new Set<string>()
+        const collectionIds = new Set<string>()
         const contextTitleIds = new Set<string>()
 
         userFavorites.forEach((favorite) => {
@@ -86,6 +88,8 @@ export class FavoriteService {
                 if (favorite.contextId) {
                     contextTitleIds.add(favorite.contextId)
                 }
+            } else if (favorite.favorableType === FavorableType.COLLECTION) {
+                collectionIds.add(favorite.favorableId)
             }
         })
 
@@ -94,6 +98,10 @@ export class FavoriteService {
             ...contextTitleIds,
         ])
         const locationMap = await this.loadLocations([...locationIds])
+        const collectionMap = await this.loadCollections(
+            [...collectionIds],
+            userId,
+        )
 
         return userFavorites.map((favorite) => {
             const enrichedFavorite: Favorite = {
@@ -111,6 +119,10 @@ export class FavoriteService {
                         favorite.contextId,
                     )
                 }
+            } else if (favorite.favorableType === FavorableType.COLLECTION) {
+                enrichedFavorite.collection = collectionMap.get(
+                    favorite.favorableId,
+                )
             }
 
             return enrichedFavorite
@@ -350,5 +362,38 @@ export class FavoriteService {
             }),
         )
         return locationMap
+    }
+
+    private async loadCollections(
+        collectionIds: string[],
+        userId: string,
+    ): Promise<Map<string, any>> {
+        if (!collectionIds.length) return new Map()
+        const user = await this.db.query.users.findFirst({
+            where: eq(users.id, userId),
+        })
+
+        const collectionMap = new Map<string, any>()
+        await Promise.all(
+            collectionIds.map(async (collectionId) => {
+                try {
+                    const collection =
+                        await this.collectionService.findUserCollectionById(
+                            user,
+                            collectionId,
+                        )
+
+                    if (collection) {
+                        collectionMap.set(collectionId, collection)
+                    }
+                } catch (error) {
+                    this.logger.warn(
+                        `Failed to load collection ${collectionId}`,
+                        error,
+                    )
+                }
+            }),
+        )
+        return collectionMap
     }
 }

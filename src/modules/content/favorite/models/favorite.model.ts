@@ -1,5 +1,6 @@
 import { User } from '@/modules/auth/account/models/user.model'
 import { Field, ObjectType } from '@nestjs/graphql'
+import { Collection } from '../../collection/models/collection.model'
 import { Title } from '../../title/models/title.model'
 import { FilmingLocation } from '../../title/modules/filming-location/models/filming-location.model'
 import { FavorableType } from '../enums/favorable-type.enum'
@@ -38,4 +39,7 @@ export class Favorite {
 
     @Field(() => Title, { nullable: true })
     contextTitle?: Title
+
+    @Field(() => Collection, { nullable: true })
+    collection?: Collection
 }

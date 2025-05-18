@@ -671,7 +671,7 @@ export class CollectionSeeder {
             : null
 
         const uniqueId = uuidv4()
-        const collectionSlug = slug(`${title + user.username}`, {
+        const collectionSlug = slug(`${title + '-' + user.username}`, {
             fallback: true,
         })
 
