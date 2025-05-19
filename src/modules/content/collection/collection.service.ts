@@ -171,6 +171,14 @@ export class CollectionService {
         )
     }
 
+    async getCollectionsCountByUserId(userId: string): Promise<number> {
+        return await this.db
+            .select({ count: count() })
+            .from(collections)
+            .where(eq(collections.userId, userId))
+            .then((res) => res[0]?.count ?? 0)
+    }
+
     async create(
         user: User,
         input: CreateCollectionInput,

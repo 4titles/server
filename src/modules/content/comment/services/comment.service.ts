@@ -10,7 +10,7 @@ import {
     Logger,
     NotFoundException,
 } from '@nestjs/common'
-import { and, asc, desc, eq, isNull, or, sql, SQL } from 'drizzle-orm'
+import { and, asc, count, desc, eq, isNull, or, sql, SQL } from 'drizzle-orm'
 import { ContentModerationService } from '../../content-moderation/services/content-moderation.service'
 import { TitleService } from '../../title/services/title.service'
 import { CommentSortOption } from '../enums/comment-sort-option.enum'
@@ -272,6 +272,14 @@ export class CommentService {
             )
             return 0
         }
+    }
+
+    async getCommentsCountByUserId(userId: string): Promise<number> {
+        return this.db
+            .select({ count: count() })
+            .from(comments)
+            .where(eq(comments.userId, userId))
+            .then((res) => res[0]?.count ?? 0)
     }
 
     async create(input: CreateCommentInput, userId: string): Promise<boolean> {

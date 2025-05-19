@@ -1,5 +1,11 @@
+import { CollectionService } from '@/modules/content/collection/collection.service'
+import { Collection } from '@/modules/content/collection/models/collection.model'
+import { CommentService } from '@/modules/content/comment/services/comment.service'
 import { ContentModerationService } from '@/modules/content/content-moderation/services/content-moderation.service'
+import { FilmingLocationService } from '@/modules/content/title/modules/filming-location/services/filming-location.service'
 import { DRIZZLE } from '@/modules/infrastructure/drizzle/drizzle.module'
+import { collections } from '@/modules/infrastructure/drizzle/schema/collections.schema'
+import { filmingLocations } from '@/modules/infrastructure/drizzle/schema/filming-locations.schema'
 import {
     DbSocialLink,
     socialLinks,
@@ -10,8 +16,9 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/users.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { S3Service } from '@/modules/infrastructure/s3/s3.service'
+import { getSevenDaysAgo } from '@/shared/utils/time/seven-days-ago.util'
 import { ConflictException, Inject, Injectable } from '@nestjs/common'
-import { asc, desc, eq } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, or } from 'drizzle-orm'
 import * as Upload from 'graphql-upload/Upload.js'
 import sharp from 'sharp'
 import { User } from '../account/models/user.model'
@@ -21,6 +28,7 @@ import {
     SocialLinkOrderInput,
 } from './inputs/social-link.input'
 import { SocialLink } from './models/social-link.model'
+import { UserActivity } from './models/user-activity.model'
 
 @Injectable()
 export class ProfileService {
@@ -28,7 +36,64 @@ export class ProfileService {
         @Inject(DRIZZLE) private readonly db: DrizzleDB,
         private readonly s3Service: S3Service,
         private readonly contentModerationService: ContentModerationService,
+        private readonly filmingLocationService: FilmingLocationService,
+        private readonly collectionService: CollectionService,
+        private readonly commentService: CommentService,
     ) {}
+
+    async findById(id: string): Promise<User | null> {
+        return await this.db.query.users.findFirst({
+            where: eq(users.id, id),
+        })
+    }
+
+    async findByUsername(username: string): Promise<Partial<User> | null> {
+        const profile = await this.db.query.users.findFirst({
+            where: eq(users.username, username),
+            with: {
+                socialLinks: true,
+                followers: {
+                    with: {
+                        follower: true,
+                    },
+                },
+                followings: {
+                    with: {
+                        following: true,
+                    },
+                },
+            },
+        })
+
+        if (!profile) return null
+
+        const [locationsAdded, collectionsAdded, commentsCreated, activity] =
+            await Promise.all([
+                this.filmingLocationService.getFilmingLocationsCountByUserId(
+                    profile.id,
+                ),
+                this.collectionService.getCollectionsCountByUserId(profile.id),
+                this.commentService.getCommentsCountByUserId(profile.id),
+                this.getUserActivityForLastWeek(profile.id),
+            ])
+
+        return {
+            id: profile.id,
+            email: profile.email,
+            displayName: profile.displayName,
+            avatar: profile.avatar,
+            bio: profile.bio,
+            username: profile.username,
+            createdAt: profile.createdAt,
+            socialLinks: profile.socialLinks,
+            followers: profile.followers,
+            followings: profile.followings,
+            locationsAdded,
+            collectionsAdded,
+            commentsCreated,
+            activity,
+        }
+    }
 
     async changeAvatar(user: User, file: Upload): Promise<boolean> {
         if (user.avatar) {
@@ -217,5 +282,108 @@ export class ProfileService {
     async removeSocialLink(id: string): Promise<boolean> {
         await this.db.delete(socialLinks).where(eq(socialLinks.id, id))
         return true
+    }
+
+    async getUserActivityForLastWeek(userId: string): Promise<UserActivity> {
+        const cutoffDate = getSevenDaysAgo()
+
+        const user = await this.findById(userId)
+
+        const userFilmingLocations = await this.getRecentFilmingLocations(
+            userId,
+            cutoffDate,
+        )
+
+        const userCollections = await this.getRecentCollections(
+            userId,
+            cutoffDate,
+        )
+
+        return {
+            filmingLocations: userFilmingLocations,
+            collections: userCollections,
+            user,
+            periodStart: cutoffDate,
+            periodEnd: new Date(),
+        }
+    }
+
+    private async getRecentFilmingLocations(userId: string, cutoffDate: Date) {
+        return await this.db.query.filmingLocations.findMany({
+            where: and(
+                eq(filmingLocations.userId, userId),
+                gte(filmingLocations.createdAt, cutoffDate),
+            ),
+            orderBy: desc(filmingLocations.createdAt),
+            with: {
+                country: true,
+                descriptions: {
+                    with: {
+                        language: true,
+                    },
+                },
+            },
+        })
+    }
+
+    private async getRecentCollections(
+        userId: string,
+        cutoffDate: Date,
+    ): Promise<Collection[]> {
+        const recentCollections = await this.db.query.collections.findMany({
+            where: and(
+                eq(collections.userId, userId),
+                or(
+                    gte(collections.createdAt, cutoffDate),
+                    gte(collections.updatedAt, cutoffDate),
+                ),
+            ),
+            orderBy: desc(collections.updatedAt),
+        })
+
+        return await Promise.all(
+            recentCollections.map(async (collection) => {
+                return await this.collectionService.findCollectionBySlug(
+                    collection.slug,
+                )
+            }),
+        )
+    }
+
+    async getUserActivitySummary(user: User): Promise<{
+        recentLocationsCount: number
+        recentCollectionsCount: number
+    }> {
+        const cutoffDate = getSevenDaysAgo()
+
+        const recentLocationsCount = await this.db
+            .select({ count: count() })
+            .from(filmingLocations)
+            .where(
+                and(
+                    eq(filmingLocations.userId, user.id),
+                    gte(filmingLocations.createdAt, cutoffDate),
+                ),
+            )
+            .then((result) => Number(result[0]?.count || 0))
+
+        const recentCollectionsCount = await this.db
+            .select({ count: count() })
+            .from(collections)
+            .where(
+                and(
+                    eq(collections.userId, user.id),
+                    or(
+                        gte(collections.createdAt, cutoffDate),
+                        gte(collections.updatedAt, cutoffDate),
+                    ),
+                ),
+            )
+            .then((result) => Number(result[0]?.count || 0))
+
+        return {
+            recentLocationsCount,
+            recentCollectionsCount,
+        }
     }
 }

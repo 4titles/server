@@ -25,12 +25,19 @@ export class ProfileResolver {
         possession: 'own',
     })
     @Mutation(() => Boolean)
-    public async changeAvatar(
+    async changeAvatar(
         @Authorized() user: User,
         @Args('avatar', { type: () => GraphQLUploadScalar }, FileValidationPipe)
         avatar: Upload,
     ) {
-        return this.profileService.changeAvatar(user, avatar.file)
+        return await this.profileService.changeAvatar(user, avatar.file)
+    }
+
+    @Query(() => User)
+    async findProfileByUsername(
+        @Args('username', { type: () => String }) username: string,
+    ) {
+        return await this.profileService.findByUsername(username)
     }
 
     @RbacProtected({

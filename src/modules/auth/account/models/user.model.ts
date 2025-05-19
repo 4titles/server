@@ -2,8 +2,9 @@ import { Comment } from '@/modules/content/comment/models/comment.model'
 import { Follow } from '@/modules/content/follow/models/follow.model'
 import { NotificationSettings } from '@/modules/infrastructure/notification/models/notification-settings.model'
 import { Notification } from '@/modules/infrastructure/notification/models/notification.model'
-import { Field, ObjectType } from '@nestjs/graphql'
+import { Field, Int, ObjectType } from '@nestjs/graphql'
 import { SocialLink } from '../../profile/models/social-link.model'
+import { UserActivity } from '../../profile/models/user-activity.model'
 import { Role } from '../../rbac/models/role.model'
 
 @ObjectType()
@@ -76,4 +77,16 @@ export class User {
 
     @Field(() => [Comment], { nullable: true })
     comments?: Comment[]
+
+    @Field(() => Int)
+    locationsAdded?: number
+
+    @Field(() => Int)
+    collectionsAdded?: number
+
+    @Field(() => Int)
+    commentsCreated?: number
+
+    @Field(() => UserActivity, { nullable: true })
+    activity?: UserActivity
 }

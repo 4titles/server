@@ -5,7 +5,7 @@ import {
 } from '@/modules/infrastructure/drizzle/schema/filming-locations.schema'
 import { DrizzleDB } from '@/modules/infrastructure/drizzle/types/drizzle'
 import { Inject, Injectable } from '@nestjs/common'
-import { and, eq, ilike, or, SQL } from 'drizzle-orm'
+import { and, count, eq, ilike, or, SQL } from 'drizzle-orm'
 import { CountryService } from '../../country/country.service'
 import { Country } from '../../country/models/country.model'
 import { GeocodingService } from '../../geocoding/geocoding.service'
@@ -172,5 +172,13 @@ export class FilmingLocationService {
             .update(filmingLocations)
             .set(locationUpdate)
             .where(eq(filmingLocations.id, locationId))
+    }
+
+    async getFilmingLocationsCountByUserId(userId: string): Promise<number> {
+        return await this.db
+            .select({ count: count() })
+            .from(filmingLocations)
+            .where(eq(filmingLocations.userId, userId))
+            .then((res) => res[0]?.count ?? 0)
     }
 }
