@@ -12,17 +12,42 @@ interface MetadataSectionProps {
 
 export const MeatadataSection = ({ metadata }: MetadataSectionProps) => {
     return (
-        <Section className={`rounded-lg p-6 mb-6`}>
+        <Section
+            style={{
+                backgroundColor: TEMPLATE_COLORS.background,
+                padding: '20px',
+                borderRadius: '8px',
+                marginBottom: '28px',
+                marginTop: '8px',
+                borderLeft: `3px solid ${TEMPLATE_COLORS.primary}`,
+                WebkitBorderRadius: '8px',
+                MozBorderRadius: '8px',
+            }}
+        >
             <Heading
-                className={`text-xl font-semibold text-[${TEMPLATE_COLORS.secondary}]`}
+                style={{
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    margin: '0 0 16px 0',
+                    padding: 0,
+                    color: TEMPLATE_COLORS.foreground,
+                }}
             >
                 Данные запроса:
             </Heading>
 
             <MetadataList metadata={transformMetadata(metadata)} />
 
-            <Text className={`text-[${TEMPLATE_COLORS.secondary}] mt-2`}>
-                Если Вы не инициировали этот запрос, пожалуйста, проигнорируйте
+            <Text
+                style={{
+                    color: TEMPLATE_COLORS.textSecondary,
+                    fontSize: '14px',
+                    margin: '16px 0 0 0',
+                    lineHeight: '22px',
+                    fontStyle: 'italic',
+                }}
+            >
+                Если вы не инициировали этот запрос, пожалуйста, проигнорируйте
                 это сообщение.
             </Text>
         </Section>

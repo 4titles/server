@@ -1,4 +1,5 @@
 import * as React from 'react'
+
 import { TEMPLATE_COLORS } from '../constants/colors.constants'
 import type { TransformedLocationInfo } from '../utils/transform-metadata.util'
 
@@ -16,16 +17,49 @@ export const MetadataList = ({ metadata }: MetadataListProps) => {
     ].filter((item) => item.value !== null)
 
     return (
-        <ul className="list-disc list-inside mt-2">
-            {items.map(({ label, value }) => (
-                <li
-                    key={label}
-                    className={`text-[${TEMPLATE_COLORS.secondary}]`}
-                >
-                    <b>{label}: </b>
-                    {value}
-                </li>
-            ))}
-        </ul>
+        <table
+            style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                border: 'none',
+                borderSpacing: 0,
+                marginBottom: '8px',
+                marginTop: '8px',
+            }}
+            cellPadding="0"
+            cellSpacing="0"
+        >
+            <tbody>
+                {items.map(({ label, value }) => (
+                    <tr key={label}>
+                        <td
+                            style={{
+                                textAlign: 'left',
+                                verticalAlign: 'top',
+                                paddingBottom: '8px',
+                                paddingRight: '12px',
+                                color: TEMPLATE_COLORS.textPrimary,
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                minWidth: '120px',
+                            }}
+                        >
+                            {label}:
+                        </td>
+                        <td
+                            style={{
+                                textAlign: 'left',
+                                verticalAlign: 'top',
+                                paddingBottom: '8px',
+                                color: TEMPLATE_COLORS.textPrimary,
+                                fontSize: '14px',
+                            }}
+                        >
+                            {value}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
     )
 }

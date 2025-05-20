@@ -1,12 +1,13 @@
+import * as React from 'react'
+
 import {
     COMPANY_NAME,
     COMPANY_SUPPORT_EMAIL,
 } from '@/shared/constants/company.constants'
 import { Link, Section, Text } from '@react-email/components'
-import * as React from 'react'
 import { TEMPLATE_COLORS } from '../constants/colors.constants'
 
-interface Props {
+interface SupportSectionProps {
     companyName?: string
     supportEmail?: string
 }
@@ -14,11 +15,23 @@ interface Props {
 export const SupportSection = ({
     companyName = COMPANY_NAME,
     supportEmail = COMPANY_SUPPORT_EMAIL,
-}: Props) => {
+}: SupportSectionProps) => {
     return (
-        <Section className="text-center border-t border-[#243242]">
+        <Section
+            style={{
+                textAlign: 'center',
+                marginTop: '32px',
+                paddingTop: '24px',
+                borderTop: `1px solid ${TEMPLATE_COLORS.divider}`,
+            }}
+        >
             <Text
-                className={`text-[${TEMPLATE_COLORS.muted}] text-sm leading-6`}
+                style={{
+                    fontSize: '14px',
+                    lineHeight: '24px',
+                    color: TEMPLATE_COLORS.textSecondary,
+                    margin: '0 0 8px 0',
+                }}
             >
                 Если у вас возникли вопросы или трудности при работе с
                 платформой <strong>{companyName}</strong>, пожалуйста,
@@ -26,7 +39,13 @@ export const SupportSection = ({
             </Text>
             <Link
                 href={`mailto:${supportEmail}`}
-                className={`text-[${TEMPLATE_COLORS.muted}] underline text-sm`}
+                style={{
+                    color: TEMPLATE_COLORS.primary,
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    textDecoration: 'underline',
+                }}
+                target="_blank"
             >
                 {supportEmail}
             </Link>

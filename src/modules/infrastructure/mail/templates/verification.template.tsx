@@ -1,21 +1,13 @@
+import * as React from 'react'
+
 import {
     COMPANY_NAME,
     COMPANY_SUPPORT_EMAIL,
 } from '@/shared/constants/company.constants'
-import {
-    Body,
-    Button,
-    Container,
-    Head,
-    Hr,
-    Html,
-    Preview,
-    Section,
-    Tailwind,
-    Text,
-} from '@react-email/components'
-import * as React from 'react'
-import { HeaderSection } from './components/header-section'
+import { Section, Text } from '@react-email/components'
+import { BaseTemplate } from './base-template'
+import { Header } from './components/header'
+import { MailButton } from './components/mail-button'
 import { SupportSection } from './components/support-section'
 import { TEMPLATE_COLORS } from './constants/colors.constants'
 
@@ -35,48 +27,65 @@ export const VerificationTemplate = ({
     const verificationLink = `${domain}/account/verify?token=${token}`
 
     return (
-        <Html lang="ru">
-            <Head />
-            <Preview>Подтвердите ваш email-адрес в {companyName}</Preview>
-            <Tailwind>
-                <Body className="bg-white">
-                    <Container className="max-w-3xl mx-auto my-8">
-                        <Section
-                            className={`bg-[${TEMPLATE_COLORS.primary}] p-8 rounded-lg shadow-lg`}
-                        >
-                            {/* Header Section */}
-                            <HeaderSection title="Подтверждение email-адреса" />
+        <BaseTemplate
+            preview={`Подтвердите ваш email-адрес в ${companyName}`}
+            companyName={companyName}
+        >
+            <Header
+                title="Подтверждение email-адреса"
+                description={`Благодарим вас за регистрацию в ${companyName}!`}
+            />
 
-                            {/* Main Content */}
-                            <Section className="text-center mb-8">
-                                <Text
-                                    className={`text-[${TEMPLATE_COLORS.secondary}] text-base leading-6 mb-6`}
-                                >
-                                    Благодарим вас за регистрацию на платформе{' '}
-                                    <strong>{companyName}</strong>! Для
-                                    подтверждения адреса электронной почты
-                                    нажмите на кнопку ниже:
-                                </Text>
+            <Section style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <Text
+                    style={{
+                        fontSize: '16px',
+                        color: TEMPLATE_COLORS.textPrimary,
+                        lineHeight: '24px',
+                        margin: '0 0 16px 0',
+                        textAlign: 'center',
+                    }}
+                >
+                    Для завершения регистрации и подтверждения адреса
+                    электронной почты, пожалуйста, нажмите на кнопку ниже:
+                </Text>
 
-                                <Button
-                                    href={verificationLink}
-                                    className={`inline-flex justify-center items-center rounded-full text-sm font-bold text-[${TEMPLATE_COLORS.secondary}] bg-[${TEMPLATE_COLORS.accent}] px-5 py-2`}
-                                >
-                                    Подтвердить email
-                                </Button>
-                            </Section>
+                <div style={{ textAlign: 'center' }}>
+                    <MailButton href={verificationLink} align="center">
+                        Подтвердить email
+                    </MailButton>
+                </div>
 
-                            <Hr className="my-[16px] border-t-2 border-gray-300" />
+                <Text
+                    style={{
+                        fontSize: '14px',
+                        color: TEMPLATE_COLORS.textSecondary,
+                        lineHeight: '21px',
+                        margin: '16px 0 0 0',
+                        textAlign: 'center',
+                    }}
+                >
+                    Если вы не регистрировались в {companyName}, просто
+                    проигнорируйте это письмо.
+                </Text>
 
-                            {/* Support Section */}
-                            <SupportSection
-                                companyName={companyName}
-                                supportEmail={supportEmail}
-                            />
-                        </Section>
-                    </Container>
-                </Body>
-            </Tailwind>
-        </Html>
+                <Text
+                    style={{
+                        fontSize: '13px',
+                        color: TEMPLATE_COLORS.textSecondary,
+                        fontStyle: 'italic',
+                        margin: '12px 0 0 0',
+                        textAlign: 'center',
+                    }}
+                >
+                    Ссылка действительна в течение 24 часов.
+                </Text>
+            </Section>
+
+            <SupportSection
+                companyName={companyName}
+                supportEmail={supportEmail}
+            />
+        </BaseTemplate>
     )
 }

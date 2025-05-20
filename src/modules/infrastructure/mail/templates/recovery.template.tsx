@@ -1,22 +1,14 @@
+import * as React from 'react'
+
 import {
     COMPANY_NAME,
     COMPANY_SUPPORT_EMAIL,
 } from '@/shared/constants/company.constants'
 import type { SessionMetadata } from '@/shared/types/session-metadata.types'
-import {
-    Body,
-    Button,
-    Container,
-    Head,
-    Hr,
-    Html,
-    Preview,
-    Section,
-    Tailwind,
-    Text,
-} from '@react-email/components'
-import * as React from 'react'
-import { HeaderSection } from './components/header-section'
+import { Section, Text } from '@react-email/components'
+import { BaseTemplate } from './base-template'
+import { Header } from './components/header'
+import { MailButton } from './components/mail-button'
 import { MeatadataSection } from './components/metadata-section'
 import { SupportSection } from './components/support-section'
 import { TEMPLATE_COLORS } from './constants/colors.constants'
@@ -39,58 +31,55 @@ export const RecoveryTemplate = ({
     const resetLink = `${domain}/account/recovery/${token}`
 
     return (
-        <Html lang="ru">
-            <Head />
-            <Preview>Сброс пароля {companyName}</Preview>
-            <Tailwind>
-                <Body>
-                    <Container className="max-w-3xl mx-auto my-8">
-                        <Section
-                            className={`bg-[${TEMPLATE_COLORS.primary}] p-8 rounded-lg shadow-lg`}
-                        >
-                            {/* Header Section */}
-                            <HeaderSection title="Сброс пароля" />
+        <BaseTemplate
+            preview={`Сброс пароля ${companyName}`}
+            companyName={companyName}
+        >
+            <Header
+                title="Сброс пароля"
+                description="Вы запросили восстановление доступа к своему аккаунту"
+            />
 
-                            {/* Main Content */}
-                            <Section className="text-center mb-8">
-                                <Text
-                                    className={`text-[${TEMPLATE_COLORS.secondary}] text-base mt-2`}
-                                >
-                                    Вы запросили сброс пароля для вашей учётной
-                                    записи на платформе <b>{companyName}</b>.
-                                </Text>
+            <Section style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <Text
+                    style={{
+                        fontSize: '16px',
+                        color: TEMPLATE_COLORS.textPrimary,
+                        lineHeight: '24px',
+                        margin: '0 0 16px 0',
+                        textAlign: 'center',
+                    }}
+                >
+                    Для создания нового пароля для вашей учётной записи на
+                    платформе <strong>{companyName}</strong>, пожалуйста,
+                    нажмите на кнопку ниже:
+                </Text>
 
-                                <Text
-                                    className={`text-[${TEMPLATE_COLORS.secondary}] text-base mt-2`}
-                                >
-                                    Для создания нового пароля нажмите на кнопку
-                                    ниже:
-                                </Text>
+                <div style={{ textAlign: 'center' }}>
+                    <MailButton href={resetLink} align="center">
+                        Сбросить пароль
+                    </MailButton>
+                </div>
 
-                                <Button
-                                    href={resetLink}
-                                    className={`inline-flex justify-center items-center rounded-full text-sm font-bold text-[${TEMPLATE_COLORS.secondary}] bg-[${TEMPLATE_COLORS.accent}] px-5 py-2`}
-                                >
-                                    Сбросить пароль
-                                </Button>
-                            </Section>
+                <Text
+                    style={{
+                        fontSize: '14px',
+                        color: TEMPLATE_COLORS.textSecondary,
+                        lineHeight: '21px',
+                        margin: '16px 0 0 0',
+                        textAlign: 'center',
+                    }}
+                >
+                    Ссылка действительна в течение 30 минут.
+                </Text>
+            </Section>
 
-                            <Hr className="my-[16px] border-t-2 border-gray-300" />
+            <MeatadataSection metadata={metadata} />
 
-                            {/* Metadata section */}
-                            <MeatadataSection metadata={metadata} />
-
-                            <Hr className="my-[16px] border-t-2 border-gray-300" />
-
-                            {/* Support Section */}
-                            <SupportSection
-                                companyName={companyName}
-                                supportEmail={supportEmail}
-                            />
-                        </Section>
-                    </Container>
-                </Body>
-            </Tailwind>
-        </Html>
+            <SupportSection
+                companyName={companyName}
+                supportEmail={supportEmail}
+            />
+        </BaseTemplate>
     )
 }

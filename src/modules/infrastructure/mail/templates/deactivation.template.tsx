@@ -1,22 +1,13 @@
+import * as React from 'react'
+
 import {
     COMPANY_NAME,
     COMPANY_SUPPORT_EMAIL,
 } from '@/shared/constants/company.constants'
 import type { SessionMetadata } from '@/shared/types/session-metadata.types'
-import {
-    Body,
-    Container,
-    Head,
-    Heading,
-    Hr,
-    Html,
-    Preview,
-    Section,
-    Tailwind,
-    Text,
-} from '@react-email/components'
-import * as React from 'react'
-import { HeaderSection } from './components/header-section'
+import { Section, Text } from '@react-email/components'
+import { BaseTemplate } from './base-template'
+import { Header } from './components/header'
 import { MeatadataSection } from './components/metadata-section'
 import { SupportSection } from './components/support-section'
 import { TEMPLATE_COLORS } from './constants/colors.constants'
@@ -28,64 +19,73 @@ interface DeactivationTemplateProps {
     supportEmail?: string
 }
 
-export const DeactiveTemplate = ({
+export const DeactivationTemplate = ({
     token,
     metadata,
     companyName = COMPANY_NAME,
     supportEmail = COMPANY_SUPPORT_EMAIL,
 }: DeactivationTemplateProps) => {
     return (
-        <Html lang="ru">
-            <Head />
-            <Preview>Деактивация аккаунта {companyName}</Preview>
-            <Tailwind>
-                <Body>
-                    <Container className="max-w-3xl mx-auto my-8">
-                        <Section
-                            className={`bg-[${TEMPLATE_COLORS.primary}] p-8 rounded-lg shadow-lg`}
-                        >
-                            {/* Header Section */}
-                            <HeaderSection title="Деактивация аккаунта" />
+        <BaseTemplate
+            preview={`Деактивация аккаунта ${companyName}`}
+            companyName={companyName}
+        >
+            <Header
+                title="Деактивация аккаунта"
+                description="Вы запросили деактивацию своего аккаунта"
+            />
 
-                            {/* Main Content */}
-                            <Section className="text-center mb-8">
-                                <Text
-                                    className={`text-[${TEMPLATE_COLORS.secondary}] text-base mt-2`}
-                                >
-                                    Вы запросили деактивацию своего аккаунта на
-                                    платформе <b>{companyName}</b>.
-                                </Text>
-                            </Section>
+            <Section
+                style={{
+                    backgroundColor: TEMPLATE_COLORS.background,
+                    padding: '20px',
+                    marginBottom: '24px',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                }}
+            >
+                <Text
+                    style={{
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: TEMPLATE_COLORS.foreground,
+                        marginBottom: '12px',
+                    }}
+                >
+                    Код подтверждения:
+                </Text>
+                <Text
+                    style={{
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        color: TEMPLATE_COLORS.foreground,
+                        letterSpacing: '2px',
+                        marginBottom: '12px',
+                        padding: '10px',
+                        backgroundColor: 'white',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                    }}
+                >
+                    {token}
+                </Text>
+                <Text
+                    style={{
+                        fontSize: '14px',
+                        color: TEMPLATE_COLORS.mutedForeground,
+                        marginTop: '8px',
+                    }}
+                >
+                    Код является действительным в течение 5 минут.
+                </Text>
+            </Section>
 
-                            <Section className="bg-gray-100 rounded-lg p-6 text-center mb-6">
-                                <Heading className="text-2xl text-black font-semibold">
-                                    Код подтверждения:
-                                </Heading>
-                                <Heading className="text-3xl text-black font-bold">
-                                    {token}
-                                </Heading>
-                                <Text>
-                                    Код является действительным в течение 5
-                                    минут.
-                                </Text>
-                            </Section>
+            <MeatadataSection metadata={metadata} />
 
-                            <Hr className="my-[16px] border-t-2 border-gray-300" />
-
-                            {/* Metadata section */}
-                            <MeatadataSection metadata={metadata} />
-
-                            <Hr className="my-[16px] border-t-2 border-gray-300" />
-
-                            {/* Support Section */}
-                            <SupportSection
-                                companyName={companyName}
-                                supportEmail={supportEmail}
-                            />
-                        </Section>
-                    </Container>
-                </Body>
-            </Tailwind>
-        </Html>
+            <SupportSection
+                companyName={companyName}
+                supportEmail={supportEmail}
+            />
+        </BaseTemplate>
     )
 }

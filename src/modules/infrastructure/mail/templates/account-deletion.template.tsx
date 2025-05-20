@@ -1,22 +1,14 @@
+import * as React from 'react'
+
 import {
     COMPANY_DOMAIN,
     COMPANY_NAME,
     COMPANY_SUPPORT_EMAIL,
 } from '@/shared/constants/company.constants'
-import {
-    Body,
-    Button,
-    Container,
-    Head,
-    Hr,
-    Html,
-    Preview,
-    Section,
-    Tailwind,
-    Text,
-} from '@react-email/components'
-import * as React from 'react'
-import { HeaderSection } from './components/header-section'
+import { Section, Text } from '@react-email/components'
+import { BaseTemplate } from './base-template'
+import { Header } from './components/header'
+import { MailButton } from './components/mail-button'
 import { SupportSection } from './components/support-section'
 import { TEMPLATE_COLORS } from './constants/colors.constants'
 
@@ -34,65 +26,66 @@ export const AccountDeletionTemplate = ({
     const accountCreationLink = `https://${domain}/account/create`
 
     return (
-        <Html lang="ru">
-            <Head />
-            <Preview>Аккаунт {companyName} был удалён</Preview>
-            <Tailwind>
-                <Body className="bg-white">
-                    <Container className="max-w-3xl mx-auto my-8">
-                        <Section
-                            className={`bg-[${TEMPLATE_COLORS.primary}] p-8 rounded-lg shadow-lg`}
-                        >
-                            {/* Header Section */}
-                            <HeaderSection title="Ваш аккаунт был удалён" />
+        <BaseTemplate
+            preview={`Аккаунт ${companyName} был удалён`}
+            companyName={companyName}
+        >
+            <Header
+                title="Ваш аккаунт был удалён"
+                description="Данные вашего аккаунта полностью удалены с платформы"
+            />
 
-                            <Text
-                                className={`text-[${TEMPLATE_COLORS.secondary}] text-base mt-2`}
-                            >
-                                Ваш аккаунт был полностью удалён с платформы{' '}
-                                {companyName}. Информация и данные не подлежат
-                                восстановлению.
-                            </Text>
+            <Section style={{ marginBottom: '24px' }}>
+                <Text
+                    style={{
+                        fontSize: '16px',
+                        color: TEMPLATE_COLORS.textPrimary,
+                        lineHeight: '24px',
+                        margin: '0 0 16px 0',
+                    }}
+                >
+                    Благодарим вас за то, что приняли участие в развитии
+                    платформы! С текущего момента вы больше не будете получать
+                    уведомления на почту или телеграм.
+                </Text>
 
-                            {/* Main Content */}
-                            <Section className="text-center p-6 mb-4">
-                                <Text
-                                    className={`text-[${TEMPLATE_COLORS.secondary}] text-base leading-6 mb-6`}
-                                >
-                                    Благодарим вас за то, что приняли участие в
-                                    развитии платформы! С текущего моменты Вы
-                                    больше не будете получения уведомления на
-                                    почту или телеграм.
-                                </Text>
+                <Text
+                    style={{
+                        fontSize: '16px',
+                        color: TEMPLATE_COLORS.textPrimary,
+                        lineHeight: '24px',
+                        margin: '0 0 20px 0',
+                    }}
+                >
+                    Информация и данные вашего аккаунта не подлежат
+                    восстановлению.
+                </Text>
+            </Section>
 
-                                <Text
-                                    className={`text-[${TEMPLATE_COLORS.muted}] text-base leading-6 mb-6`}
-                                >
-                                    Если Вы захотите вернуться в число
-                                    пользователей платформы, то Вы можете
-                                    создать аккаунт повторно, кликнув на кнопку
-                                    ниже:
-                                </Text>
+            <Section style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <Text
+                    style={{
+                        fontSize: '16px',
+                        color: TEMPLATE_COLORS.textSecondary,
+                        marginBottom: '16px',
+                        textAlign: 'center',
+                    }}
+                >
+                    Если вы захотите вернуться в число пользователей платформы,
+                    вы можете создать аккаунт повторно:
+                </Text>
 
-                                <Button
-                                    href={accountCreationLink}
-                                    className={`inline-flex justify-center items-center rounded-full text-sm font-bold text-[${TEMPLATE_COLORS.secondary}] bg-[${TEMPLATE_COLORS.accent}] px-5 py-2`}
-                                >
-                                    Зарегестрироваться
-                                </Button>
-                            </Section>
+                <div style={{ textAlign: 'center' }}>
+                    <MailButton href={accountCreationLink} align="center">
+                        Зарегистрироваться
+                    </MailButton>
+                </div>
+            </Section>
 
-                            <Hr className="my-[16px] border-t-2 border-gray-300" />
-
-                            {/* Support Section */}
-                            <SupportSection
-                                companyName={companyName}
-                                supportEmail={supportEmail}
-                            />
-                        </Section>
-                    </Container>
-                </Body>
-            </Tailwind>
-        </Html>
+            <SupportSection
+                companyName={companyName}
+                supportEmail={supportEmail}
+            />
+        </BaseTemplate>
     )
 }

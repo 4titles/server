@@ -6,7 +6,7 @@ import { render } from '@react-email/components'
 import { CourierClient } from '@trycourier/courier'
 import { MailType } from './enums/mail-type.enum'
 import { AccountDeletionTemplate } from './templates/account-deletion.template'
-import { DeactiveTemplate } from './templates/deactivation.template'
+import { DeactivationTemplate } from './templates/deactivation.template'
 import { RecoveryTemplate } from './templates/recovery.template'
 import { VerificationTemplate } from './templates/verification.template'
 
@@ -53,7 +53,7 @@ export class MailService {
         token: string,
         metadata: SessionMetadata,
     ): Promise<boolean> {
-        const html = await render(DeactiveTemplate({ token, metadata }))
+        const html = await render(DeactivationTemplate({ token, metadata }))
         return this.sendMail(
             email,
             'Деактивация аккаунта',

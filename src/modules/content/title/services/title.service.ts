@@ -208,7 +208,6 @@ export class TitleService {
             'withFilmingLocations' in filterInput &&
             filterInput.withFilmingLocations !== undefined
         ) {
-            console.log('yea')
             conditions.push(
                 eq(titles.hasLocations, filterInput.withFilmingLocations),
             )
