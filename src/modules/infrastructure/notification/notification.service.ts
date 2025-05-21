@@ -97,8 +97,7 @@ export class NotificationService {
 
     async createNewFollowingUserNotification(userId: string, follower: User) {
         const newNotification = {
-            message: `<b className='font-bold'>Пользователь <a href='${follower.username}
-            className='font-semibold'>${follower.displayName}</a> подписался на Ваши обновления.</b>`,
+            message: `<b className='font-bold'>Пользователь <a href='/profile/${follower.username}' className='font-semibold'>${follower.displayName}</a> подписался на Ваши обновления.</b>`,
             type: NotificationType.NEW_FOLLOWER,
             userId,
         }

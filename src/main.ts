@@ -11,8 +11,10 @@ import {
 } from '@nestjs/platform-fastify'
 import Redis from 'ioredis'
 import MercuriusGQLUpload from 'mercurius-upload'
+import { WinstonModule } from 'nest-winston'
 import { AppModule } from './app.module'
 import getRedisConfig from './config/redis.config'
+import getWinstonConfig from './config/winston.config'
 import {
     COMPANY_DESCRIPTION,
     COMPANY_NAME,
@@ -29,11 +31,14 @@ async function bootstrap() {
         }),
         {
             bufferLogs: true,
+            logger: WinstonModule.createLogger(
+                getWinstonConfig(new ConfigService()),
+            ),
         },
     )
 
     const appLogger = app.get(AppLoggerService)
-    appLogger.setContext('Global')
+    appLogger.setContext('Bootstrap')
     app.useLogger(appLogger)
 
     try {

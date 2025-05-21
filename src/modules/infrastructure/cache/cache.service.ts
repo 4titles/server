@@ -20,6 +20,15 @@ export class CacheService implements OnModuleInit {
         }
 
         this.redis = await this.initializeRedis(config)
+
+        setInterval(async () => {
+            try {
+                await this.redis.ping()
+                this.logger.debug('PING sent to Redis')
+            } catch (error) {
+                this.logger.error('PING failed:', error)
+            }
+        }, 2000)
     }
 
     private async initializeRedis(config: RedisOptions): Promise<Redis> {

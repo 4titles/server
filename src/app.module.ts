@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { GraphQLModule } from '@nestjs/graphql'
 
 import { LoggerModule } from '@/shared/logger/logger.module'
+import { WinstonModule } from 'nest-winston'
 import { AuthModule } from './modules/auth/auth.module'
 import { CliModule } from './modules/cli/cli.module'
 import { ContentModule } from './modules/content/content.module'
@@ -13,6 +14,7 @@ import { InfrastructureModule } from './modules/infrastructure/infrastructure.mo
 import getBullMQConfig from './config/bullmq.config'
 import getGraphQLConfig from './config/graphql.config'
 import tmdbConfig from './config/tmdb.config'
+import getWinstonConfig from './config/winston.config'
 
 @Module({
     imports: [
@@ -20,6 +22,7 @@ import tmdbConfig from './config/tmdb.config'
             isGlobal: true,
             load: [tmdbConfig],
         }),
+        WinstonModule.forRoot(getWinstonConfig(new ConfigService())),
         GraphQLModule.forRootAsync({
             driver: ApolloDriver,
             useFactory: getGraphQLConfig,
@@ -29,11 +32,11 @@ import tmdbConfig from './config/tmdb.config'
             useFactory: getBullMQConfig,
             inject: [ConfigService],
         }),
+        LoggerModule,
         AuthModule,
         ContentModule,
         InfrastructureModule,
         CliModule,
-        LoggerModule,
     ],
 })
 export class AppModule {}
